@@ -47,6 +47,7 @@ import Navigation from '@/components/Navigation';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs for chat messages
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 // --- Interfaces (reused from previous components) ---
 interface FinancialData {
@@ -268,6 +269,7 @@ const AskKudiGuardChatPage = () => {
   const { session, supabase } = useSession();
   const { toast } = useToast();
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   // --- Chat State ---
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -591,6 +593,7 @@ const AskKudiGuardChatPage = () => {
     // queryClient.invalidateQueries({ queryKey: ['dashboardDecisions'] }); // Assuming queryClient is available
     // queryClient.invalidateQueries({ queryKey: ['userDecisions'] });
     // queryClient.invalidateQueries({ queryKey: ['userDecisionsProfile'] });
+    navigate('/dashboard'); // Navigate to the dashboard
   };
 
   // Determine which fields to show based on the intent
