@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import Navigation from '@/components/Navigation';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -14,43 +13,32 @@ import {
   Save,
   Bell,
   Shield,
-  Target,
-  PiggyBank,
-  TrendingUp,
-  DollarSign,
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
-import FinancialGoalSelect from '@/components/FinancialGoalSelect'; // Import new component
-import { useQuery } from '@tanstack/react-query'; // Import useQuery
+import { useSession } from '@/components/auth/SessionContextProvider';
+import { useQuery } from '@tanstack/react-query';
 
 interface Decision {
   id: string;
   created_at: string;
   question: string;
-  decision_result: string;
-  decision_status: 'success' | 'warning' | 'danger';
-  monthly_revenue: number;
-  monthly_expenses: number;
-  current_savings: number;
-  staff_payroll?: number;
+  decision_type: string;
+  recommendation: string;
+  confidence_level: 'recommended' | 'cautious' | 'not_advisable';
   explanation: string;
-  next_steps?: string[];
-  financial_health_score?: number; // Added new field
-  score_interpretation?: string; // Added new field
+  financial_health_score?: number;
+  score_interpretation?: string;
 }
 
 const Profile = () => {
-  const { session, supabase, isLoading, userDisplayName, avatarUrl, onboardingCompleted } = useSession();
+  const { session, supabase, isLoading, userDisplayName, avatarUrl } = useSession(); // Removed onboardingCompleted
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
-    firstName: '',
-    lastName: '',
+    fullName: '', // Changed from firstName, lastName
     email: '',
     businessName: '',
-    financialGoal: '',
     avatarUrl: '',
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -61,7 +49,7 @@ const Profile = () => {
       const fetchProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('first_name, last_name, business_name, financial_goal, avatar_url')
+          .select('full_name, business_name, avatar_url') // Select full_name
           .eq('id', session.user.id)
           .single();
 
@@ -73,11 +61,9 @@ const Profile = () => {
           });
         } else if (data) {
           setProfileData({
-            firstName: data.first_name || '',
-            lastName: data.last_name || '',
+            fullName: data.full_name || '',
             email: session.user.email || '',
             businessName: data.business_name || '',
-            financialGoal: data.financial_goal || '',
             avatarUrl: data.avatar_url || '',
           });
         } else {
@@ -98,7 +84,7 @@ const Profile = () => {
       return [];
     }
     const { data, error } = await supabase
-      .from('decisions')
+      .from('finance.decisions') // Changed to finance.decisions
       .select('*')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false }); // Order by creation date to get latest
@@ -131,10 +117,8 @@ const Profile = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
-          first_name: profileData.firstName,
-          last_name: profileData.lastName,
+          full_name: profileData.fullName, // Updated to full_name
           business_name: profileData.businessName,
-          financial_goal: profileData.financialGoal,
           updated_at: new Date().toISOString(),
         })
         .eq('id', session.user.id);
@@ -181,18 +165,16 @@ const Profile = () => {
   }
 
   const profileFields = [
-    { key: 'firstName', label: 'First Name', icon: User, type: 'text' },
-    { key: 'lastName', label: 'Last Name', icon: User, type: 'text' },
+    { key: 'fullName', label: 'Full Name', icon: User, type: 'text' }, // Updated to fullName
     { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text' },
     { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text' },
   ];
 
   // Calculate dynamic stats
   const totalDecisions = decisions?.length || 0;
-  const successfulDecisions = decisions?.filter(d => d.decision_status === 'success').length || 0;
-  const savedPotentialLoss = decisions
-    ?.filter(d => d.decision_status === 'warning') // Assuming 'Wait' decisions imply saving potential loss
-    .reduce((sum, d) => sum + d.current_savings, 0) || 0;
+  const recommendedDecisions = decisions?.filter(d => d.confidence_level === 'recommended').length || 0;
+  // Placeholder for saved potential loss, needs actual logic from bookkeeping
+  const savedPotentialLoss = 0; 
   
   const memberSinceDate = session?.user?.created_at 
     ? new Date(session.user.created_at).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' }) 
@@ -265,13 +247,7 @@ const Profile = () => {
               </div>
             ))}
             
-            {/* Financial Goal Select */}
-            <FinancialGoalSelect
-              value={profileData.financialGoal}
-              onValueChange={(value) => handleInputChange('financialGoal', value)}
-              disabled={!isEditing}
-              label="Your Main Financial Goal"
-            />
+            {/* FinancialGoalSelect removed */}
           </CardContent>
         </Card>
 
@@ -287,11 +263,11 @@ const Profile = () => {
                 <p className="text-2xl font-bold text-success">{totalDecisions}</p>
               </div>
               <div className="text-center p-4 bg-primary-light/20 rounded-lg">
-                <p className="text-sm text-muted-foreground">Good Decisions</p>
-                <p className="text-2xl font-bold text-primary">{successfulDecisions}</p>
+                <p className="text-sm text-muted-foreground">Recommended Actions</p>
+                <p className="text-2xl font-bold text-primary">{recommendedDecisions}</p>
               </div>
               <div className="text-center p-4 bg-warning-light rounded-lg">
-                <p className="text-sm text-muted-foreground">Saved Potential Loss</p>
+                <p className="text-sm text-muted-foreground">Potential Loss Avoided</p>
                 <p className="text-2xl font-bold text-warning">₦{savedPotentialLoss.toLocaleString()}</p>
               </div>
               <div className="text-center p-4 bg-accent rounded-lg">

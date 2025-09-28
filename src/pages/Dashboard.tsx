@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Navigation from '@/components/Navigation';
 import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard';
 import TipOfTheDayCard from '@/components/TipOfTheDayCard';
-import { MessageCircle, TrendingUp, DollarSign, PiggyBank, Users, History, BookOpen, HelpCircle } from 'lucide-react';
-import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
-import { useQuery } from '@tanstack/react-query'; // Import useQuery
+import { MessageCircle, TrendingUp, DollarSign, PiggyBank, History, BookOpen, HelpCircle } from 'lucide-react';
+import { useSession } from '@/components/auth/SessionContextProvider';
+import { useQuery } from '@tanstack/react-query';
 
 interface DashboardProps {
   onAskKudiGuard: () => void;
@@ -17,27 +17,23 @@ interface Decision {
   id: string;
   created_at: string;
   question: string;
-  decision_result: string;
-  decision_status: 'success' | 'warning' | 'danger';
-  monthly_revenue: number;
-  monthly_expenses: number;
-  current_savings: number;
-  staff_payroll?: number;
+  decision_type: string;
+  recommendation: string;
+  confidence_level: 'recommended' | 'cautious' | 'not_advisable';
   explanation: string;
-  next_steps?: string[];
-  financial_health_score?: number; // Added new field
-  score_interpretation?: string; // Added new field
+  financial_health_score?: number;
+  score_interpretation?: string;
 }
 
 const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
-  const { userDisplayName, businessName, isLoading: sessionLoading, supabase, session, financialGoal } = useSession();
+  const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
 
   const fetchDecisions = async () => {
     if (!session?.user?.id) {
       return [];
     }
     const { data, error } = await supabase
-      .from('decisions')
+      .from('finance.decisions')
       .select('*')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
@@ -55,9 +51,11 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
   });
 
   const latestDecision = decisions && decisions.length > 0 ? decisions[0] : null;
-  const displayRevenue = latestDecision ? latestDecision.monthly_revenue : 0;
-  const displayExpenses = latestDecision ? latestDecision.monthly_expenses : 0;
-  const displaySavings = latestDecision ? latestDecision.current_savings : 0;
+  // These stats will need to be derived from bookkeeping_entries in the future
+  // For now, we'll use placeholders or derive from latest decision if available
+  const displayRevenue = 0; // Placeholder
+  const displayExpenses = 0; // Placeholder
+  const displaySavings = 0; // Placeholder
 
   const stats = [
     {
@@ -124,7 +122,7 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
     );
   }
 
-  const welcomeName = businessName || userDisplayName || "Vendor";
+  const welcomeName = userDisplayName || "Vendor";
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-4">
@@ -203,9 +201,9 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
                     <p className="text-xs text-muted-foreground">{new Date(decision.created_at).toLocaleDateString('en-GB')}</p>
                   </div>
                   <div className={`px-2 py-1 rounded text-xs font-medium ${
-                    decision.decision_status === 'success' ? 'bg-success-light text-success' : 'bg-warning-light text-warning'
+                    decision.confidence_level === 'recommended' ? 'bg-success-light text-success' : 'bg-warning-light text-warning'
                   }`}>
-                    {decision.decision_result}
+                    {decision.recommendation}
                   </div>
                 </div>
               ))

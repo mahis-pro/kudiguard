@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Navigation from '@/components/Navigation';
 import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard';
 import TipOfTheDayCard from '@/components/TipOfTheDayCard';
-import { MessageCircle, TrendingUp, DollarSign, PiggyBank, Users, History, BookOpen, HelpCircle } from 'lucide-react';
-import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
-import { useQuery } from '@tanstack/react-query'; // Import useQuery
+import { MessageCircle, TrendingUp, DollarSign, PiggyBank, History, BookOpen, HelpCircle } from 'lucide-react'; // Removed Users icon as it's not directly used in stats
+import { useSession } from '@/components/auth/SessionContextProvider';
+import { useQuery } from '@tanstack/react-query';
 
 interface DashboardProps {
   onAskKudiGuard: () => void;
@@ -17,64 +17,23 @@ interface Decision {
   id: string;
   created_at: string;
   question: string;
-  decision_result: string;
-  decision_status: 'success' | 'warning' | 'danger';
-  monthly_revenue: number;
-  monthly_expenses: number;
-  current_savings: number;
-  staff_payroll?: number;
+  decision_type: string; // Changed from decision_result
+  recommendation: string; // Changed from decision_result
+  confidence_level: 'recommended' | 'cautious' | 'not_advisable'; // New enum type
   explanation: string;
-  next_steps?: string[];
+  financial_health_score?: number;
+  score_interpretation?: string;
 }
 
-// Helper function to calculate financial health score
-const calculateFinancialHealth = (decisions: Decision[], financialGoal: string | null) => {
-  if (!decisions || decisions.length === 0) {
-    return {
-      score: 'stable' as 'stable' | 'caution' | 'risky',
-      message: 'Start by asking KudiGuard your first financial question to get a personalized health assessment!',
-    };
-  }
-
-  const totalNetIncome = decisions.reduce((sum, d) => sum + (d.monthly_revenue - d.monthly_expenses), 0);
-  const averageNetIncome = totalNetIncome / decisions.length;
-  const successCount = decisions.filter(d => d.decision_status === 'success').length;
-  const warningCount = decisions.filter(d => d.decision_status === 'warning').length;
-  const totalDecisions = decisions.length;
-
-  let score: 'stable' | 'caution' | 'risky' = 'caution';
-  let message = 'Your business shows mixed financial signals. Review your recent decisions and consider strategies to improve profitability.';
-
-  if (averageNetIncome < 0) {
-    score = 'risky';
-    message = 'Your business is currently operating at a loss on average. It\'s crucial to focus on increasing revenue or drastically cutting expenses.';
-  } else if (warningCount / totalDecisions > 0.5) {
-    score = 'caution';
-    message = 'Many of your recent decisions suggest caution. Focus on building a stronger financial foundation before taking on new ventures.';
-  } else if (successCount / totalDecisions > 0.7 && averageNetIncome > 20000) { // Arbitrary threshold for "good" net income
-    score = 'stable';
-    message = 'Your business is financially stable and making good decisions. You have a solid foundation for growth!';
-  }
-
-  // Add a touch of personalization based on goal
-  if (financialGoal === 'growth' && score === 'risky') {
-    message += ' Achieving your growth goal will require significant financial adjustments.';
-  } else if (financialGoal === 'stability' && score === 'stable') {
-    message += ' You are on track to achieve your financial stability goal.';
-  }
-
-  return { score, message };
-};
-
 const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
-  const { userDisplayName, businessName, isLoading: sessionLoading, supabase, session, financialGoal } = useSession();
+  const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession(); // Removed businessName, financialGoal
 
   const fetchDecisions = async () => {
     if (!session?.user?.id) {
       return [];
     }
     const { data, error } = await supabase
-      .from('decisions')
+      .from('finance.decisions') // Changed to finance.decisions
       .select('*')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
@@ -92,9 +51,11 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
   });
 
   const latestDecision = decisions && decisions.length > 0 ? decisions[0] : null;
-  const displayRevenue = latestDecision ? latestDecision.monthly_revenue : 0;
-  const displayExpenses = latestDecision ? latestDecision.monthly_expenses : 0;
-  const displaySavings = latestDecision ? latestDecision.current_savings : 0;
+  // These stats will need to be derived from bookkeeping_entries in the future
+  // For now, we'll use placeholders or derive from latest decision if available
+  const displayRevenue = 0; // Placeholder
+  const displayExpenses = 0; // Placeholder
+  const displaySavings = 0; // Placeholder
 
   const stats = [
     {
@@ -119,7 +80,31 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
 
   const recentDecisions = decisions ? decisions.slice(0, 2) : []; // Show up to 2 most recent decisions
 
-  const financialHealth = calculateFinancialHealth(decisions || [], financialGoal);
+  // Financial Health Score and Interpretation now come from the latest decision
+  const healthScore = latestDecision?.financial_health_score;
+  const healthInterpretation = latestDecision?.score_interpretation;
+
+  let financialHealthScoreProps: { score: 'stable' | 'caution' | 'risky', message: string };
+
+  if (healthScore !== undefined && healthInterpretation) {
+    let scoreCategory: 'stable' | 'caution' | 'risky';
+    if (healthScore >= 80) {
+      scoreCategory = 'stable';
+    } else if (healthScore >= 40) {
+      scoreCategory = 'caution';
+    } else {
+      scoreCategory = 'risky';
+    }
+    financialHealthScoreProps = {
+      score: scoreCategory,
+      message: healthInterpretation,
+    };
+  } else {
+    financialHealthScoreProps = {
+      score: 'stable', // Default to stable if no decisions yet
+      message: 'Start by asking KudiGuard your first financial question to get a personalized health assessment!',
+    };
+  }
 
   if (sessionLoading || decisionsLoading) {
     return (
@@ -137,7 +122,7 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
     );
   }
 
-  const welcomeName = businessName || userDisplayName || "Vendor";
+  const welcomeName = userDisplayName || "Vendor"; // Removed businessName
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-4">
@@ -151,7 +136,7 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
         </div>
 
         {/* Financial Health Score Card */}
-        <FinancialHealthScoreCard score={financialHealth.score} message={financialHealth.message} />
+        <FinancialHealthScoreCard score={financialHealthScoreProps.score} message={financialHealthScoreProps.message} />
 
         {/* Tip of the Day Card */}
         <TipOfTheDayCard />
@@ -216,9 +201,9 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
                     <p className="text-xs text-muted-foreground">{new Date(decision.created_at).toLocaleDateString('en-GB')}</p>
                   </div>
                   <div className={`px-2 py-1 rounded text-xs font-medium ${
-                    decision.decision_status === 'success' ? 'bg-success-light text-success' : 'bg-warning-light text-warning'
+                    decision.confidence_level === 'recommended' ? 'bg-success-light text-success' : 'bg-warning-light text-warning'
                   }`}>
-                    {decision.decision_result}
+                    {decision.recommendation}
                   </div>
                 </div>
               ))

@@ -5,45 +5,43 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Briefcase, Target, ArrowRight } from 'lucide-react';
+import { User, ArrowRight } from 'lucide-react'; // Changed Briefcase to User
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
-import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
-import FinancialGoalSelect from '@/components/FinancialGoalSelect'; // Import new component
+import { useSession } from '@/components/auth/SessionContextProvider';
 
 const Onboarding = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { session, supabase, isLoading, onboardingCompleted } = useSession(); // Use session from context
-  const [businessName, setBusinessName] = useState('');
-  const [goal, setGoal] = useState('');
+  const { session, supabase, isLoading, userDisplayName } = useSession(); // Removed onboardingCompleted, financialGoal
+  const [fullName, setFullName] = useState(''); // Changed businessName to fullName
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if already onboarded
+  // Redirect if full_name is already set
   useEffect(() => {
-    if (!isLoading && onboardingCompleted === true) {
+    if (!isLoading && userDisplayName) { // If userDisplayName is set, assume profile is complete
       navigate('/dashboard');
       toast({
-        title: "Already Onboarded",
-        description: "You have already completed the onboarding process.",
+        title: "Profile Already Set",
+        description: "You have already completed your profile.",
         variant: "default",
       });
     }
-  }, [isLoading, onboardingCompleted, navigate, toast]);
+  }, [isLoading, userDisplayName, navigate, toast]);
 
   const handleCompleteOnboarding = async () => {
     if (!session?.user?.id) {
       toast({
         title: "Authentication Error",
-        description: "You must be logged in to complete onboarding.",
+        description: "You must be logged in to complete your profile.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!businessName.trim() || !goal) {
+    if (!fullName.trim()) {
       toast({
         title: "Missing Information",
-        description: "Please provide your business name and select a goal.",
+        description: "Please provide your full name.",
         variant: "destructive",
       });
       return;
@@ -52,13 +50,11 @@ const Onboarding = () => {
     setIsSubmitting(true);
 
     try {
-      // Update the profiles table to mark onboarding as complete and save business details
+      // Update the profiles table to set full_name
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          onboarding_completed: true,
-          business_name: businessName, // Assuming a business_name column
-          financial_goal: goal,       // Assuming a financial_goal column
+          full_name: fullName,
           updated_at: new Date().toISOString(),
         })
         .eq('id', session.user.id);
@@ -69,14 +65,14 @@ const Onboarding = () => {
 
       toast({
         title: "Welcome to KudiGuard!",
-        description: `Your business "${businessName}" is set up with a focus on ${goal}.`,
+        description: `Your profile for "${fullName}" is set up.`,
       });
       navigate('/dashboard');
     } catch (error: any) {
-      console.error('Error completing onboarding:', error.message);
+      console.error('Error completing profile:', error.message);
       toast({
         title: "Error",
-        description: error.message || "Failed to complete onboarding. Please try again.",
+        description: error.message || "Failed to complete profile. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -84,7 +80,7 @@ const Onboarding = () => {
     }
   };
 
-  if (isLoading || (session && onboardingCompleted === true)) {
+  if (isLoading || (session && userDisplayName)) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading...</p>
@@ -105,37 +101,32 @@ const Onboarding = () => {
           </div>
           <h1 className="text-3xl font-bold text-primary">Welcome to KudiGuard!</h1>
           <p className="text-muted-foreground mt-2">
-            Let's set up your business for success.
+            Let's set up your profile for success.
           </p>
         </CardHeader>
         
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="businessName" className="text-foreground font-medium flex items-center">
-              <Briefcase className="mr-2 h-4 w-4 text-muted-foreground" />
-              Your Business Name
+            <Label htmlFor="fullName" className="text-foreground font-medium flex items-center">
+              <User className="mr-2 h-4 w-4 text-muted-foreground" />
+              Your Full Name
             </Label>
             <Input
-              id="businessName"
+              id="fullName"
               type="text"
-              placeholder="e.g., Mama Ngozi's Provisions"
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder="e.g., Mama Ngozi"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
               className="h-12"
               required
             />
           </div>
 
-          {/* Financial Goal Select */}
-          <FinancialGoalSelect
-            value={goal}
-            onValueChange={setGoal}
-            label="What's your main financial goal?"
-          />
+          {/* FinancialGoalSelect removed */}
           
           <Button 
             onClick={handleCompleteOnboarding}
-            disabled={!businessName.trim() || !goal || isSubmitting}
+            disabled={!fullName.trim() || isSubmitting}
             className="w-full h-12 bg-gradient-primary hover:shadow-success font-semibold"
           >
             {isSubmitting ? "Completing setup..." : (
