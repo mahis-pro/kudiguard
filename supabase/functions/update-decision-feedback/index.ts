@@ -1,105 +1,125 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { z } from 'https://deno.land/x/zod@v3.23.0/mod.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { generateRequestId, getSupabaseClient } from '../../../src/lib/edge-functions/utils.ts';
+import { handleError, AuthError, InputValidationError, CustomError } from '../../../src/lib/edge-functions/errors.ts';
+import { API_VERSION, CORS_HEADERS, ERROR_CODES, SEVERITY } from '../../../src/lib/edge-functions/constants.ts';
+import { UpdateFeedbackInputSchema } from '../../../src/lib/edge-functions/schemas.ts';
 
 serve(async (req) => {
+  const requestId = generateRequestId();
+  let supabaseClient: SupabaseClient | null = null;
+  let vendorId: string | null = null;
+  let requestPayload: any = {};
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: CORS_HEADERS });
   }
 
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-  }
-
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    {
-      global: {
-        headers: { Authorization: authHeader },
-      },
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new AuthError("Authorization header missing.");
     }
-  );
 
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (!user) {
-    return new Response('Unauthorized', { status: 401, headers: corsHeaders });
-  }
+    supabaseClient = getSupabaseClient(authHeader);
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
 
-  const { recommendationId, acceptedOrRejected, comment, rating } = await req.json();
+    if (userError || !user) {
+      throw new AuthError("User not authenticated.", userError);
+    }
+    vendorId = user.id;
 
-  if (!recommendationId || typeof acceptedOrRejected !== 'boolean') {
-    return new Response(JSON.stringify({ error: 'Invalid input: recommendationId and acceptedOrRejected are required.' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
-    });
-  }
+    requestPayload = await req.json();
 
-  // Check if feedback already exists for this recommendation and user
-  const { data: existingFeedback, error: fetchError } = await supabaseClient
-    .from('feedback')
-    .select('id')
-    .eq('recommendation_id', recommendationId)
-    .eq('user_id', user.id)
-    .single();
+    // --- Input Validation with Zod ---
+    const validatedInput = UpdateFeedbackInputSchema.safeParse(requestPayload);
+    if (!validatedInput.success) {
+      const errorDetails = validatedInput.error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join('; ');
+      throw new InputValidationError("Invalid input for feedback update.", errorDetails, validatedInput.error);
+    }
+    const { recommendationId, acceptedOrRejected, comment, rating } = validatedInput.data;
 
-  if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
-    console.error('Error checking existing feedback:', fetchError);
-    return new Response(JSON.stringify({ error: 'Failed to check existing feedback.' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
-  }
-
-  let feedbackData: { rating?: number; comment?: string; used_for_training?: boolean } = {
-    rating: acceptedOrRejected ? 5 : 1, // Simple rating based on accepted/rejected
-    comment: comment,
-    used_for_training: false, // Default to false, can be set to true by admin later
-  };
-
-  let upsertError;
-  let upsertData;
-
-  if (existingFeedback) {
-    // Update existing feedback
-    const { data, error } = await supabaseClient
+    // Check if feedback already exists for this recommendation and user
+    const { data: existingFeedback, error: fetchError } = await supabaseClient
       .from('feedback')
-      .update(feedbackData)
-      .eq('id', existingFeedback.id)
-      .select()
+      .select('id')
+      .eq('recommendation_id', recommendationId)
+      .eq('user_id', user.id)
       .single();
-    upsertData = data;
-    upsertError = error;
-  } else {
-    // Insert new feedback
-    const { data, error } = await supabaseClient
-      .from('feedback')
-      .insert({
-        recommendation_id: recommendationId,
-        user_id: user.id,
-        ...feedbackData,
-      })
-      .select()
-      .single();
-    upsertData = data;
-    upsertError = error;
-  }
 
-  if (upsertError) {
-    console.error('Error upserting feedback:', upsertError);
-    return new Response(JSON.stringify({ error: 'Failed to save feedback.' }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+      throw new CustomError(
+        ERROR_CODES.PROFILE_FETCH_FAILED, // Reusing code, could be more specific like FEEDBACK_FETCH_FAILED
+        `Failed to check existing feedback for recommendation ${recommendationId}.`,
+        SEVERITY.HIGH,
+        500,
+        fetchError
+      );
+    }
+
+    let feedbackData: { rating?: number; comment?: string; used_for_training?: boolean } = {
+      rating: rating ?? (acceptedOrRejected ? 5 : 1), // Use provided rating or derive from accepted/rejected
+      comment: comment,
+      used_for_training: false, // Default to false, can be set to true by admin later
+    };
+
+    let upsertError;
+    let upsertData;
+
+    if (existingFeedback) {
+      // Update existing feedback
+      const { data, error } = await supabaseClient
+        .from('feedback')
+        .update(feedbackData)
+        .eq('id', existingFeedback.id)
+        .select()
+        .single();
+      upsertData = data;
+      upsertError = error;
+    } else {
+      // Insert new feedback
+      const { data, error } = await supabaseClient
+        .from('feedback')
+        .insert({
+          recommendation_id: recommendationId,
+          user_id: user.id,
+          ...feedbackData,
+        })
+        .select()
+        .single();
+      upsertData = data;
+      upsertError = error;
+    }
+
+    if (upsertError) {
+      throw new CustomError(
+        ERROR_CODES.FEEDBACK_UPSERT_FAILED,
+        `Failed to save feedback for recommendation ${recommendationId}.`,
+        SEVERITY.HIGH,
+        500,
+        upsertError
+      );
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      data: { message: 'Feedback saved successfully.', feedback: upsertData },
+      error: null,
+      meta: {
+        requestId,
+        timestamp: new Date().toISOString(),
+        fallback: false,
+        version: API_VERSION,
+      },
+    }), {
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      status: 200,
     });
-  }
 
-  return new Response(JSON.stringify({ message: 'Feedback saved successfully.', feedback: upsertData }), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    status: 200,
-  });
-})
+  } catch (error: any) {
+    // Centralized error handling
+    return handleError(error, requestId, vendorId, supabaseClient!, API_VERSION, requestPayload);
+  }
+});
