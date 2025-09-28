@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { 
   Home, 
   User, 
@@ -62,24 +61,26 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
 
   if (showBackButton && onBack) {
     return (
-      <div className="flex items-center mb-6">
-        <Button variant="ghost" onClick={onBack} className="mr-3 p-2">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex items-center">
-          <img 
-            src={kudiGuardLogo} 
-            alt="KudiGuard" 
-            className="h-8 w-8 mr-3"
-          />
+      <header className="w-full bg-card shadow-card border-b border-border"> {/* Consistent header styling */}
+        <div className="container mx-auto px-4 py-4 flex items-center"> {/* Use container for consistent padding */}
+          <Button variant="ghost" onClick={onBack} className="mr-3 p-2">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center">
+            <img 
+              src={kudiGuardLogo} 
+              alt="KudiGuard" 
+              className="h-8 w-8 mr-3"
+            />
+          </div>
         </div>
-      </div>
+      </header>
     );
   }
 
   return (
-    <Card className="shadow-card mb-6">
-      <div className="flex items-center justify-between p-4">
+    <header className="w-full bg-card shadow-card border-b border-border"> {/* Changed to header, full width, card styling */}
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between"> {/* Added container for padding */}
         <Link to="/dashboard" className="flex items-center">
           <img 
             src={kudiGuardLogo} 
@@ -162,7 +163,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
           </nav>
         </div>
       )}
-    </Card>
+    </header>
   );
 };
 

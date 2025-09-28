@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Share2, ShieldCheck, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSession } from '@/components/auth/SessionContextProvider';
+import Navigation from './Navigation'; // Import Navigation
 
 interface FinancialData {
   monthlyRevenue: number;
@@ -22,7 +23,7 @@ interface FinancialData {
 }
 
 interface DecisionResultData {
-  id: string; // This is the recommendation ID
+  id: string; // This will be the recommendation ID
   decision_result: string;
   decision_status: 'success' | 'warning' | 'danger';
   explanation: string;
@@ -170,18 +171,10 @@ const DecisionResult = ({ question, data, result, onBack }: DecisionResultProps)
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={onBack} className="mr-3 p-2">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-primary">Decision Result</h1>
-            <p className="text-sm text-muted-foreground">Based on your financial data</p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-subtle"> {/* Removed p-4 */}
+      <Navigation showBackButton onBack={onBack} /> {/* Render Navigation here */}
+      <div className="max-w-2xl mx-auto p-4"> {/* New wrapper for content */}
+        {/* Header (removed, now handled by Navigation component) */}
 
         {/* Question Card */}
         <Card className="shadow-card mb-6 bg-muted/30">

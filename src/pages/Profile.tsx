@@ -229,9 +229,9 @@ const Profile = () => {
   const scoreInterpretation = latestRecommendation?.recommendation.score_interpretation;
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
-      <div className="max-w-3xl mx-auto">
-        <Navigation />
+    <div className="min-h-screen bg-gradient-subtle"> {/* Removed p-4 */}
+      <Navigation /> {/* Moved outside */}
+      <div className="max-w-3xl mx-auto p-4"> {/* Added p-4 for content */}
         
         {/* Header */}
         <div className="text-center mb-8">

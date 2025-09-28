@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Send, MessageCircle } from 'lucide-react';
+import Navigation from './Navigation'; // Import Navigation
 
 interface AskKudiGuardProps {
   onBack: () => void;
@@ -85,23 +86,10 @@ const AskKudiGuard = ({ onBack, onShowDataInput }: AskKudiGuardProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={onBack} className="mr-3 p-2">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center">
-            <div className="bg-gradient-primary p-2 rounded-full mr-3">
-              <MessageCircle className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-primary">Ask KudiGuard</h1>
-              <p className="text-sm text-muted-foreground">Get personalized financial advice</p>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-subtle"> {/* Removed p-4 */}
+      <Navigation showBackButton onBack={onBack} /> {/* Render Navigation here */}
+      <div className="max-w-2xl mx-auto p-4"> {/* New wrapper for content */}
+        {/* Header (removed, now handled by Navigation component) */}
 
         {/* Chat Interface */}
         <Card className="shadow-card mb-6">

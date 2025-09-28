@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
+import Navigation from './Navigation'; // Import Navigation
 
 interface FinancialData {
   monthlyRevenue: number;
@@ -359,23 +360,10 @@ const DataInputModal = ({ question, intent, onBack, onAnalyze }: DataInputModalP
   const isValid = data.monthlyRevenue > 0 && data.monthlyExpenses > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={onBack} className="mr-3 p-2">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center">
-            <div className="bg-gradient-primary p-2 rounded-full mr-3">
-              <Calculator className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-primary">Financial Analysis</h1>
-              <p className="text-sm text-muted-foreground">Help us understand your business</p>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-subtle"> {/* Removed p-4 */}
+      <Navigation showBackButton onBack={onBack} /> {/* Render Navigation here */}
+      <div className="max-w-2xl mx-auto p-4"> {/* New wrapper for content */}
+        {/* Header (removed, now handled by Navigation component) */}
 
         {/* Question Card */}
         <Card className="shadow-card mb-6 bg-primary-light/10 border-primary/20">

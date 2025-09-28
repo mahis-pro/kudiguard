@@ -164,9 +164,9 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
   const welcomeName = userDisplayName || "Vendor";
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
-      <div className="max-w-2xl mx-auto space-y-6">
-        <Navigation />
+    <div className="min-h-screen bg-gradient-subtle"> {/* Removed p-4 here */}
+      <Navigation /> {/* Moved outside the max-w-2xl div */}
+      <div className="max-w-2xl mx-auto space-y-6 p-4"> {/* Added p-4 here for content */}
         
         {/* Header */}
         <div className="text-center py-6">
