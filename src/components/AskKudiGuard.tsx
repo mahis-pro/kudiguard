@@ -19,7 +19,22 @@ const AskKudiGuard = ({ onBack, onShowDataInput }: AskKudiGuardProps) => {
     "Should I buy more stock this month?", 
     "Is it safe to take a business loan?",
     "Can I afford to expand my shop?",
-    "Should I increase my product prices?"
+    "Should I increase my product prices?",
+    "How much should I save for emergencies?",
+    "Is it a good time to invest in new equipment?",
+    "Can I afford to open a second branch?",
+    "What's a healthy profit margin for my business?",
+    "Should I reduce my operating expenses?",
+    "How can I improve my cash flow?",
+    "Is my current inventory level optimal?",
+    "When should I consider a marketing campaign?",
+    "Can I afford to give staff bonuses?",
+    "Should I pay off my business debt early?",
+    "How much can I safely withdraw from my business?",
+    "What's the best way to manage my receivables?",
+    "Should I diversify my product offerings?",
+    "Is my business financially ready for a slow season?",
+    "How can I track my daily sales more effectively?"
   ];
 
   useEffect(() => {
@@ -37,11 +52,19 @@ const AskKudiGuard = ({ onBack, onShowDataInput }: AskKudiGuardProps) => {
   // Simple intent detection based on keywords
   const determineIntent = (q: string): string => {
     const lowerQ = q.toLowerCase();
-    if (lowerQ.includes('hire') || lowerQ.includes('staff')) return 'hire_staff';
-    if (lowerQ.includes('stock') || lowerQ.includes('inventory') || lowerQ.includes('buy more')) return 'manage_inventory';
-    if (lowerQ.includes('loan') || lowerQ.includes('borrow') || lowerQ.includes('finance')) return 'take_loan';
-    if (lowerQ.includes('expand') || lowerQ.includes('shop') || lowerQ.includes('new location')) return 'expand_shop';
-    if (lowerQ.includes('price') || lowerQ.includes('increase prices')) return 'adjust_pricing';
+    if (lowerQ.includes('hire') || lowerQ.includes('staff') || lowerQ.includes('bonuses')) return 'hire_staff';
+    if (lowerQ.includes('stock') || lowerQ.includes('inventory') || lowerQ.includes('buy more') || lowerQ.includes('optimal inventory')) return 'manage_inventory';
+    if (lowerQ.includes('loan') || lowerQ.includes('borrow') || lowerQ.includes('finance') || lowerQ.includes('debt') || lowerQ.includes('pay off debt')) return 'take_loan';
+    if (lowerQ.includes('expand') || lowerQ.includes('shop') || lowerQ.includes('new location') || lowerQ.includes('second branch')) return 'expand_shop';
+    if (lowerQ.includes('price') || lowerQ.includes('increase prices') || lowerQ.includes('profit margin')) return 'adjust_pricing';
+    if (lowerQ.includes('save') || lowerQ.includes('savings') || lowerQ.includes('emergency fund') || lowerQ.includes('slow season')) return 'manage_savings';
+    if (lowerQ.includes('equipment') || lowerQ.includes('asset purchase')) return 'invest_equipment';
+    if (lowerQ.includes('expenses') || lowerQ.includes('reduce expenses') || lowerQ.includes('cash flow')) return 'manage_expenses';
+    if (lowerQ.includes('marketing')) return 'marketing_campaign';
+    if (lowerQ.includes('withdraw') || lowerQ.includes('owner withdrawals')) return 'owner_withdrawals';
+    if (lowerQ.includes('receivables')) return 'manage_receivables';
+    if (lowerQ.includes('diversify product')) return 'diversify_products';
+    if (lowerQ.includes('track sales')) return 'track_sales';
     return 'general_advice'; // Default intent
   };
 
