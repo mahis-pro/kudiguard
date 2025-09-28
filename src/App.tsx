@@ -40,13 +40,22 @@ interface FinancialData {
 }
 
 interface DecisionResultData {
-  id: string;
+  id: string; // This will be the recommendation ID
   decision_result: string;
   decision_status: 'success' | 'warning' | 'danger';
   explanation: string;
   next_steps: string[];
   financial_health_score: number;
   score_interpretation: string;
+  accepted_or_rejected?: boolean;
+  numeric_breakdown: {
+    monthly_revenue: number;
+    monthly_expenses: number;
+    current_savings: number;
+    net_income: number;
+    staff_payroll: number;
+    // Add other relevant inputs here
+  };
 }
 
 const App = () => {
@@ -54,6 +63,7 @@ const App = () => {
   const [showDataInput, setShowDataInput] = useState(false);
   const [showDecisionResult, setShowDecisionResult] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState('');
+  const [currentIntent, setCurrentIntent] = useState(''); // New state for intent
   const [financialData, setFinancialData] = useState<FinancialData | null>(null);
   const [decisionResult, setDecisionResult] = useState<DecisionResultData | null>(null);
 
@@ -62,12 +72,14 @@ const App = () => {
     setShowDataInput(false);
     setShowDecisionResult(false);
     setCurrentQuestion('');
+    setCurrentIntent('');
     setFinancialData(null);
     setDecisionResult(null);
   };
 
-  const handleShowDataInput = (question: string) => {
+  const handleShowDataInput = (question: string, intent: string) => { // Now accepts intent
     setCurrentQuestion(question);
+    setCurrentIntent(intent); // Set the intent
     setShowAskKudiGuard(false);
     setShowDataInput(true);
     setShowDecisionResult(false);
@@ -86,6 +98,7 @@ const App = () => {
     setShowDataInput(false);
     setShowDecisionResult(false);
     setCurrentQuestion('');
+    setCurrentIntent('');
     setFinancialData(null);
     setDecisionResult(null);
     // Invalidate queries to refetch dashboard data after a new decision
@@ -112,8 +125,13 @@ const App = () => {
                 element={
                   showAskKudiGuard ? (
                     <AskKudiGuard onBack={handleBackToDashboard} onShowDataInput={handleShowDataInput} />
-                  ) : showDataInput && currentQuestion ? (
-                    <DataInputModal question={currentQuestion} onBack={handleAskKudiGuard} onAnalyze={handleAnalyze} />
+                  ) : showDataInput && currentQuestion && currentIntent ? ( // Check for currentIntent
+                    <DataInputModal 
+                      question={currentQuestion} 
+                      intent={currentIntent} // Pass intent to DataInputModal
+                      onBack={handleAskKudiGuard} 
+                      onAnalyze={handleAnalyze} 
+                    />
                   ) : showDecisionResult && currentQuestion && financialData && decisionResult ? (
                     <DecisionResult 
                       question={currentQuestion} 

@@ -6,7 +6,7 @@ import { ArrowLeft, Send, MessageCircle } from 'lucide-react';
 
 interface AskKudiGuardProps {
   onBack: () => void;
-  onShowDataInput: (question: string) => void;
+  onShowDataInput: (question: string, intent: string) => void; // Updated to pass intent
 }
 
 const AskKudiGuard = ({ onBack, onShowDataInput }: AskKudiGuardProps) => {
@@ -21,14 +21,26 @@ const AskKudiGuard = ({ onBack, onShowDataInput }: AskKudiGuardProps) => {
     "Should I increase my product prices?"
   ];
 
+  // Simple intent detection based on keywords
+  const determineIntent = (q: string): string => {
+    const lowerQ = q.toLowerCase();
+    if (lowerQ.includes('hire') || lowerQ.includes('staff')) return 'hire_staff';
+    if (lowerQ.includes('stock') || lowerQ.includes('inventory') || lowerQ.includes('buy more')) return 'manage_inventory';
+    if (lowerQ.includes('loan') || lowerQ.includes('borrow') || lowerQ.includes('finance')) return 'take_loan';
+    if (lowerQ.includes('expand') || lowerQ.includes('shop') || lowerQ.includes('new location')) return 'expand_shop';
+    if (lowerQ.includes('price') || lowerQ.includes('increase prices')) return 'adjust_pricing';
+    return 'general_advice'; // Default intent
+  };
+
   const handleSubmit = () => {
     if (!question.trim()) return;
     
     setIsLoading(true);
+    const intent = determineIntent(question); // Determine intent
     // Simulate processing then show data input
     setTimeout(() => {
       setIsLoading(false);
-      onShowDataInput(question);
+      onShowDataInput(question, intent); // Pass intent
     }, 1000);
   };
 

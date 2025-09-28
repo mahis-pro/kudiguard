@@ -23,23 +23,33 @@ interface FinancialData {
 }
 
 interface DecisionResultData {
-  id: string;
+  id: string; // This will be the recommendation ID
   decision_result: string;
   decision_status: 'success' | 'warning' | 'danger';
   explanation: string;
   next_steps: string[];
   financial_health_score: number;
   score_interpretation: string;
+  accepted_or_rejected?: boolean;
+  numeric_breakdown: {
+    monthly_revenue: number;
+    monthly_expenses: number;
+    current_savings: number;
+    net_income: number;
+    staff_payroll: number;
+    // Add other relevant inputs here
+  };
 }
 
 interface DataInputModalProps {
   question: string;
+  intent: string; // New prop for intent
   onBack: () => void;
   onAnalyze: (data: FinancialData, result: DecisionResultData) => void;
 }
 
-const DataInputModal = ({ question, onBack, onAnalyze }: DataInputModalProps) => {
-  const { session } = useSession();
+const DataInputModal = ({ question, intent, onBack, onAnalyze }: DataInputModalProps) => {
+  const { session, supabase } = useSession();
   const { toast } = useToast();
   const [data, setData] = useState<FinancialData>({
     monthlyRevenue: 0,
@@ -63,7 +73,7 @@ const DataInputModal = ({ question, onBack, onAnalyze }: DataInputModalProps) =>
   };
 
   const handleAnalyze = async () => {
-    if (!session?.access_token) {
+    if (!session?.access_token || !session?.user?.id) {
       toast({
         title: "Authentication Required",
         description: "Please log in to get financial advice.",
@@ -83,27 +93,38 @@ const DataInputModal = ({ question, onBack, onAnalyze }: DataInputModalProps) =>
     
     setIsLoading(true);
 
+    let decisionId: string | null = null;
+
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate_recommendation`, {
+      // Step 1: Insert a new decision into the public.decisions table
+      const { data: newDecision, error: decisionError } = await supabase
+        .from('decisions')
+        .insert({
+          user_id: session.user.id,
+          question: question,
+          intent: intent,
+          inputs: data, // Store raw inputs for auditing/re-analysis
+          status: 'pending',
+        })
+        .select('id')
+        .single();
+
+      if (decisionError || !newDecision) {
+        throw new Error(decisionError?.message || 'Failed to create new decision record.');
+      }
+      decisionId = newDecision.id;
+
+      // Step 2: Call the decision-engine Edge Function
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/decision-engine`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          question: question,
-          monthlyRevenue: data.monthlyRevenue,
-          monthlyExpenses: data.monthlyExpenses,
-          currentSavings: data.currentSavings,
-          staffPayroll: data.staffPayroll,
-          inventoryValue: data.inventoryValue,
-          outstandingDebts: data.outstandingDebts,
-          receivables: data.receivables,
-          equipmentInvestment: data.equipmentInvestment,
-          marketingSpend: data.marketingSpend,
-          ownerWithdrawals: data.ownerWithdrawals,
-          businessAge: data.businessAge,
-          industryType: data.industryType,
+          decision_id: decisionId,
+          intent: intent,
+          inputs: data, // Pass the collected financial data
         }),
       });
 
@@ -112,15 +133,32 @@ const DataInputModal = ({ question, onBack, onAnalyze }: DataInputModalProps) =>
         throw new Error(errorData.error || 'Failed to get financial advice from KudiGuard.');
       }
 
-      const result: DecisionResultData = await response.json();
-      onAnalyze(data, result);
+      const { recommendation: resultData } = await response.json();
+      
+      // The resultData from the Edge Function is the recommendation JSONB
+      // We need to add the recommendation ID to it for feedback
+      const { data: fetchedRecommendation, error: fetchRecError } = await supabase
+        .from('recommendations')
+        .select('id')
+        .eq('decision_id', decisionId)
+        .single();
+
+      if (fetchRecError || !fetchedRecommendation) {
+        throw new Error(fetchRecError?.message || 'Failed to fetch recommendation ID.');
+      }
+
+      onAnalyze(data, { ...resultData, id: fetchedRecommendation.id }); // Pass the recommendation ID
     } catch (error: any) {
-      console.error('Error calling decision engine:', error);
+      console.error('Error during analysis:', error);
       toast({
         title: "Analysis Failed",
         description: error.message || "An unexpected error occurred during analysis. Please try again.",
         variant: "destructive",
       });
+      // If an error occurred after decision creation, mark it as error
+      if (decisionId) {
+        await supabase.from('decisions').update({ status: 'error' }).eq('id', decisionId);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -230,7 +268,7 @@ const DataInputModal = ({ question, onBack, onAnalyze }: DataInputModalProps) =>
       key: 'industryType' as keyof FinancialData,
       label: 'Vendor Category',
       icon: Tag,
-      placeholder: 'Electronics',
+      placeholder: 'General',
       required: false,
       color: 'text-green-500',
       type: 'text'

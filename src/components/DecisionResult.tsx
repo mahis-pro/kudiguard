@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress'; // Import Progress component
-import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Share2, ShieldCheck, ThumbsUp, ThumbsDown } from 'lucide-react'; // Added ThumbsUp, ThumbsDown
-import { useToast } from '@/hooks/use-toast'; // Import useToast
-import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
+import { Progress } from '@/components/ui/progress';
+import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Share2, ShieldCheck, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useSession } from '@/components/auth/SessionContextProvider';
 
 interface FinancialData {
   monthlyRevenue: number;
@@ -22,7 +22,7 @@ interface FinancialData {
 }
 
 interface DecisionResultData {
-  id: string; // Decision ID is now required
+  id: string; // This is the recommendation ID
   decision_result: string;
   decision_status: 'success' | 'warning' | 'danger';
   explanation: string;
@@ -30,6 +30,14 @@ interface DecisionResultData {
   financial_health_score: number;
   score_interpretation: string;
   accepted_or_rejected?: boolean; // Added for feedback
+  numeric_breakdown: {
+    monthly_revenue: number;
+    monthly_expenses: number;
+    current_savings: number;
+    net_income: number;
+    staff_payroll: number;
+    // Add other relevant inputs here
+  };
 }
 
 interface DecisionResultProps {
@@ -41,19 +49,41 @@ interface DecisionResultProps {
 
 const DecisionResult = ({ question, data, result, onBack }: DecisionResultProps) => {
   const { toast } = useToast();
-  const { session } = useSession();
+  const { session, supabase } = useSession();
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
-  const [feedbackGiven, setFeedbackGiven] = useState<boolean | null>(result.accepted_or_rejected !== undefined ? result.accepted_or_rejected : null); // Initialize with existing feedback
+  const [feedbackGiven, setFeedbackGiven] = useState<boolean | null>(null); // Initialize as null
 
   const {
-    id: decisionId, // Extract decisionId
+    id: recommendationId, // Extract recommendationId
     decision_result: decisionResultText,
     decision_status: decisionStatus,
     explanation,
     next_steps: nextSteps,
     financial_health_score: financialHealthScore,
     score_interpretation: scoreInterpretation,
+    numeric_breakdown,
   } = result;
+
+  // Fetch existing feedback on component mount
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      if (session?.user?.id && recommendationId) {
+        const { data: feedbackData, error } = await supabase
+          .from('feedback')
+          .select('rating')
+          .eq('recommendation_id', recommendationId)
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (feedbackData) {
+          setFeedbackGiven(feedbackData.rating === 5); // Assuming 5 means accepted, 1 means rejected
+        } else if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+          console.error('Error fetching existing feedback:', error);
+        }
+      }
+    };
+    fetchFeedback();
+  }, [session, recommendationId, supabase]);
 
   let StatusIcon: React.ElementType;
   let statusColorClass: string;
@@ -81,7 +111,7 @@ const DecisionResult = ({ question, data, result, onBack }: DecisionResultProps)
       cardBgClass = "bg-muted/30 border-muted/20";
   }
 
-  const netIncome = data.monthlyRevenue - data.monthlyExpenses - (data.ownerWithdrawals || 0); // Use ownerWithdrawals for net income
+  const netIncome = numeric_breakdown.net_income; // Use net_income from numeric_breakdown
 
   const handleShareResult = () => {
     navigator.clipboard.writeText(`KudiGuard's advice for "${question}": ${decisionResultText}. Financial Health Score: ${financialHealthScore}/100. Explanation: ${explanation}`);
@@ -92,7 +122,7 @@ const DecisionResult = ({ question, data, result, onBack }: DecisionResultProps)
   };
 
   const handleFeedback = async (accepted: boolean) => {
-    if (!session?.access_token || !decisionId) {
+    if (!session?.access_token || !recommendationId) {
       toast({
         title: "Authentication Error",
         description: "You must be logged in to provide feedback.",
@@ -110,8 +140,10 @@ const DecisionResult = ({ question, data, result, onBack }: DecisionResultProps)
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          decisionId: decisionId,
+          recommendationId: recommendationId, // Pass recommendationId
           acceptedOrRejected: accepted,
+          rating: accepted ? 5 : 1, // Simple rating
+          comment: '', // No comment for now
         }),
       });
 
@@ -197,11 +229,11 @@ const DecisionResult = ({ question, data, result, onBack }: DecisionResultProps)
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-success-light rounded-lg">
                 <p className="text-sm text-muted-foreground">Monthly Revenue</p>
-                <p className="text-lg font-bold text-success">₦{data.monthlyRevenue.toLocaleString()}</p>
+                <p className="text-lg font-bold text-success">₦{numeric_breakdown.monthly_revenue.toLocaleString()}</p>
               </div>
               <div className="text-center p-3 bg-warning-light rounded-lg">
                 <p className="text-sm text-muted-foreground">Monthly Expenses</p>
-                <p className="text-lg font-bold text-warning">₦{data.monthlyExpenses.toLocaleString()}</p>
+                <p className="text-lg font-bold text-warning">₦{numeric_breakdown.monthly_expenses.toLocaleString()}</p>
               </div>
               <div className="text-center p-3 bg-primary-light/20 rounded-lg">
                 <p className="text-sm text-muted-foreground">Net Income</p>
@@ -211,7 +243,7 @@ const DecisionResult = ({ question, data, result, onBack }: DecisionResultProps)
               </div>
               <div className="text-center p-3 bg-accent rounded-lg">
                 <p className="text-sm text-muted-foreground">Current Savings</p>
-                <p className="text-lg font-bold text-primary">₦{data.currentSavings.toLocaleString()}</p>
+                <p className="text-lg font-bold text-primary">₦{numeric_breakdown.current_savings.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
