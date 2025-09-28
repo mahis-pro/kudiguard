@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,12 +6,13 @@ import { ArrowLeft, Send, MessageCircle } from 'lucide-react';
 
 interface AskKudiGuardProps {
   onBack: () => void;
-  onShowDataInput: (question: string, intent: string) => void; // Updated to pass intent
+  onShowDataInput: (question: string, intent: string) => void;
 }
 
 const AskKudiGuard = ({ onBack, onShowDataInput }: AskKudiGuardProps) => {
   const [question, setQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
 
   const suggestedQuestions = [
     "Can I hire another staff member?",
@@ -20,6 +21,18 @@ const AskKudiGuard = ({ onBack, onShowDataInput }: AskKudiGuardProps) => {
     "Can I afford to expand my shop?",
     "Should I increase my product prices?"
   ];
+
+  useEffect(() => {
+    if (question.trim() === '') {
+      setFilteredSuggestions(suggestedQuestions);
+    } else {
+      setFilteredSuggestions(
+        suggestedQuestions.filter(sugg =>
+          sugg.toLowerCase().includes(question.toLowerCase())
+        )
+      );
+    }
+  }, [question]);
 
   // Simple intent detection based on keywords
   const determineIntent = (q: string): string => {
@@ -36,16 +49,16 @@ const AskKudiGuard = ({ onBack, onShowDataInput }: AskKudiGuardProps) => {
     if (!question.trim()) return;
     
     setIsLoading(true);
-    const intent = determineIntent(question); // Determine intent
-    // Simulate processing then show data input
+    const intent = determineIntent(question);
     setTimeout(() => {
       setIsLoading(false);
-      onShowDataInput(question, intent); // Pass intent
+      onShowDataInput(question, intent);
     }, 1000);
   };
 
   const handleSuggestedClick = (suggestedQuestion: string) => {
     setQuestion(suggestedQuestion);
+    handleSubmit(); // Automatically submit when a suggestion is clicked
   };
 
   return (
@@ -96,28 +109,24 @@ const AskKudiGuard = ({ onBack, onShowDataInput }: AskKudiGuardProps) => {
                 <span>KudiGuard is thinking...</span>
               </div>
             )}
-          </CardContent>
-        </Card>
 
-        {/* Suggested Questions */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Popular Questions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {suggestedQuestions.map((suggestedQuestion, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  onClick={() => handleSuggestedClick(suggestedQuestion)}
-                  className="w-full text-left justify-start h-auto py-3 px-4 hover:bg-accent"
-                >
-                  <MessageCircle className="mr-2 h-4 w-4 text-primary flex-shrink-0" />
-                  <span className="text-sm">{suggestedQuestion}</span>
-                </Button>
-              ))}
-            </div>
+            {/* Dynamic Suggestions */}
+            {!isLoading && filteredSuggestions.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <p className="text-sm font-medium text-muted-foreground">Suggestions:</p>
+                {filteredSuggestions.map((suggestedQuestion, index) => (
+                  <Button
+                    key={index}
+                    variant="ghost"
+                    onClick={() => handleSuggestedClick(suggestedQuestion)}
+                    className="w-full text-left justify-start h-auto py-3 px-4 hover:bg-accent"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="text-sm">{suggestedQuestion}</span>
+                  </Button>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
