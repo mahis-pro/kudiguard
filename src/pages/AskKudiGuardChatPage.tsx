@@ -394,10 +394,7 @@ const AskKudiGuardChatPage = () => {
 
   const handleSuggestedClick = (suggestedQuestion: string) => {
     setCurrentInput(suggestedQuestion);
-    // Automatically submit when a suggestion is clicked
-    setTimeout(() => { // Small delay to allow input state to update before submit
-      handleAskQuestionSubmit();
-    }, 50);
+    // Do NOT automatically submit here. User will click send or press Enter.
   };
 
   const handleFinancialDataChange = (field: keyof FinancialData, value: string | number) => {
@@ -671,7 +668,7 @@ const AskKudiGuardChatPage = () => {
             <CardTitle className="text-lg">Your Financial Snapshot</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4"> {/* Kept at grid-cols-2 for better mobile responsiveness */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-success-light rounded-lg">
                 <p className="text-sm text-muted-foreground">Monthly Revenue</p>
                 <p className="text-lg font-bold text-success">₦{result.numeric_breakdown.monthly_revenue.toLocaleString()}</p>
@@ -820,7 +817,7 @@ const AskKudiGuardChatPage = () => {
           {step === 'ask_question' && !isLoading && filteredSuggestions.length > 0 && ( // Only show if suggestions exist
             <div className="space-y-2 pt-2">
               <p className="text-sm font-medium text-muted-foreground">Suggestions:</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar"> {/* Added max-h and overflow */}
                 {filteredSuggestions.map((suggestedQuestion, index) => (
                   <Button
                     key={index}
