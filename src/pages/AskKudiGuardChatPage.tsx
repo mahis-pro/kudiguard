@@ -319,7 +319,7 @@ const AskKudiGuardChatPage = () => {
     "Is my business financially ready for a slow season?",
     "How can I track my daily sales more effectively?"
   ];
-  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>(suggestedQuestions);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]); // Initialize as empty
 
   // Scroll to bottom of chat history
   useEffect(() => {
@@ -327,6 +327,19 @@ const AskKudiGuardChatPage = () => {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatHistory]);
+
+  // Update filtered suggestions based on current input
+  useEffect(() => {
+    if (currentInput.trim() === '') {
+      setFilteredSuggestions([]); // Show no suggestions if input is empty
+    } else {
+      setFilteredSuggestions(
+        suggestedQuestions.filter(sugg =>
+          sugg.toLowerCase().includes(currentInput.toLowerCase())
+        )
+      );
+    }
+  }, [currentInput]);
 
   // --- Intent Detection (reused from AskKudiGuard) ---
   const determineIntent = (q: string): string => {
@@ -583,19 +596,6 @@ const AskKudiGuardChatPage = () => {
     // queryClient.invalidateQueries({ queryKey: ['userDecisionsProfile'] });
   };
 
-  // Filter suggestions based on current input
-  useEffect(() => {
-    if (currentInput.trim() === '') {
-      setFilteredSuggestions(suggestedQuestions);
-    } else {
-      setFilteredSuggestions(
-        suggestedQuestions.filter(sugg =>
-          sugg.toLowerCase().includes(currentInput.toLowerCase())
-        )
-      );
-    }
-  }, [currentInput]);
-
   // Determine which fields to show based on the intent
   const fieldsToShow = useMemo(() => {
     const keys = intentFieldMapping[currentIntent] || intentFieldMapping['general_advice'];
@@ -671,7 +671,7 @@ const AskKudiGuardChatPage = () => {
             <CardTitle className="text-lg">Your Financial Snapshot</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4"> {/* Kept at grid-cols-2 for better mobile responsiveness */}
               <div className="text-center p-3 bg-success-light rounded-lg">
                 <p className="text-sm text-muted-foreground">Monthly Revenue</p>
                 <p className="text-lg font-bold text-success">₦{result.numeric_breakdown.monthly_revenue.toLocaleString()}</p>
@@ -703,7 +703,7 @@ const AskKudiGuardChatPage = () => {
             <ul className="space-y-3">
               {result.next_steps.map((step, index) => (
                 <li key={index} className="flex items-start">
-                  <div className="bg-primary rounded-full w-6 h-6 flex items-center justify-center text-primary-foreground text-sm font-bold mr-3 mt-0.5">
+                  <div className="bg-primary rounded-full w-6 h-6 flex items-center justify-center text-primary-foreground text-sm font-bold mr-3 mt-0.5 flex-shrink-0">
                     {index + 1}
                   </div>
                   <p className="text-foreground">{step}</p>
@@ -817,7 +817,7 @@ const AskKudiGuardChatPage = () => {
             </div>
           )}
 
-          {step === 'ask_question' && !isLoading && (
+          {step === 'ask_question' && !isLoading && filteredSuggestions.length > 0 && ( // Only show if suggestions exist
             <div className="space-y-2 pt-2">
               <p className="text-sm font-medium text-muted-foreground">Suggestions:</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
