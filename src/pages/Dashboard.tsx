@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Navigation from '@/components/Navigation';
@@ -10,7 +10,7 @@ import { useSession } from '@/components/auth/SessionContextProvider';
 import { useQuery } from '@tanstack/react-query';
 
 interface DashboardProps {
-  onAskKudiGuard: () => void;
+  // onAskKudiGuard: () => void; // No longer needed as a prop, will use navigate directly
 }
 
 // Interface for the combined data from decisions and recommendations tables
@@ -54,8 +54,9 @@ interface DecisionWithRecommendation {
   }[]; // <--- Changed to array type
 }
 
-const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
+const Dashboard = (/* { onAskKudiGuard }: DashboardProps */) => { // Removed prop
   const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const fetchDecisions = async () => {
     if (!session?.user?.id) {
@@ -195,7 +196,7 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
 
         {/* Main Action Button */}
         <Button 
-          onClick={onAskKudiGuard}
+          onClick={() => navigate('/ask')} // Navigate to the new chat page
           className="w-full h-14 bg-gradient-primary hover:shadow-success text-lg font-semibold"
         >
           <MessageCircle className="mr-2 h-5 w-5" />

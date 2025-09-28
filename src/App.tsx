@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,21 +22,6 @@ import AskKudiGuardChatPage from "./pages/AskKudiGuardChatPage"; // Import the n
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Removed all state related to the old AskKudiGuard flow
-  // const [showAskKudiGuard, setShowAskKudiGuard] = useState(false);
-  // const [showDataInput, setShowDataInput] = useState(false);
-  // const [showDecisionResult, setShowDecisionResult] = useState(false);
-  // const [currentQuestion, setCurrentQuestion] = useState('');
-  // const [currentIntent, setCurrentIntent] = useState('');
-  // const [financialData, setFinancialData] = useState<FinancialData | null>(null);
-  // const [decisionResult, setDecisionResult] = useState<DecisionResultData | null>(null);
-
-  // The handleAskKudiGuard function is now simplified to just navigate
-  const handleAskKudiGuard = () => {
-    // This function will now be passed to the Dashboard and trigger navigation
-    // The actual logic for the chat flow is within AskKudiGuardChatPage
-  };
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -52,7 +37,7 @@ const App = () => {
               <Route path="/onboarding" element={<Onboarding />} />
               <Route 
                 path="/dashboard" 
-                element={<DashboardPage onAskKudiGuard={handleAskKudiGuard} />} // Simplified
+                element={<DashboardPage />} /* Removed onAskKudiGuard prop */
               />
               <Route path="/ask" element={<AskKudiGuardChatPage />} /> {/* New route for the chat page */}
               <Route path="/about" element={<About />} />
