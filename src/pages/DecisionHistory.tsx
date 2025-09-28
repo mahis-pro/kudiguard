@@ -46,7 +46,7 @@ const DecisionHistory = () => {
       return [];
     }
     const { data, error } = await supabase
-      .from('decisions')
+      .from('finance.decisions') // FIX: Changed from 'decisions' to 'finance.decisions'
       .select('*')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false }); // Order by creation date
