@@ -23,20 +23,33 @@ interface Decision {
   id: string;
   created_at: string;
   question: string;
-  decision_type: string;
-  recommendation: string;
-  confidence_level: 'recommended' | 'cautious' | 'not_advisable';
+  monthly_revenue: number;
+  monthly_expenses: number;
+  current_savings: number;
+  staff_payroll?: number;
+  inventory_value?: number;
+  outstanding_debts?: number;
+  receivables?: number;
+  equipment_investment?: number;
+  marketing_spend?: number;
+  owner_withdrawals?: number;
+  business_age?: number;
+  industry_type?: string;
+  decision_result: string;
+  decision_status: 'success' | 'warning' | 'danger';
   explanation: string;
+  next_steps: string[];
   financial_health_score?: number;
   score_interpretation?: string;
+  accepted_or_rejected?: boolean;
 }
 
 const Profile = () => {
-  const { session, supabase, isLoading, userDisplayName, avatarUrl } = useSession(); // Removed onboardingCompleted
+  const { session, supabase, isLoading, userDisplayName, avatarUrl } = useSession();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
-    fullName: '', // Changed from firstName, lastName
+    fullName: '',
     email: '',
     businessName: '',
     avatarUrl: '',
@@ -45,15 +58,14 @@ const Profile = () => {
 
   useEffect(() => {
     if (session?.user && !isLoading) {
-      // Fetch profile data from Supabase
       const fetchProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, business_name, avatar_url') // Select full_name
+          .select('full_name, business_name, avatar_url')
           .eq('id', session.user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+        if (error && error.code !== 'PGRST116') {
           toast({
             title: "Error fetching profile",
             description: error.message,
@@ -67,7 +79,6 @@ const Profile = () => {
             avatarUrl: data.avatar_url || '',
           });
         } else {
-          // If no profile found, initialize with email
           setProfileData(prev => ({
             ...prev,
             email: session.user.email || '',
@@ -78,16 +89,15 @@ const Profile = () => {
     }
   }, [session, isLoading, supabase, toast]);
 
-  // Fetch user decisions for stats
   const fetchDecisions = async () => {
     if (!session?.user?.id) {
       return [];
     }
     const { data, error } = await supabase
-      .from('finance.decisions') // Changed to finance.decisions
+      .from('finance.decisions')
       .select('*')
       .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false }); // Order by creation date to get latest
+      .order('created_at', { ascending: false });
 
     if (error) {
       throw error;
@@ -98,7 +108,7 @@ const Profile = () => {
   const { data: decisions, isLoading: decisionsLoading, error: decisionsError } = useQuery<Decision[], Error>({
     queryKey: ['userDecisionsProfile', session?.user?.id],
     queryFn: fetchDecisions,
-    enabled: !!session?.user?.id && !isLoading, // Only run query if session is available and not loading
+    enabled: !!session?.user?.id && !isLoading,
   });
 
   const handleSave = async () => {
@@ -117,7 +127,7 @@ const Profile = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name: profileData.fullName, // Updated to full_name
+          full_name: profileData.fullName,
           business_name: profileData.businessName,
           updated_at: new Date().toISOString(),
         })
@@ -165,15 +175,13 @@ const Profile = () => {
   }
 
   const profileFields = [
-    { key: 'fullName', label: 'Full Name', icon: User, type: 'text' }, // Updated to fullName
+    { key: 'fullName', label: 'Full Name', icon: User, type: 'text' },
     { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text' },
     { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text' },
   ];
 
-  // Calculate dynamic stats
   const totalDecisions = decisions?.length || 0;
-  const recommendedDecisions = decisions?.filter(d => d.confidence_level === 'recommended').length || 0;
-  // Placeholder for saved potential loss, needs actual logic from bookkeeping
+  const recommendedDecisions = decisions?.filter(d => d.decision_status === 'success').length || 0;
   const savedPotentialLoss = 0; 
   
   const memberSinceDate = session?.user?.created_at 
@@ -246,8 +254,6 @@ const Profile = () => {
                 />
               </div>
             ))}
-            
-            {/* FinancialGoalSelect removed */}
           </CardContent>
         </Card>
 
@@ -282,7 +288,7 @@ const Profile = () => {
                   <Shield className="mr-2 h-5 w-5 text-primary" />
                   Latest Financial Health: {financialHealthScore}%
                 </h3>
-                <p className="text-muted-foreground text-sm">{scoreInterpretation}</p>
+                <p className="text-sm text-muted-foreground">{scoreInterpretation}</p>
               </div>
             )}
           </CardContent>

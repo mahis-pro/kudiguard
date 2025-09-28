@@ -17,12 +17,25 @@ interface Decision {
   id: string;
   created_at: string;
   question: string;
-  decision_type: string;
-  recommendation: string;
-  confidence_level: 'recommended' | 'cautious' | 'not_advisable';
+  monthly_revenue: number;
+  monthly_expenses: number;
+  current_savings: number;
+  staff_payroll?: number;
+  inventory_value?: number;
+  outstanding_debts?: number;
+  receivables?: number;
+  equipment_investment?: number;
+  marketing_spend?: number;
+  owner_withdrawals?: number;
+  business_age?: number;
+  industry_type?: string;
+  decision_result: string;
+  decision_status: 'success' | 'warning' | 'danger';
   explanation: string;
+  next_steps: string[];
   financial_health_score?: number;
   score_interpretation?: string;
+  accepted_or_rejected?: boolean;
 }
 
 const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
@@ -51,11 +64,11 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
   });
 
   const latestDecision = decisions && decisions.length > 0 ? decisions[0] : null;
-  // These stats will need to be derived from bookkeeping_entries in the future
-  // For now, we'll use placeholders or derive from latest decision if available
-  const displayRevenue = 0; // Placeholder
-  const displayExpenses = 0; // Placeholder
-  const displaySavings = 0; // Placeholder
+  
+  // Derive stats from latest decision or use placeholders
+  const displayRevenue = latestDecision?.monthly_revenue || 0;
+  const displayExpenses = latestDecision?.monthly_expenses || 0;
+  const displaySavings = latestDecision?.current_savings || 0;
 
   const stats = [
     {
@@ -201,9 +214,9 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
                     <p className="text-xs text-muted-foreground">{new Date(decision.created_at).toLocaleDateString('en-GB')}</p>
                   </div>
                   <div className={`px-2 py-1 rounded text-xs font-medium ${
-                    decision.confidence_level === 'recommended' ? 'bg-success-light text-success' : 'bg-warning-light text-warning'
+                    decision.decision_status === 'success' ? 'bg-success-light text-success' : 'bg-warning-light text-warning'
                   }`}>
-                    {decision.recommendation}
+                    {decision.decision_result}
                   </div>
                 </div>
               ))

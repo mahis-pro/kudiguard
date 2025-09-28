@@ -23,6 +23,7 @@ interface FinancialData {
 }
 
 interface DecisionResultData {
+  id: string;
   decision_result: string;
   decision_status: 'success' | 'warning' | 'danger';
   explanation: string;
@@ -83,7 +84,7 @@ const DataInputModal = ({ question, onBack, onAnalyze }: DataInputModalProps) =>
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/decision-engine`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate_recommendation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

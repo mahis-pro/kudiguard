@@ -17,23 +17,32 @@ import {
   Users,
   ShieldCheck
 } from 'lucide-react';
-import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
-import { useQuery } from '@tanstack/react-query'; // Import useQuery
+import { useSession } from '@/components/auth/SessionContextProvider';
+import { useQuery } from '@tanstack/react-query';
 
 interface Decision {
   id: string;
-  created_at: string; // Changed from 'date' to 'created_at' to match Supabase schema
+  created_at: string;
   question: string;
-  decision_result: 'Do it' | 'Wait' | 'Don\'t do it' | 'Likely safe' | 'Be cautious' | 'Urgent Review'; // Updated to match Edge Function logic
-  decision_status: 'success' | 'warning' | 'danger'; // Updated to match Edge Function logic
-  monthly_revenue: number; // Changed from 'revenue' to 'monthly_revenue'
-  monthly_expenses: number; // Changed from 'expenses' to 'monthly_expenses'
-  current_savings: number; // Changed from 'savings' to 'current_savings'
-  staff_payroll?: number; // Added staff_payroll, optional
+  monthly_revenue: number;
+  monthly_expenses: number;
+  current_savings: number;
+  staff_payroll?: number;
+  inventory_value?: number;
+  outstanding_debts?: number;
+  receivables?: number;
+  equipment_investment?: number;
+  marketing_spend?: number;
+  owner_withdrawals?: number;
+  business_age?: number;
+  industry_type?: string;
+  decision_result: string;
+  decision_status: 'success' | 'warning' | 'danger';
   explanation: string;
-  next_steps?: string[]; // Added next_steps, optional
-  financial_health_score?: number; // Added new field
-  score_interpretation?: string; // Added new field
+  next_steps: string[];
+  financial_health_score?: number;
+  score_interpretation?: string;
+  accepted_or_rejected?: boolean;
 }
 
 const DecisionHistory = () => {
@@ -46,10 +55,10 @@ const DecisionHistory = () => {
       return [];
     }
     const { data, error } = await supabase
-      .from('finance.decisions') // FIX: Changed from 'decisions' to 'finance.decisions'
+      .from('finance.decisions')
       .select('*')
       .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false }); // Order by creation date
+      .order('created_at', { ascending: false });
 
     if (error) {
       throw error;
@@ -60,15 +69,14 @@ const DecisionHistory = () => {
   const { data: decisions, isLoading: decisionsLoading, error: decisionsError } = useQuery<Decision[], Error>({
     queryKey: ['userDecisions', session?.user?.id],
     queryFn: fetchDecisions,
-    enabled: !!session?.user?.id && !sessionLoading, // Only run query if session is available and not loading
+    enabled: !!session?.user?.id && !sessionLoading,
   });
 
-  const categories = ['all', 'Staffing', 'Expansion', 'Financing', 'Inventory', 'General']; // Added 'General' category
+  const categories = ['all', 'Staffing', 'Expansion', 'Financing', 'Inventory', 'General'];
 
   const filteredDecisions = (decisions || []).filter(decision => {
     const matchesSearch = decision.question.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Determine category based on question for filtering, similar to DecisionResult logic
     let decisionCategory = 'General';
     if (decision.question.toLowerCase().includes('staff') || decision.question.toLowerCase().includes('hire')) {
       decisionCategory = 'Staffing';
@@ -203,7 +211,6 @@ const DecisionHistory = () => {
         {/* Decisions List */}
         <div className="space-y-4">
           {filteredDecisions.map((decision) => {
-            // Determine category for display based on question
             let displayCategory = 'General';
             if (decision.question.toLowerCase().includes('staff') || decision.question.toLowerCase().includes('hire')) {
               displayCategory = 'Staffing';
@@ -222,10 +229,8 @@ const DecisionHistory = () => {
                     <div className="flex-1">
                       <CardTitle className="text-lg mb-2">{decision.question}</CardTitle>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {new Date(decision.created_at).toLocaleDateString('en-GB')}
-                        </div>
+                        <Calendar className="h-4 w-4 mr-1" />
+                        {new Date(decision.created_at).toLocaleDateString('en-GB')}
                         <Badge variant="outline">{displayCategory}</Badge>
                       </div>
                     </div>

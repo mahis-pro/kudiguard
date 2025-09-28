@@ -29,6 +29,7 @@ interface DecisionResultData {
   next_steps: string[];
   financial_health_score: number;
   score_interpretation: string;
+  accepted_or_rejected?: boolean; // Added for feedback
 }
 
 interface DecisionResultProps {
@@ -42,7 +43,7 @@ const DecisionResult = ({ question, data, result, onBack }: DecisionResultProps)
   const { toast } = useToast();
   const { session } = useSession();
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
-  const [feedbackGiven, setFeedbackGiven] = useState<boolean | null>(null); // null: no feedback, true: accepted, false: rejected
+  const [feedbackGiven, setFeedbackGiven] = useState<boolean | null>(result.accepted_or_rejected !== undefined ? result.accepted_or_rejected : null); // Initialize with existing feedback
 
   const {
     id: decisionId, // Extract decisionId
@@ -80,7 +81,7 @@ const DecisionResult = ({ question, data, result, onBack }: DecisionResultProps)
       cardBgClass = "bg-muted/30 border-muted/20";
   }
 
-  const netIncome = data.monthlyRevenue - data.monthlyExpenses - data.ownerWithdrawals; // Use ownerWithdrawals for net income
+  const netIncome = data.monthlyRevenue - data.monthlyExpenses - (data.ownerWithdrawals || 0); // Use ownerWithdrawals for net income
 
   const handleShareResult = () => {
     navigator.clipboard.writeText(`KudiGuard's advice for "${question}": ${decisionResultText}. Financial Health Score: ${financialHealthScore}/100. Explanation: ${explanation}`);
@@ -236,7 +237,7 @@ const DecisionResult = ({ question, data, result, onBack }: DecisionResultProps)
         </Card>
 
         {/* Feedback Section */}
-        {!feedbackGiven && (
+        {feedbackGiven === null && (
           <Card className="shadow-card mb-6 bg-accent/20 border-accent/30">
             <CardContent className="p-4 text-center">
               <p className="font-medium text-foreground mb-3">Did you find this advice helpful?</p>
