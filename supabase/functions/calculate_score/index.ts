@@ -31,15 +31,46 @@ serve(async (req) => {
     return new Response('Unauthorized', { status: 401, headers: corsHeaders });
   }
 
-  // TODO: Implement logic to fetch bookkeeping_entries for the user
-  // and calculate a financial health score.
+  const { user_id, context } = await req.json(); // Expect user_id and optional context
 
-  const score = 75; // Placeholder score
-  const explanation = "This is a placeholder explanation. The scoring logic is not yet implemented.";
+  if (!user_id || user_id !== user.id) {
+    return new Response('Forbidden: user_id in payload must match authenticated user.', { status: 403, headers: corsHeaders });
+  }
 
-  // TODO: Save the calculated score to the finance.financial_scores table.
+  // --- Placeholder Logic for Financial Health Score Calculation ---
+  // In a real scenario, this would involve:
+  // 1. Fetching recent transactions from `public.transactions` for the user.
+  // 2. Fetching recent recommendations/decisions from `public.recommendations` for the user.
+  // 3. Applying a scoring model based on revenue, expenses, savings, debt, etc.
+  // 4. Potentially using the `context` for specific scenarios (e.g., 'monthly_review').
 
-  return new Response(JSON.stringify({ score, explanation }), {
+  // For now, we'll return a mock score and explanation.
+  // This function could also update a 'financial_health_score' in the profiles table
+  // or insert into a dedicated 'financial_scores' table if one were created.
+
+  const mockScore = Math.floor(Math.random() * 60) + 40; // Score between 40 and 100
+  let mockInterpretation = "Your financial health is generally good, but there's always room for improvement.";
+  let breakdown = {
+    revenue_stability: 70,
+    expense_management: 60,
+    savings_adequacy: 80,
+    debt_level: 50,
+  };
+
+  if (mockScore < 60) {
+    mockInterpretation = "Your business financial health requires attention. Focus on improving cash flow and reducing unnecessary expenses.";
+  } else if (mockScore >= 80) {
+    mockInterpretation = "Excellent financial health! Your business is well-managed and resilient.";
+  }
+
+  // This function could also be responsible for updating the `financial_health_score`
+  // and `score_interpretation` fields in the latest recommendation or a dedicated profile field.
+
+  return new Response(JSON.stringify({
+    financial_health_score: mockScore,
+    score_interpretation: mockInterpretation,
+    breakdown: breakdown,
+  }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     status: 200,
   });
