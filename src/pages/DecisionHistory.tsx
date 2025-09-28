@@ -101,7 +101,8 @@ const DecisionHistory = () => {
   const categories = ['all', 'Staffing', 'Expansion', 'Financing', 'Inventory', 'General'];
 
   const filteredRecommendations = (recommendations || []).filter(rec => {
-    const question = rec.decisions[0].question.toLowerCase(); // Access first element
+    // Safely access question, provide fallback if decisions[0] or question is undefined
+    const question = rec.decisions?.[0]?.question?.toLowerCase() || ''; 
     const matchesSearch = question.includes(searchQuery.toLowerCase());
     
     let decisionCategory = 'General';
@@ -238,7 +239,8 @@ const DecisionHistory = () => {
         {/* Decisions List */}
         <div className="space-y-4">
           {filteredRecommendations.map((rec) => {
-            const question = rec.decisions[0].question; // Access first element
+            // Safely access question, provide fallback if decisions[0] or question is undefined
+            const question = rec.decisions?.[0]?.question || 'Unknown Question'; 
             let displayCategory = 'General';
             if (question.toLowerCase().includes('staff') || question.toLowerCase().includes('hire')) {
               displayCategory = 'Staffing';

@@ -237,7 +237,7 @@ const Dashboard = (/* { onAskKudiGuard }: DashboardProps */) => { // Removed pro
               recentRecommendations.map((rec, index) => (
                 <div key={rec.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{rec.decisions[0].question}</p> {/* Access first element */}
+                    <p className="font-medium text-sm">{rec.decisions?.[0]?.question || 'Decision details missing'}</p> {/* Safely access question */}
                     <p className="text-xs text-muted-foreground">{new Date(rec.created_at).toLocaleDateString('en-GB')}</p>
                   </div>
                   <div className={`px-2 py-1 rounded text-xs font-medium ${
