@@ -34,7 +34,7 @@ export const DecisionEngineInputSchema = z.object({
 // Schema for update-decision-feedback function
 export const UpdateFeedbackInputSchema = z.object({
   recommendationId: z.string().uuid("Invalid recommendationId format. Must be a UUID."),
-  acceptedOrRejected: z.boolean("acceptedOrRejected must be a boolean."),
+  acceptedOrRejected: z.boolean({ invalid_type_error: "acceptedOrRejected must be a boolean." }), // FIX: Corrected Zod boolean validation
   comment: z.string().optional().nullable(),
   rating: z.number().int().min(1).max(5).optional().nullable(),
 });

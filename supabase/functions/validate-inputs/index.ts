@@ -1,15 +1,23 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
-import { z } from 'https://deno.land/x/zod@v3.23.0/mod.ts'; // Import Zod
+import { z } from 'https://deno.land/x/zod@v3.23.0/mod.ts';
 
-import { generateRequestId, getSupabaseClient } from '../_shared/utils.ts'; // Updated path
-import { handleError, AuthError, InputValidationError } from '../_shared/errors.ts'; // Import error handlers
-import { API_VERSION, CORS_HEADERS, ERROR_CODES, SEVERITY } from '../_shared/constants.ts'; // Import constants
-import { ValidateInputsSchema } from '../_shared/schemas.ts'; // Import schema
+// Import everything from the shared module
+import {
+  generateRequestId,
+  getSupabaseClient,
+  handleError,
+  AuthError,
+  InputValidationError,
+  API_VERSION,
+  CORS_HEADERS,
+  ValidateInputsSchema,
+  SupabaseClient // Explicitly import SupabaseClient type
+} from '../_shared/mod.ts';
 
 serve(async (req) => {
   const requestId = generateRequestId();
-  let supabaseClient: createClient | null = null; // Use createClient type
+  let supabaseClient: SupabaseClient | null = null;
   let vendorId: string | null = null;
   let requestPayload: any = {};
 
