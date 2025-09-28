@@ -91,7 +91,7 @@ const App = () => {
     // Invalidate queries to refetch dashboard data after a new decision
     queryClient.invalidateQueries({ queryKey: ['dashboardDecisions'] });
     queryClient.invalidateQueries({ queryKey: ['userDecisions'] });
-    queryClient.invalidateQueries({ queryKey: ['userDecisionsProfile'] });
+    queryClient.invalidateQueries({ queryKey: ['userDecisionsProfile'] }); // Invalidate for Profile page
   };
 
   return (
