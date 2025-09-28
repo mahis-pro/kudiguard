@@ -240,7 +240,7 @@ const DecisionHistory = () => {
         <div className="space-y-4">
           {filteredRecommendations.map((rec) => {
             // Safely access question, provide fallback if decisions[0] or question is undefined
-            const question = rec.decisions?.[0]?.question || 'Unknown Question'; 
+            const question = rec.decisions?.[0]?.question || 'Decision details missing'; 
             let displayCategory = 'General';
             if (question.toLowerCase().includes('staff') || question.toLowerCase().includes('hire')) {
               displayCategory = 'Staffing';
