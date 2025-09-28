@@ -13,29 +13,45 @@ interface DashboardProps {
   onAskKudiGuard: () => void;
 }
 
-interface Decision {
-  id: string;
-  created_at: string;
-  question: string;
-  monthly_revenue: number;
-  monthly_expenses: number;
-  current_savings: number;
-  staff_payroll?: number;
-  inventory_value?: number;
-  outstanding_debts?: number;
-  receivables?: number;
-  equipment_investment?: number;
-  marketing_spend?: number;
-  owner_withdrawals?: number;
-  business_age?: number;
-  industry_type?: string;
-  decision_result: string;
-  decision_status: 'success' | 'warning' | 'danger';
-  explanation: string;
-  next_steps: string[];
-  financial_health_score?: number;
-  score_interpretation?: string;
-  accepted_or_rejected?: boolean;
+// Interface for the combined data from decisions and recommendations tables
+interface DecisionWithRecommendation {
+  id: string; // Recommendation ID
+  created_at: string; // Recommendation creation date
+  decision_id: string;
+  user_id: string;
+  recommendation: { // This is the JSONB column from the recommendations table
+    decision_result: string;
+    decision_status: 'success' | 'warning' | 'danger';
+    explanation: string;
+    next_steps: string[];
+    financial_health_score: number;
+    score_interpretation: string;
+    numeric_breakdown: {
+      monthly_revenue: number;
+      monthly_expenses: number;
+      current_savings: number;
+      net_income: number;
+      staff_payroll: number;
+      // Add other relevant inputs here
+    };
+  };
+  decisions: { // This is the joined data from the decisions table
+    question: string;
+    inputs: { // The original inputs from the decision
+      monthlyRevenue: number;
+      monthlyExpenses: number;
+      currentSavings: number;
+      staffPayroll?: number;
+      inventoryValue?: number;
+      outstandingDebts?: number;
+      receivables?: number;
+      equipmentInvestment?: number;
+      marketingSpend?: number;
+      ownerWithdrawals?: number;
+      businessAge?: number;
+      industryType?: string;
+    };
+  }[]; // <--- Changed to array type
 }
 
 const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
@@ -46,29 +62,39 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
       return [];
     }
     const { data, error } = await supabase
-      .from('finance.decisions')
-      .select('*')
+      .from('recommendations')
+      .select(`
+        id,
+        created_at,
+        decision_id,
+        user_id,
+        recommendation,
+        decisions (
+          question,
+          inputs
+        )
+      `)
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
       throw error;
     }
-    return data as Decision[];
+    return data as DecisionWithRecommendation[];
   };
 
-  const { data: decisions, isLoading: decisionsLoading, error: decisionsError } = useQuery<Decision[], Error>({
-    queryKey: ['dashboardDecisions', session?.user?.id],
+  const { data: recommendations, isLoading: recommendationsLoading, error: recommendationsError } = useQuery<DecisionWithRecommendation[], Error>({
+    queryKey: ['dashboardRecommendations', session?.user?.id],
     queryFn: fetchDecisions,
     enabled: !!session?.user?.id && !sessionLoading,
   });
 
-  const latestDecision = decisions && decisions.length > 0 ? decisions[0] : null;
+  const latestRecommendation = recommendations && recommendations.length > 0 ? recommendations[0] : null;
   
-  // Derive stats from latest decision or use placeholders
-  const displayRevenue = latestDecision?.monthly_revenue || 0;
-  const displayExpenses = latestDecision?.monthly_expenses || 0;
-  const displaySavings = latestDecision?.current_savings || 0;
+  // Derive stats from latest recommendation's numeric_breakdown or use placeholders
+  const displayRevenue = latestRecommendation?.recommendation.numeric_breakdown.monthly_revenue || 0;
+  const displayExpenses = latestRecommendation?.recommendation.numeric_breakdown.monthly_expenses || 0;
+  const displaySavings = latestRecommendation?.recommendation.numeric_breakdown.current_savings || 0;
 
   const stats = [
     {
@@ -91,11 +117,11 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
     }
   ];
 
-  const recentDecisions = decisions ? decisions.slice(0, 2) : []; // Show up to 2 most recent decisions
+  const recentRecommendations = recommendations ? recommendations.slice(0, 2) : []; // Show up to 2 most recent recommendations
 
-  // Financial Health Score and Interpretation now come from the latest decision
-  const healthScore = latestDecision?.financial_health_score;
-  const healthInterpretation = latestDecision?.score_interpretation;
+  // Financial Health Score and Interpretation now come from the latest recommendation
+  const healthScore = latestRecommendation?.recommendation.financial_health_score;
+  const healthInterpretation = latestRecommendation?.recommendation.score_interpretation;
 
   let financialHealthScoreProps: { score: 'stable' | 'caution' | 'risky', message: string };
 
@@ -114,12 +140,12 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
     };
   } else {
     financialHealthScoreProps = {
-      score: 'stable', // Default to stable if no decisions yet
+      score: 'stable', // Default to stable if no recommendations yet
       message: 'Start by asking KudiGuard your first financial question to get a personalized health assessment!',
     };
   }
 
-  if (sessionLoading || decisionsLoading) {
+  if (sessionLoading || recommendationsLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading dashboard...</p>
@@ -127,10 +153,10 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
     );
   }
 
-  if (decisionsError) {
+  if (recommendationsError) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-        <p className="text-destructive">Error loading dashboard data: {decisionsError.message}</p>
+        <p className="text-destructive">Error loading dashboard data: {recommendationsError.message}</p>
       </div>
     );
   }
@@ -206,17 +232,17 @@ const Dashboard = ({ onAskKudiGuard }: DashboardProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {recentDecisions.length > 0 ? (
-              recentDecisions.map((decision, index) => (
-                <div key={decision.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
+            {recentRecommendations.length > 0 ? (
+              recentRecommendations.map((rec, index) => (
+                <div key={rec.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{decision.question}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(decision.created_at).toLocaleDateString('en-GB')}</p>
+                    <p className="font-medium text-sm">{rec.decisions[0].question}</p> {/* Access first element */}
+                    <p className="text-xs text-muted-foreground">{new Date(rec.created_at).toLocaleDateString('en-GB')}</p>
                   </div>
                   <div className={`px-2 py-1 rounded text-xs font-medium ${
-                    decision.decision_status === 'success' ? 'bg-success-light text-success' : 'bg-warning-light text-warning'
+                    rec.recommendation.decision_status === 'success' ? 'bg-success-light text-success' : 'bg-warning-light text-warning'
                   }`}>
-                    {decision.decision_result}
+                    {rec.recommendation.decision_result}
                   </div>
                 </div>
               ))

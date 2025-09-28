@@ -20,29 +20,45 @@ import {
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useQuery } from '@tanstack/react-query';
 
-interface Decision {
-  id: string;
-  created_at: string;
-  question: string;
-  monthly_revenue: number;
-  monthly_expenses: number;
-  current_savings: number;
-  staff_payroll?: number;
-  inventory_value?: number;
-  outstanding_debts?: number;
-  receivables?: number;
-  equipment_investment?: number;
-  marketing_spend?: number;
-  owner_withdrawals?: number;
-  business_age?: number;
-  industry_type?: string;
-  decision_result: string;
-  decision_status: 'success' | 'warning' | 'danger';
-  explanation: string;
-  next_steps: string[];
-  financial_health_score?: number;
-  score_interpretation?: string;
-  accepted_or_rejected?: boolean;
+// Interface for the combined data from decisions and recommendations tables
+interface DecisionWithRecommendation {
+  id: string; // Recommendation ID
+  created_at: string; // Recommendation creation date
+  decision_id: string;
+  user_id: string;
+  recommendation: { // This is the JSONB column from the recommendations table
+    decision_result: string;
+    decision_status: 'success' | 'warning' | 'danger';
+    explanation: string;
+    next_steps: string[];
+    financial_health_score: number;
+    score_interpretation: string;
+    numeric_breakdown: {
+      monthly_revenue: number;
+      monthly_expenses: number;
+      current_savings: number;
+      net_income: number;
+      staff_payroll: number;
+      // Add other relevant inputs here
+    };
+  };
+  decisions: { // This is the joined data from the decisions table
+    question: string;
+    inputs: { // The original inputs from the decision
+      monthlyRevenue: number;
+      monthlyExpenses: number;
+      currentSavings: number;
+      staffPayroll?: number;
+      inventoryValue?: number;
+      outstandingDebts?: number;
+      receivables?: number;
+      equipmentInvestment?: number;
+      marketingSpend?: number;
+      ownerWithdrawals?: number;
+      businessAge?: number;
+      industryType?: string;
+    };
+  }[]; // <--- Changed to array type
 }
 
 const DecisionHistory = () => {
@@ -55,36 +71,47 @@ const DecisionHistory = () => {
       return [];
     }
     const { data, error } = await supabase
-      .from('finance.decisions')
-      .select('*')
+      .from('recommendations')
+      .select(`
+        id,
+        created_at,
+        decision_id,
+        user_id,
+        recommendation,
+        decisions (
+          question,
+          inputs
+        )
+      `)
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
       throw error;
     }
-    return data as Decision[];
+    return data as DecisionWithRecommendation[];
   };
 
-  const { data: decisions, isLoading: decisionsLoading, error: decisionsError } = useQuery<Decision[], Error>({
-    queryKey: ['userDecisions', session?.user?.id],
+  const { data: recommendations, isLoading: recommendationsLoading, error: recommendationsError } = useQuery<DecisionWithRecommendation[], Error>({
+    queryKey: ['userRecommendations', session?.user?.id],
     queryFn: fetchDecisions,
     enabled: !!session?.user?.id && !sessionLoading,
   });
 
   const categories = ['all', 'Staffing', 'Expansion', 'Financing', 'Inventory', 'General'];
 
-  const filteredDecisions = (decisions || []).filter(decision => {
-    const matchesSearch = decision.question.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredRecommendations = (recommendations || []).filter(rec => {
+    const question = rec.decisions[0].question.toLowerCase(); // Access first element
+    const matchesSearch = question.includes(searchQuery.toLowerCase());
     
     let decisionCategory = 'General';
-    if (decision.question.toLowerCase().includes('staff') || decision.question.toLowerCase().includes('hire')) {
+    if (question.includes('staff') || question.includes('hire')) {
       decisionCategory = 'Staffing';
-    } else if (decision.question.toLowerCase().includes('expand') || decision.question.toLowerCase().includes('stock') || decision.question.toLowerCase().includes('shop')) {
+    } else if (question.includes('expand') || question.includes('stock') || question.includes('shop')) {
       decisionCategory = 'Expansion';
-    } else if (decision.question.toLowerCase().includes('loan') || decision.question.toLowerCase().includes('finance') || decision.question.toLowerCase().includes('borrow')) {
+    } else if (question.includes('loan') || question.includes('borrow') || question.includes('finance')) {
       decisionCategory = 'Financing';
-    } else if (decision.question.toLowerCase().includes('stock') || decision.question.toLowerCase().includes('inventory')) {
+    } else if (question.includes('stock') || question.includes('inventory')) {
       decisionCategory = 'Inventory';
     }
 
@@ -110,13 +137,13 @@ const DecisionHistory = () => {
     }
   };
 
-  const totalDecisions = filteredDecisions.length;
-  const successfulDecisions = filteredDecisions.filter(d => d.decision_status === 'success').length;
+  const totalDecisions = filteredRecommendations.length;
+  const successfulDecisions = filteredRecommendations.filter(rec => rec.recommendation.decision_status === 'success').length;
   const averageSavings = totalDecisions > 0 
-    ? filteredDecisions.reduce((acc, d) => acc + d.current_savings, 0) / totalDecisions 
+    ? filteredRecommendations.reduce((acc, rec) => acc + rec.recommendation.numeric_breakdown.current_savings, 0) / totalDecisions 
     : 0;
 
-  if (sessionLoading || decisionsLoading) {
+  if (sessionLoading || recommendationsLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading decisions...</p>
@@ -124,10 +151,10 @@ const DecisionHistory = () => {
     );
   }
 
-  if (decisionsError) {
+  if (recommendationsError) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-        <p className="text-destructive">Error loading decisions: {decisionsError.message}</p>
+        <p className="text-destructive">Error loading decisions: {recommendationsError.message}</p>
       </div>
     );
   }
@@ -210,34 +237,35 @@ const DecisionHistory = () => {
 
         {/* Decisions List */}
         <div className="space-y-4">
-          {filteredDecisions.map((decision) => {
+          {filteredRecommendations.map((rec) => {
+            const question = rec.decisions[0].question; // Access first element
             let displayCategory = 'General';
-            if (decision.question.toLowerCase().includes('staff') || decision.question.toLowerCase().includes('hire')) {
+            if (question.toLowerCase().includes('staff') || question.toLowerCase().includes('hire')) {
               displayCategory = 'Staffing';
-            } else if (decision.question.toLowerCase().includes('expand') || decision.question.toLowerCase().includes('stock') || decision.question.toLowerCase().includes('shop')) {
+            } else if (question.toLowerCase().includes('expand') || question.toLowerCase().includes('stock') || question.toLowerCase().includes('shop')) {
               displayCategory = 'Expansion';
-            } else if (decision.question.toLowerCase().includes('loan') || decision.question.toLowerCase().includes('finance') || decision.question.toLowerCase().includes('borrow')) {
+            } else if (question.toLowerCase().includes('loan') || question.toLowerCase().includes('finance') || question.toLowerCase().includes('borrow')) {
               displayCategory = 'Financing';
-            } else if (decision.question.toLowerCase().includes('stock') || decision.question.toLowerCase().includes('inventory')) {
+            } else if (question.toLowerCase().includes('stock') || question.toLowerCase().includes('inventory')) {
               displayCategory = 'Inventory';
             }
 
             return (
-              <Card key={decision.id} className="shadow-card">
+              <Card key={rec.id} className="shadow-card">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg mb-2">{decision.question}</CardTitle>
+                      <CardTitle className="text-lg mb-2">{question}</CardTitle>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4 mr-1" />
-                        {new Date(decision.created_at).toLocaleDateString('en-GB')}
+                        {new Date(rec.created_at).toLocaleDateString('en-GB')}
                         <Badge variant="outline">{displayCategory}</Badge>
                       </div>
                     </div>
-                    <div className={`px-3 py-1 rounded-full border ${getStatusColor(decision.decision_status)}`}>
+                    <div className={`px-3 py-1 rounded-full border ${getStatusColor(rec.recommendation.decision_status)}`}>
                       <div className="flex items-center gap-2">
-                        {getStatusIcon(decision.decision_status)}
-                        <span className="font-medium">{decision.decision_result}</span>
+                        {getStatusIcon(rec.recommendation.decision_status)}
+                        <span className="font-medium">{rec.recommendation.decision_result}</span>
                       </div>
                     </div>
                   </div>
@@ -247,7 +275,7 @@ const DecisionHistory = () => {
                   <div className="grid md:grid-cols-2 gap-6 mb-4">
                     <div>
                       <h4 className="font-medium text-foreground mb-2">Explanation</h4>
-                      <p className="text-muted-foreground">{decision.explanation}</p>
+                      <p className="text-muted-foreground">{rec.recommendation.explanation}</p>
                     </div>
                     
                     <div>
@@ -255,27 +283,27 @@ const DecisionHistory = () => {
                       <div className="grid grid-cols-3 gap-2 text-sm">
                         <div className="text-center p-2 bg-success-light rounded">
                           <p className="text-xs text-muted-foreground">Revenue</p>
-                          <p className="font-medium text-success">₦{decision.monthly_revenue.toLocaleString()}</p>
+                          <p className="font-medium text-success">₦{rec.recommendation.numeric_breakdown.monthly_revenue.toLocaleString()}</p>
                         </div>
                         <div className="text-center p-2 bg-warning-light rounded">
                           <p className="text-xs text-muted-foreground">Expenses</p>
-                          <p className="font-medium text-warning">₦{decision.monthly_expenses.toLocaleString()}</p>
+                          <p className="font-medium text-warning">₦{rec.recommendation.numeric_breakdown.monthly_expenses.toLocaleString()}</p>
                         </div>
                         <div className="text-center p-2 bg-primary-light/20 rounded">
                           <p className="text-xs text-muted-foreground">Savings</p>
-                          <p className="font-medium text-primary">₦{decision.current_savings.toLocaleString()}</p>
+                          <p className="font-medium text-primary">₦{rec.recommendation.numeric_breakdown.current_savings.toLocaleString()}</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {decision.financial_health_score !== undefined && decision.score_interpretation && (
+                  {rec.recommendation.financial_health_score !== undefined && rec.recommendation.score_interpretation && (
                     <div className="border-t pt-4">
                       <h4 className="font-medium text-foreground mb-2 flex items-center">
                         <ShieldCheck className="h-4 w-4 mr-2 text-primary" />
-                        Health Score: {decision.financial_health_score}%
+                        Health Score: {rec.recommendation.financial_health_score}%
                       </h4>
-                      <p className="text-sm text-muted-foreground">{decision.score_interpretation}</p>
+                      <p className="text-sm text-muted-foreground">{rec.recommendation.score_interpretation}</p>
                     </div>
                   )}
                 </CardContent>
@@ -284,7 +312,7 @@ const DecisionHistory = () => {
           })}
         </div>
 
-        {filteredDecisions.length === 0 && (
+        {filteredRecommendations.length === 0 && (
           <Card className="shadow-card">
             <CardContent className="p-8 text-center">
               <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

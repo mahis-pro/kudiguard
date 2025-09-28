@@ -19,29 +19,45 @@ import {
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useQuery } from '@tanstack/react-query';
 
-interface Decision {
-  id: string;
-  created_at: string;
-  question: string;
-  monthly_revenue: number;
-  monthly_expenses: number;
-  current_savings: number;
-  staff_payroll?: number;
-  inventory_value?: number;
-  outstanding_debts?: number;
-  receivables?: number;
-  equipment_investment?: number;
-  marketing_spend?: number;
-  owner_withdrawals?: number;
-  business_age?: number;
-  industry_type?: string;
-  decision_result: string;
-  decision_status: 'success' | 'warning' | 'danger';
-  explanation: string;
-  next_steps: string[];
-  financial_health_score?: number;
-  score_interpretation?: string;
-  accepted_or_rejected?: boolean;
+// Interface for the combined data from decisions and recommendations tables
+interface DecisionWithRecommendation {
+  id: string; // Recommendation ID
+  created_at: string; // Recommendation creation date
+  decision_id: string;
+  user_id: string;
+  recommendation: { // This is the JSONB column from the recommendations table
+    decision_result: string;
+    decision_status: 'success' | 'warning' | 'danger';
+    explanation: string;
+    next_steps: string[];
+    financial_health_score: number;
+    score_interpretation: string;
+    numeric_breakdown: {
+      monthly_revenue: number;
+      monthly_expenses: number;
+      current_savings: number;
+      net_income: number;
+      staff_payroll: number;
+      // Add other relevant inputs here
+    };
+  };
+  decisions: { // This is the joined data from the decisions table
+    question: string;
+    inputs: { // The original inputs from the decision
+      monthlyRevenue: number;
+      monthlyExpenses: number;
+      currentSavings: number;
+      staffPayroll?: number;
+      inventoryValue?: number;
+      outstandingDebts?: number;
+      receivables?: number;
+      equipmentInvestment?: number;
+      marketingSpend?: number;
+      ownerWithdrawals?: number;
+      businessAge?: number;
+      industryType?: string;
+    };
+  }[]; // <--- Changed to array type
 }
 
 const Profile = () => {
@@ -56,6 +72,7 @@ const Profile = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Fetch user profile data
   useEffect(() => {
     if (session?.user && !isLoading) {
       const fetchProfile = async () => {
@@ -65,7 +82,7 @@ const Profile = () => {
           .eq('id', session.user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') {
+        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
           toast({
             title: "Error fetching profile",
             description: error.message,
@@ -79,35 +96,48 @@ const Profile = () => {
             avatarUrl: data.avatar_url || '',
           });
         } else {
+          // If no profile found, initialize with email and empty fields
           setProfileData(prev => ({
             ...prev,
             email: session.user.email || '',
+            fullName: userDisplayName || '', // Use userDisplayName from session context if available
           }));
         }
       };
       fetchProfile();
     }
-  }, [session, isLoading, supabase, toast]);
+  }, [session, isLoading, supabase, toast, userDisplayName]);
 
-  const fetchDecisions = async () => {
+  // Fetch user recommendations (decisions)
+  const fetchRecommendations = async () => {
     if (!session?.user?.id) {
       return [];
     }
     const { data, error } = await supabase
-      .from('finance.decisions')
-      .select('*')
+      .from('recommendations')
+      .select(`
+        id,
+        created_at,
+        decision_id,
+        user_id,
+        recommendation,
+        decisions (
+          question,
+          inputs
+        )
+      `)
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
       throw error;
     }
-    return data as Decision[];
+    return data as DecisionWithRecommendation[];
   };
 
-  const { data: decisions, isLoading: decisionsLoading, error: decisionsError } = useQuery<Decision[], Error>({
-    queryKey: ['userDecisionsProfile', session?.user?.id],
-    queryFn: fetchDecisions,
+  const { data: recommendations, isLoading: recommendationsLoading, error: recommendationsError } = useQuery<DecisionWithRecommendation[], Error>({
+    queryKey: ['userRecommendationsProfile', session?.user?.id],
+    queryFn: fetchRecommendations,
     enabled: !!session?.user?.id && !isLoading,
   });
 
@@ -142,6 +172,9 @@ const Profile = () => {
         description: "Your profile information has been saved successfully.",
       });
       setIsEditing(false);
+      // Manually trigger a re-fetch of session context to update userDisplayName
+      // In a real app, SessionContextProvider might have a refreshProfile method
+      window.location.reload(); // Simple reload for now to update context
     } catch (error: any) {
       console.error('Error saving profile:', error.message);
       toast({
@@ -158,7 +191,7 @@ const Profile = () => {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
-  if (isLoading || decisionsLoading) {
+  if (isLoading || recommendationsLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading profile...</p>
@@ -166,10 +199,10 @@ const Profile = () => {
     );
   }
 
-  if (decisionsError) {
+  if (recommendationsError) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-        <p className="text-destructive">Error loading decisions for profile: {decisionsError.message}</p>
+        <p className="text-destructive">Error loading recommendations for profile: {recommendationsError.message}</p>
       </div>
     );
   }
@@ -180,17 +213,17 @@ const Profile = () => {
     { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text' },
   ];
 
-  const totalDecisions = decisions?.length || 0;
-  const recommendedDecisions = decisions?.filter(d => d.decision_status === 'success').length || 0;
-  const savedPotentialLoss = 0; 
+  const totalDecisions = recommendations?.length || 0;
+  const recommendedDecisions = recommendations?.filter(rec => rec.recommendation.decision_status === 'success').length || 0;
+  const savedPotentialLoss = 0; // This would require complex calculation, keeping as 0 for now
   
   const memberSinceDate = session?.user?.created_at 
     ? new Date(session.user.created_at).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' }) 
     : 'N/A';
 
-  const latestDecision = decisions && decisions.length > 0 ? decisions[0] : null;
-  const financialHealthScore = latestDecision?.financial_health_score;
-  const scoreInterpretation = latestDecision?.score_interpretation;
+  const latestRecommendation = recommendations && recommendations.length > 0 ? recommendations[0] : null;
+  const financialHealthScore = latestRecommendation?.recommendation.financial_health_score;
+  const scoreInterpretation = latestRecommendation?.recommendation.score_interpretation;
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-4">
@@ -359,7 +392,7 @@ const Profile = () => {
               <Button variant="destructive" size="sm">
                 Delete Account
               </Button>
-            </div>
+            </div> {/* <-- Added missing closing div tag here */}
           </CardContent>
         </Card>
       </div>
