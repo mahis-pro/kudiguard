@@ -52,7 +52,9 @@ serve(async (req) => {
     } = await req.json();
 
     // --- Core Financial Calculations ---
-    const netIncome = monthlyRevenue - monthlyExpenses; // Net income before owner withdrawals for some calculations
+    // calculatedNetIncome is used for decision rules as per specification (monthly_revenue - monthly_expenses)
+    const calculatedNetIncome = monthlyRevenue - monthlyExpenses; 
+    // netIncomeAfterWithdrawals is used for overall financial health score
     const netIncomeAfterWithdrawals = monthlyRevenue - monthlyExpenses - ownerWithdrawals;
 
     // --- Decision Logic Variables ---
@@ -90,19 +92,19 @@ serve(async (req) => {
     // --- Apply Decision Logic based on identified flow ---
     switch (decisionFlowIdentified) {
       case 'hire_staff':
-        if (netIncomeAfterWithdrawals > (2 * staffPayroll) && currentSavings > (3 * staffPayroll)) {
+        if (calculatedNetIncome > (2 * staffPayroll) && currentSavings > (3 * staffPayroll)) {
           decisionResultText = "Recommended";
           decisionStatus = "success";
-          explanation = `Based on your healthy net income of ₦${netIncomeAfterWithdrawals.toLocaleString()} and strong savings of ₦${currentSavings.toLocaleString()}, hiring staff is recommended.`;
+          explanation = `Based on your healthy net income of ₦${calculatedNetIncome.toLocaleString()} and strong savings of ₦${currentSavings.toLocaleString()}, hiring staff is recommended.`;
           nextSteps = [
             "Clearly define the role and responsibilities.",
             "Start with part-time or contract staff to test the impact.",
             "Monitor financial performance closely for the first 3-6 months."
           ];
-        } else if (netIncomeAfterWithdrawals > staffPayroll) {
+        } else if (calculatedNetIncome > staffPayroll) {
           decisionResultText = "Cautious";
           decisionStatus = "warning";
-          explanation = `While you have some net income (₦${netIncomeAfterWithdrawals.toLocaleString()}), your current savings (₦${currentSavings.toLocaleString()}) suggest caution before hiring.`;
+          explanation = `While you have some net income (₦${calculatedNetIncome.toLocaleString()}), your current savings (₦${currentSavings.toLocaleString()}) suggest caution before hiring.`;
           nextSteps = [
             "Increase monthly revenue by at least 20% consistently.",
             "Build your emergency savings to cover at least 3 months of expenses.",
@@ -111,7 +113,7 @@ serve(async (req) => {
         } else {
           decisionResultText = "Not Advisable";
           decisionStatus = "danger";
-          explanation = `Your current financial position (net income of ₦${netIncomeAfterWithdrawals.toLocaleString()} and savings of ₦${currentSavings.toLocaleString()}) makes hiring staff not advisable at this time.`;
+          explanation = `Your current financial position (net income of ₦${calculatedNetIncome.toLocaleString()} and savings of ₦${currentSavings.toLocaleString()}) makes hiring staff not advisable at this time.`;
           nextSteps = [
             "Focus on increasing profitability and reducing expenses.",
             "Prioritize building a substantial emergency fund."
@@ -120,19 +122,19 @@ serve(async (req) => {
         break;
 
       case 'pay_salary':
-        if (netIncomeAfterWithdrawals >= staffPayroll) {
+        if (calculatedNetIncome >= staffPayroll) {
           decisionResultText = "Recommended";
           decisionStatus = "success";
-          explanation = `Your net income of ₦${netIncomeAfterWithdrawals.toLocaleString()} is sufficient to cover the staff payroll of ₦${staffPayroll.toLocaleString()}.`;
+          explanation = `Your net income of ₦${calculatedNetIncome.toLocaleString()} is sufficient to cover the staff payroll of ₦${staffPayroll.toLocaleString()}.`;
           nextSteps = [
             "Ensure consistent cash flow to maintain payroll.",
             "Consider setting aside a payroll buffer in your savings.",
             "Review staff productivity and efficiency regularly."
           ];
-        } else if (netIncomeAfterWithdrawals + currentSavings >= staffPayroll) {
+        } else if (calculatedNetIncome + currentSavings >= staffPayroll) {
           decisionResultText = "Cautious (dip into savings)";
           decisionStatus = "warning";
-          explanation = `Your net income (₦${netIncomeAfterWithdrawals.toLocaleString()}) is not enough to cover payroll (₦${staffPayroll.toLocaleString()}), requiring you to dip into savings (₦${currentSavings.toLocaleString()}).`;
+          explanation = `Your net income (₦${calculatedNetIncome.toLocaleString()}) is not enough to cover payroll (₦${staffPayroll.toLocaleString()}), requiring you to dip into savings (₦${currentSavings.toLocaleString()}).`;
           nextSteps = [
             "Identify reasons for low net income and address them.",
             "Prioritize increasing revenue or reducing other expenses.",
@@ -151,10 +153,10 @@ serve(async (req) => {
         break;
 
       case 'buy_equipment':
-        if (currentSavings >= equipmentInvestment && netIncomeAfterWithdrawals > 0) {
+        if (currentSavings >= equipmentInvestment && calculatedNetIncome > 0) {
           decisionResultText = "Recommended";
           decisionStatus = "success";
-          explanation = `Your financials suggest that purchasing equipment worth ₦${equipmentInvestment.toLocaleString()} is recommended, given your savings (₦${currentSavings.toLocaleString()}) and positive net income (₦${netIncomeAfterWithdrawals.toLocaleString()}).`;
+          explanation = `Your financials suggest that purchasing equipment worth ₦${equipmentInvestment.toLocaleString()} is recommended, given your savings (₦${currentSavings.toLocaleString()}) and positive net income (₦${calculatedNetIncome.toLocaleString()}).`;
           nextSteps = [
             "Research equipment options thoroughly for best value.",
             "Ensure the equipment directly contributes to increased revenue or efficiency.",
@@ -182,10 +184,10 @@ serve(async (req) => {
 
       case 'increase_marketing':
         const marketingToRevenueRatio = monthlyRevenue > 0 ? marketingSpend / monthlyRevenue : 0;
-        if (marketingToRevenueRatio < 0.1 && netIncomeAfterWithdrawals > 0) {
+        if (marketingToRevenueRatio < 0.1 && calculatedNetIncome > 0) {
           decisionResultText = "Recommended";
           decisionStatus = "success";
-          explanation = `With a healthy net income (₦${netIncomeAfterWithdrawals.toLocaleString()}) and relatively low marketing spend (₦${marketingSpend.toLocaleString()}), increasing marketing is recommended to boost visibility.`;
+          explanation = `With a healthy net income (₦${calculatedNetIncome.toLocaleString()}) and relatively low marketing spend (₦${marketingSpend.toLocaleString()}), increasing marketing is recommended to boost visibility.`;
           nextSteps = [
             "Develop a clear marketing strategy with measurable goals.",
             "Start with small, targeted campaigns and track ROI.",
@@ -194,7 +196,7 @@ serve(async (req) => {
         } else if (marketingToRevenueRatio < 0.2) {
           decisionResultText = "Cautious";
           decisionStatus = "warning";
-          explanation = `Your current marketing spend (₦${marketingSpend.toLocaleString()}) is moderate. Proceed with caution if increasing further, especially if net income (₦${netIncomeAfterWithdrawals.toLocaleString()}) is tight.`;
+          explanation = `Your current marketing spend (₦${marketingSpend.toLocaleString()}) is moderate. Proceed with caution if increasing further, especially if net income (₦${calculatedNetIncome.toLocaleString()}) is tight.`;
           nextSteps = [
             "Analyze the effectiveness of your current marketing efforts.",
             "Optimize existing campaigns before increasing budget.",
@@ -203,7 +205,7 @@ serve(async (req) => {
         } else {
           decisionResultText = "Not Advisable";
           decisionStatus = "danger";
-          explanation = `Increasing marketing spend (currently ₦${marketingSpend.toLocaleString()}) is not advisable. Your current spend is already high relative to revenue, or your net income (₦${netIncomeAfterWithdrawals.toLocaleString()}) is insufficient.`;
+          explanation = `Increasing marketing spend (currently ₦${marketingSpend.toLocaleString()}) is not advisable. Your current spend is already high relative to revenue, or your net income (₦${calculatedNetIncome.toLocaleString()}) is insufficient.`;
           nextSteps = [
             "Review and cut ineffective marketing channels.",
             "Focus on organic growth and customer retention.",
@@ -214,10 +216,10 @@ serve(async (req) => {
 
       case 'take_loan':
         const debtRatio = monthlyRevenue > 0 ? outstandingDebts / monthlyRevenue : Infinity;
-        if (debtRatio < 0.3 && netIncomeAfterWithdrawals > 0) {
+        if (debtRatio < 0.3 && calculatedNetIncome > 0) {
           decisionResultText = "Recommended";
           decisionStatus = "success";
-          explanation = `Your debt-to-revenue ratio is healthy (${(debtRatio * 100).toFixed(1)}%) and you have a positive net income (₦${netIncomeAfterWithdrawals.toLocaleString()}), making a loan manageable.`;
+          explanation = `Your debt-to-revenue ratio is healthy (${(debtRatio * 100).toFixed(1)}%) and you have a positive net income (₦${calculatedNetIncome.toLocaleString()}), making a loan manageable.`;
           nextSteps = [
             "Only borrow what is absolutely necessary for a clear growth opportunity.",
             "Carefully compare interest rates and repayment terms from multiple lenders.",
@@ -277,10 +279,10 @@ serve(async (req) => {
         break;
 
       case 'expand_inventory':
-        if (netIncomeAfterWithdrawals > 0 && currentSavings > (0.5 * inventoryValue)) {
+        if (calculatedNetIncome > 0 && currentSavings > (0.5 * inventoryValue)) {
           decisionResultText = "Recommended";
           decisionStatus = "success";
-          explanation = `With a positive net income (₦${netIncomeAfterWithdrawals.toLocaleString()}) and good savings (₦${currentSavings.toLocaleString()}) relative to your inventory, expanding stock is recommended.`;
+          explanation = `With a positive net income (₦${calculatedNetIncome.toLocaleString()}) and good savings (₦${currentSavings.toLocaleString()}) relative to your inventory, expanding stock is recommended.`;
           nextSteps = [
             "Analyze sales trends to identify high-demand products.",
             "Gradually increase inventory for popular items to avoid overstocking.",
@@ -308,16 +310,16 @@ serve(async (req) => {
         break;
 
       case 'save_money':
-        if (netIncomeAfterWithdrawals > 0) {
+        if (calculatedNetIncome > 0) {
           decisionResultText = "Recommended";
           decisionStatus = "success";
-          explanation = `With a positive net income of ₦${netIncomeAfterWithdrawals.toLocaleString()}, increasing your savings is highly recommended.`;
+          explanation = `With a positive net income of ₦${calculatedNetIncome.toLocaleString()}, increasing your savings is highly recommended.`;
           nextSteps = [
             "Set a specific savings goal (e.g., 3-6 months of expenses).",
             "Automate a portion of your net income to a separate savings account.",
             "Regularly review your budget to find more opportunities to save."
           ];
-        } else if (netIncomeAfterWithdrawals === 0) {
+        } else if (calculatedNetIncome === 0) {
           decisionResultText = "Cautious (break-even)";
           decisionStatus = "warning";
           explanation = `Your business is currently breaking even. While saving is important, focus on increasing profitability first.`;
@@ -339,10 +341,10 @@ serve(async (req) => {
         break;
 
       case 'withdraw_funds':
-        if (netIncomeAfterWithdrawals > ownerWithdrawals) {
+        if (calculatedNetIncome > ownerWithdrawals) {
           decisionResultText = "Recommended";
           decisionStatus = "success";
-          explanation = `Your net income (₦${netIncomeAfterWithdrawals.toLocaleString()}) is sufficient to cover your planned withdrawal of ₦${ownerWithdrawals.toLocaleString()}.`;
+          explanation = `Your net income (₦${calculatedNetIncome.toLocaleString()}) is sufficient to cover your planned withdrawal of ₦${ownerWithdrawals.toLocaleString()}.`;
           nextSteps = [
             "Ensure withdrawals are consistent and planned.",
             "Maintain a clear distinction between business and personal finances.",
@@ -351,7 +353,7 @@ serve(async (req) => {
         } else if (currentSavings > ownerWithdrawals) {
           decisionResultText = "Cautious (use savings)";
           decisionStatus = "warning";
-          explanation = `Your net income (₦${netIncomeAfterWithdrawals.toLocaleString()}) is not enough to cover your withdrawal (₦${ownerWithdrawals.toLocaleString()}), requiring you to use your current savings (₦${currentSavings.toLocaleString()}).`;
+          explanation = `Your net income (₦${calculatedNetIncome.toLocaleString()}) is not enough to cover your withdrawal (₦${ownerWithdrawals.toLocaleString()}), requiring you to use your current savings (₦${currentSavings.toLocaleString()}).`;
           nextSteps = [
             "Evaluate if the withdrawal is absolutely necessary at this time.",
             "Focus on increasing business profitability to support future withdrawals.",
@@ -360,7 +362,7 @@ serve(async (req) => {
         } else {
           decisionResultText = "Not Advisable";
           decisionStatus = "danger";
-          explanation = `Withdrawing ₦${ownerWithdrawals.toLocaleString()} is not advisable, as your net income (₦${netIncomeAfterWithdrawals.toLocaleString()}) and savings (₦${currentSavings.toLocaleString()}) are insufficient.`;
+          explanation = `Withdrawing ₦${ownerWithdrawals.toLocaleString()} is not advisable, as your net income (₦${calculatedNetIncome.toLocaleString()}) and savings (₦${currentSavings.toLocaleString()}) are insufficient.`;
           nextSteps = [
             "Prioritize improving business cash flow and profitability.",
             "Avoid personal withdrawals that could jeopardize business stability.",
@@ -372,10 +374,10 @@ serve(async (req) => {
       case 'expand_business': // Existing logic for general expansion
         const expansionProfitabilityThreshold = monthlyRevenue * 0.15;
         const expansionSavingsThreshold = monthlyExpenses * 3;
-        if (netIncomeAfterWithdrawals > expansionProfitabilityThreshold && currentSavings > expansionSavingsThreshold) {
+        if (calculatedNetIncome > expansionProfitabilityThreshold && currentSavings > expansionSavingsThreshold) {
           decisionResultText = "Do it";
           decisionStatus = "success";
-          explanation = `Your business shows strong financial health with a net income of ₦${netIncomeAfterWithdrawals.toLocaleString()} and substantial savings of ₦${currentSavings.toLocaleString()}. You are well-positioned for expansion.`;
+          explanation = `Your business shows strong financial health with a net income of ₦${calculatedNetIncome.toLocaleString()} and substantial savings of ₦${currentSavings.toLocaleString()}. You are well-positioned for expansion.`;
           nextSteps = [
             "Develop a detailed expansion plan and budget.",
             "Start with a phased approach to minimize risk.",
@@ -384,7 +386,7 @@ serve(async (req) => {
         } else {
           decisionResultText = "Wait";
           decisionStatus = "warning";
-          explanation = `Expansion requires significant capital and stable cash flow. With your current net income of ₦${netIncomeAfterWithdrawals.toLocaleString()} and savings of ₦${currentSavings.toLocaleString()}, it's advisable to wait and strengthen your finances.`;
+          explanation = `Expansion requires significant capital and stable cash flow. With your current net income of ₦${calculatedNetIncome.toLocaleString()} and savings of ₦${currentSavings.toLocaleString()}, it's advisable to wait and strengthen your finances.`;
           nextSteps = [
             "Focus on increasing profitability of existing operations.",
             "Build your current savings to a higher level, targeting 4-6 months of expenses.",
@@ -394,7 +396,7 @@ serve(async (req) => {
         break;
 
       default: // General advice if no specific question matches
-        if (netIncomeAfterWithdrawals <= 0) {
+        if (calculatedNetIncome <= 0) {
           decisionResultText = "Urgent Review";
           decisionStatus = "danger";
           explanation = "Your expenses currently exceed or equal your income. It's crucial to address this immediately to prevent further financial strain.";
@@ -402,7 +404,7 @@ serve(async (req) => {
         } else {
           decisionResultText = "Proceed with caution";
           decisionStatus = "warning";
-          explanation = `You have a net income of ₦${netIncomeAfterWithdrawals.toLocaleString()}. This provides some flexibility, but careful planning is still needed.`;
+          explanation = `You have a net income of ₦${calculatedNetIncome.toLocaleString()}. This provides some flexibility, but careful planning is still needed.`;
           nextSteps.push("Maintain a detailed record of all income and expenses.", "Regularly review your financial position.", "Consider setting a clear financial goal for your business.");
         }
         break;
@@ -411,7 +413,7 @@ serve(async (req) => {
     // --- Financial Health Scoring System ---
     let financialHealthScore = 50; // Base score
 
-    // Adjust based on Net Income (profitability)
+    // Adjust based on Net Income (profitability) - using netIncomeAfterWithdrawals for holistic view
     if (netIncomeAfterWithdrawals > (monthlyRevenue * 0.2)) { // Very profitable (e.g., >20% net margin)
       financialHealthScore += 20;
     } else if (netIncomeAfterWithdrawals > 0) { // Profitable
