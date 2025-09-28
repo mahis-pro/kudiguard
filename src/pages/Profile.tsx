@@ -14,7 +14,8 @@ import {
   Bell,
   Shield,
   CheckCircle,
-  XCircle
+  XCircle,
+  Image // Added Image icon
 } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useQuery } from '@tanstack/react-query';
@@ -159,6 +160,7 @@ const Profile = () => {
         .update({
           full_name: profileData.fullName,
           business_name: profileData.businessName,
+          avatar_url: profileData.avatarUrl.trim() === '' ? null : profileData.avatarUrl, // Set to null if empty
           updated_at: new Date().toISOString(),
         })
         .eq('id', session.user.id);
@@ -211,6 +213,7 @@ const Profile = () => {
     { key: 'fullName', label: 'Full Name', icon: User, type: 'text' },
     { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text' },
     { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text' },
+    { key: 'avatarUrl', label: 'Avatar URL', icon: Image, type: 'url' }, // Added avatar URL field
   ];
 
   const totalDecisions = recommendations?.length || 0;
@@ -232,7 +235,7 @@ const Profile = () => {
         
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden"> {/* Added overflow-hidden */}
             {profileData.avatarUrl ? (
               <img src={profileData.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />
             ) : (
@@ -280,6 +283,7 @@ const Profile = () => {
                 </Label>
                 <Input
                   id={field.key}
+                  type={field.type} // Use type from field definition
                   value={profileData[field.key as keyof typeof profileData]}
                   onChange={(e) => handleInputChange(field.key, e.target.value)}
                   disabled={!isEditing || field.readOnly}
@@ -392,7 +396,7 @@ const Profile = () => {
               <Button variant="destructive" size="sm">
                 Delete Account
               </Button>
-            </div> {/* <-- Added missing closing div tag here */}
+            </div>
           </CardContent>
         </Card>
       </div>
