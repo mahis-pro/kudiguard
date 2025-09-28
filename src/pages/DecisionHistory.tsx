@@ -78,7 +78,7 @@ const DecisionHistory = () => {
         decision_id,
         user_id,
         recommendation,
-        decisions (
+        decisions!fk_decision (
           question,
           inputs
         )
@@ -103,7 +103,7 @@ const DecisionHistory = () => {
   const filteredRecommendations = (recommendations || []).filter(rec => {
     // Safely access question, provide fallback if decisions[0] or question is undefined
     const question = rec.decisions?.[0]?.question?.toLowerCase() || ''; 
-    const matchesSearch = question.includes(searchQuery.toLowerCase());
+    const matchesSearch = searchQuery === '' || question.includes(searchQuery.toLowerCase());
     
     let decisionCategory = 'General';
     if (question.includes('staff') || question.includes('hire')) {

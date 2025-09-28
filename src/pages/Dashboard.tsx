@@ -70,7 +70,7 @@ const Dashboard = (/* { onAskKudiGuard }: DashboardProps */) => { // Removed pro
         decision_id,
         user_id,
         recommendation,
-        decisions (
+        decisions!fk_decision (
           question,
           inputs
         )
