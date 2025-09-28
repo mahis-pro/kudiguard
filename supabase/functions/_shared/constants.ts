@@ -1,4 +1,4 @@
-// src/lib/edge-functions/constants.ts
+// supabase/functions/_shared/constants.ts
 
 export const API_VERSION = "v1.0";
 
