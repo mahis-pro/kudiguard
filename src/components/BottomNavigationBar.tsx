@@ -53,7 +53,7 @@ const BottomNavigationBar = () => {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50 md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50"> {/* Removed md:hidden */}
       <nav className="flex justify-around items-center h-16">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;

@@ -1,22 +1,19 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import BottomNavigationBar from '@/components/BottomNavigationBar';
-import Navigation from '@/components/Navigation'; // For desktop navigation
+// Removed Navigation import as it's not needed for authenticated layout
 
 const AuthenticatedLayout = () => {
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Desktop Navigation (if needed, or can be removed for a purely mobile-first approach) */}
-      <div className="hidden md:block">
-        <Navigation /> {/* This will be the desktop version of the nav */}
-      </div>
+      {/* Top Navigation is removed for authenticated users as per UX docs */}
       
       {/* Main content area */}
-      <main className="flex-1 pb-16 md:pb-0"> {/* Add padding-bottom for mobile nav */}
+      <main className="flex-1 pb-16"> {/* Add padding-bottom for fixed bottom nav on all screen sizes */}
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Bottom Navigation */}
       <BottomNavigationBar />
     </div>
   );
