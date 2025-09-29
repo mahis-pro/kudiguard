@@ -53,12 +53,11 @@ const Landing = () => {
           {/* Text Content */}
           <div className="md:w-1/2 md:pr-8 mb-8 md:mb-0">
             <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6 animate-fade-in">
-              Smart Financial Decisions
-              <span className="text-foreground block mt-2">for Nigerian Vendors</span>
+              Stop Guessing, Start Deciding
             </h1>
             
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto md:mx-0 animate-fade-in">
-              Get personalized financial advice to grow your business. Make informed decisions about hiring staff, expanding inventory, and managing cash flow.
+              With KudiGuard, you get clear answers to everyday questions when to restock, hire, or save so your money works smarter.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start mb-12 animate-fade-in">
