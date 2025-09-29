@@ -36,7 +36,6 @@ const Profile = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [currentExpenseInput, setCurrentExpenseInput] = useState('');
 
-  // Predefined options for select fields (same as onboarding)
   const businessTypeOptions = [
     'Retail (e.g., shop, stall)', 
     'Service (e.g., barber, tailor)', 
@@ -57,7 +56,6 @@ const Profile = () => {
     'Utilities', 'Loan Repayments', 'Supplies', 'Maintenance', 'Other'
   ];
 
-  // Fetch user profile data
   useEffect(() => {
     if (session?.user && !isLoading) {
       const fetchProfile = async () => {
@@ -67,7 +65,7 @@ const Profile = () => {
           .eq('id', session.user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+        if (error && error.code !== 'PGRST116') {
           toast({
             title: "Error fetching profile",
             description: error.message,
@@ -83,7 +81,6 @@ const Profile = () => {
             topExpenseCategories: data.top_expense_categories || [],
           });
         } else {
-          // If no profile found, initialize with email and empty fields
           setProfileData(prev => ({
             ...prev,
             email: session.user.email || '',
@@ -129,8 +126,7 @@ const Profile = () => {
         description: "Your profile information has been saved successfully.",
       });
       setIsEditing(false);
-      // Manually trigger a re-fetch of session context to update userDisplayName
-      window.location.reload(); // Simple reload for now to update context
+      window.location.reload();
     } catch (error: any) {
       console.error('Error saving profile:', error.message);
       toast({
@@ -167,38 +163,32 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading profile...</p>
       </div>
     );
   }
 
-  // Static placeholder stats
   const totalDecisions = 0;
   const recommendedActions = 0;
   const savedPotentialLoss = 0; 
-  
   const memberSinceDate = session?.user?.created_at 
     ? new Date(session.user.created_at).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' }) 
     : 'N/A';
-
-  // Static financial health score and interpretation
   const financialHealthScore = 0;
   const scoreInterpretation = "No decisions made yet. Your financial health score will appear here after your first analysis.";
 
   const profileFields = [
-    { key: 'fullName', label: 'Full Name', icon: User, type: 'text', component: Input },
-    { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text', component: Input },
-    { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text', component: Input },
+    { key: 'fullName', label: 'Full Name', icon: User, type: 'text' },
+    { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text' },
+    { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text' },
     { key: 'businessType', label: 'Business Type', icon: Building, type: 'select', options: businessTypeOptions },
     { key: 'monthlySalesRange', label: 'Average Monthly Sales Range', icon: DollarSign, type: 'select', options: monthlySalesRangeOptions },
   ];
 
   return (
-    <div className="h-full bg-gradient-subtle"> {/* Changed min-h-screen to h-full */}
-      <div className="max-w-3xl mx-auto p-4"> {/* Kept p-4 for internal content padding */}
-        
-        {/* Header */}
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-3xl mx-auto p-4 md:p-6">
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
             <User className="h-10 w-10 text-primary-foreground" />
@@ -207,7 +197,6 @@ const Profile = () => {
           <p className="text-muted-foreground">Manage your account information and preferences</p>
         </div>
 
-        {/* Profile Information */}
         <Card className="shadow-card mb-6">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-xl">Personal & Business Information</CardTitle>
@@ -270,7 +259,6 @@ const Profile = () => {
               </div>
             ))}
 
-            {/* Top Expense Categories */}
             <div className="space-y-2">
               <Label htmlFor="topExpenseCategories" className="text-foreground font-medium flex items-center">
                 <ListChecks className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -330,7 +318,6 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Business Stats (Now Static) */}
         <Card className="shadow-card mb-6">
           <CardHeader>
             <CardTitle className="text-xl">Business Overview</CardTitle>
@@ -367,9 +354,7 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Settings Sections */}
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Notifications */}
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle className="flex items-center text-lg">
@@ -393,7 +378,6 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Security */}
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle className="flex items-center text-lg">
@@ -418,7 +402,6 @@ const Profile = () => {
           </Card>
         </div>
 
-        {/* Danger Zone */}
         <Card className="shadow-card mt-6 border-destructive/20">
           <CardHeader>
             <CardTitle className="text-lg text-destructive">Danger Zone</CardTitle>

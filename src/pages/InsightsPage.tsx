@@ -11,7 +11,7 @@ const InsightsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading insights...</p>
       </div>
     );
@@ -43,11 +43,10 @@ const InsightsPage = () => {
   ];
 
   return (
-    <div className="h-full bg-gradient-subtle"> {/* Changed min-h-screen to h-full, removed p-4 */}
-      <div className="max-w-4xl mx-auto"> {/* Kept max-w-4xl mx-auto */}
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-4xl mx-auto p-4 md:p-6">
         <h1 className="text-3xl font-bold text-primary mb-6">Hello, {firstName}! Your Business Insights</h1>
         
-        {/* Financial Health Score Card */}
         <div className="mb-6">
           <FinancialHealthScoreCard 
             score="stable"
@@ -55,7 +54,6 @@ const InsightsPage = () => {
           />
         </div>
 
-        {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -99,7 +97,6 @@ const InsightsPage = () => {
           </Card>
         </div>
 
-        {/* Recent Transactions */}
         <Card className="shadow-card mb-6">
           <CardHeader>
             <CardTitle className="text-xl">Recent Transactions</CardTitle>
@@ -129,7 +126,6 @@ const InsightsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Top Expenses & Recommendations */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <Card className="shadow-card">
             <CardHeader>
@@ -171,7 +167,6 @@ const InsightsPage = () => {
           </Card>
         </div>
 
-        {/* Upcoming Financial Events (Placeholder) */}
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="text-xl">Upcoming Financial Events</CardTitle>

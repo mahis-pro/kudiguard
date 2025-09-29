@@ -69,30 +69,27 @@ const ChatPage = () => {
 
   const handleQuickReply = (reply: string) => {
     setMessageInput(reply);
-    // Optionally, send the quick reply as a message immediately
-    // handleSendMessage();
   };
 
   if (sessionLoading) {
     return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading chat...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col flex-1 bg-gradient-subtle"> {/* Changed h-full to flex-1 */}
-      {/* Chat Header - no md:ml-64 needed, AuthenticatedLayout handles it */}
-      <header className="bg-card shadow-card border-b border-border p-4 flex items-center justify-between">
+    <div className="flex flex-col h-full">
+      {/* Chat Header */}
+      <header className="bg-card shadow-card border-b border-border p-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center">
           <MessageCircle className="h-6 w-6 text-primary mr-3" />
           <h1 className="text-xl font-bold text-primary">KudiGuard Analyst</h1>
         </div>
-        {/* Future: Add profile icon or settings shortcut here */}
       </header>
 
-      {/* Chat Messages Area - no md:ml-64 needed */}
+      {/* Chat Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg) => (
           <div
@@ -130,8 +127,8 @@ const ChatPage = () => {
         ))}
       </div>
 
-      {/* Chat Input - no md:ml-64 needed */}
-      <div className="bg-card border-t border-border p-4 flex items-center">
+      {/* Chat Input */}
+      <div className="bg-card border-t border-border p-4 flex items-center flex-shrink-0">
         <Input
           type="text"
           placeholder="Ask KudiGuard a question..."
