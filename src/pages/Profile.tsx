@@ -12,7 +12,7 @@ import {
   Save,
   Bell,
   Shield,
-  LogOut, // Removed Image icon
+  // Removed LogOut icon
   Building,
   DollarSign,
   ListChecks,
@@ -30,7 +30,6 @@ const Profile = () => {
     fullName: '',
     email: '',
     businessName: '',
-    // Removed avatarUrl state
     businessType: '',
     monthlySalesRange: '',
     topExpenseCategories: [] as string[],
@@ -65,7 +64,7 @@ const Profile = () => {
       const fetchProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, business_name, business_type, monthly_sales_range, top_expense_categories') // Removed avatar_url from select
+          .select('full_name, business_name, business_type, monthly_sales_range, top_expense_categories')
           .eq('id', session.user.id)
           .single();
 
@@ -80,7 +79,6 @@ const Profile = () => {
             fullName: data.full_name || '',
             email: session.user.email || '',
             businessName: data.business_name || '',
-            // Removed avatarUrl from setProfileData
             businessType: data.business_type || '',
             monthlySalesRange: data.monthly_sales_range || '',
             topExpenseCategories: data.top_expense_categories || [],
@@ -116,7 +114,6 @@ const Profile = () => {
         .update({
           full_name: profileData.fullName,
           business_name: profileData.businessName,
-          // Removed avatar_url from update payload
           business_type: profileData.businessType,
           monthly_sales_range: profileData.monthlySalesRange,
           top_expense_categories: profileData.topExpenseCategories.length > 0 ? profileData.topExpenseCategories : null,
@@ -169,28 +166,6 @@ const Profile = () => {
     }));
   };
 
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out.",
-        variant: "default",
-      });
-      // SessionContextProvider will handle redirection to /login
-    } catch (error: any) {
-      console.error('Error logging out:', error.message);
-      toast({
-        title: "Logout Failed",
-        description: error.message || "An error occurred during logout.",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
@@ -216,7 +191,6 @@ const Profile = () => {
     { key: 'fullName', label: 'Full Name', icon: User, type: 'text', component: Input },
     { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text', component: Input },
     { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text', component: Input },
-    // Removed avatarUrl field
     { key: 'businessType', label: 'Business Type', icon: Building, type: 'select', options: businessTypeOptions },
     { key: 'monthlySalesRange', label: 'Average Monthly Sales Range', icon: DollarSign, type: 'select', options: monthlySalesRangeOptions },
   ];
@@ -228,7 +202,6 @@ const Profile = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
-            {/* Removed avatar image display, now always shows User icon */}
             <User className="h-10 w-10 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold text-primary mb-2">Settings</h1>
@@ -445,19 +418,6 @@ const Profile = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Logout Button */}
-        <Card className="shadow-card mt-6">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center">
-              <LogOut className="h-5 w-5 text-destructive mr-3" />
-              <p className="font-medium text-foreground">Logout</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              Sign Out
-            </Button>
-          </CardContent>
-        </Card>
 
         {/* Danger Zone */}
         <Card className="shadow-card mt-6 border-destructive/20">

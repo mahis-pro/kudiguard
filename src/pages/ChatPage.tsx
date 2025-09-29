@@ -85,7 +85,7 @@ const ChatPage = () => {
   return (
     <div className="flex flex-col h-screen bg-gradient-subtle">
       {/* Chat Header */}
-      <header className="bg-card shadow-card border-b border-border p-4 flex items-center justify-between">
+      <header className="bg-card shadow-card border-b border-border p-4 flex items-center justify-between md:ml-64"> {/* Adjust margin for desktop sidebar */}
         <div className="flex items-center">
           <MessageCircle className="h-6 w-6 text-primary mr-3" />
           <h1 className="text-xl font-bold text-primary">KudiGuard Analyst</h1>
@@ -94,7 +94,7 @@ const ChatPage = () => {
       </header>
 
       {/* Chat Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 md:ml-64"> {/* Adjust margin for desktop sidebar */}
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -132,7 +132,7 @@ const ChatPage = () => {
       </div>
 
       {/* Chat Input */}
-      <div className="bg-card border-t border-border p-4 flex items-center">
+      <div className="bg-card border-t border-border p-4 flex items-center md:ml-64"> {/* Adjust margin for desktop sidebar */}
         <Input
           type="text"
           placeholder="Ask KudiGuard a question..."

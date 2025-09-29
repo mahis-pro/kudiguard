@@ -1,20 +1,17 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import BottomNavigationBar from '@/components/BottomNavigationBar';
-// Removed Navigation import as it's not needed for authenticated layout
+import Sidebar from '@/components/Sidebar'; // Import the new Sidebar component
 
 const AuthenticatedLayout = () => {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Top Navigation is removed for authenticated users as per UX docs */}
-      
+    <div className="min-h-screen flex">
+      {/* Sidebar for desktop, or trigger for mobile sheet */}
+      <Sidebar />
+
       {/* Main content area */}
-      <main className="flex-1 pb-16"> {/* Add padding-bottom for fixed bottom nav on all screen sizes */}
+      <main className="flex-1 md:ml-64 p-4 md:p-6"> {/* Adjust margin-left for sidebar width on desktop */}
         <Outlet />
       </main>
-
-      {/* Bottom Navigation */}
-      <BottomNavigationBar />
     </div>
   );
 };
