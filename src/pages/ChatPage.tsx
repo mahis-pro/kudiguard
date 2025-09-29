@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Send, PlusCircle, LayoutDashboard, Settings, History, Lightbulb, Search } from 'lucide-react';
+import { MessageCircle, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
-import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard'; // Import FinancialHealthScoreCard
+import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard';
 
 // Placeholder for chat messages
 interface ChatMessage {
@@ -83,9 +82,9 @@ const ChatPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-subtle">
+    <div className="flex flex-col h-full bg-gradient-subtle"> {/* Changed min-h-screen to h-full */}
       {/* Chat Header */}
-      <header className="bg-card shadow-card border-b border-border p-4 flex items-center justify-between md:ml-64"> {/* Adjust margin for desktop sidebar */}
+      <header className="bg-card shadow-card border-b border-border p-4 flex items-center justify-between"> {/* Removed md:ml-64 */}
         <div className="flex items-center">
           <MessageCircle className="h-6 w-6 text-primary mr-3" />
           <h1 className="text-xl font-bold text-primary">KudiGuard Analyst</h1>
@@ -94,7 +93,7 @@ const ChatPage = () => {
       </header>
 
       {/* Chat Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 md:ml-64"> {/* Adjust margin for desktop sidebar */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4"> {/* Removed md:ml-64 */}
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -132,7 +131,7 @@ const ChatPage = () => {
       </div>
 
       {/* Chat Input */}
-      <div className="bg-card border-t border-border p-4 flex items-center md:ml-64"> {/* Adjust margin for desktop sidebar */}
+      <div className="bg-card border-t border-border p-4 flex items-center"> {/* Removed md:ml-64 */}
         <Input
           type="text"
           placeholder="Ask KudiGuard a question..."
