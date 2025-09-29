@@ -9,7 +9,7 @@ interface MobileHeaderProps {
 
 const MobileHeader = ({ onMenuClick }: MobileHeaderProps) => {
   return (
-    <header className="fixed top-0 left-0 right-0 bg-card shadow-md p-4 flex items-center justify-between z-50 md:hidden h-16">
+    <header className="fixed top-0 left-0 right-0 bg-sidebar shadow-md p-4 flex items-center justify-between z-50 md:hidden h-16">
       <Button variant="ghost" size="icon" onClick={onMenuClick}>
         <Menu className="h-6 w-6" />
       </Button>
