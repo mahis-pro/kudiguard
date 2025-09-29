@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
-import ChatPage from "./pages/ChatPage"; // Updated import to ChatPage
+import ChatPage from "./pages/ChatPage";
 import About from "./pages/About";
 import Profile from "./pages/Profile";
 import FinancialTips from "./pages/FinancialTips";
@@ -16,7 +16,9 @@ import NotFound from "./pages/NotFound";
 import SignUpScreen from "./components/SignUpScreen";
 import ResetPassword from "./pages/ResetPassword";
 import { SessionContextProvider } from "./components/auth/SessionContextProvider";
-import AuthenticatedLayout from "@/layouts/AuthenticatedLayout"; // Corrected import path
+import AuthenticatedLayout from "@/layouts/AuthenticatedLayout";
+import InsightsPage from "./pages/InsightsPage"; // New import
+import DecisionHistoryPage from "./pages/DecisionHistoryPage"; // New import
 
 const queryClient = new QueryClient();
 
@@ -41,10 +43,11 @@ const App = () => {
 
               {/* Authenticated Routes */}
               <Route element={<AuthenticatedLayout />}>
-                <Route path="/chat" element={<ChatPage />} /> {/* New main chat page */}
-                <Route path="/insights" element={<div>Insights Page (Coming Soon)</div>} /> {/* Placeholder */}
-                <Route path="/settings" element={<Profile />} /> {/* Profile is now part of settings */}
-                {/* Add other authenticated routes here, e.g., /history, /learning-hub */}
+                <Route path="/chat" element={<ChatPage />} />
+                <Route path="/insights" element={<InsightsPage />} /> {/* New route */}
+                <Route path="/history" element={<DecisionHistoryPage />} /> {/* New route */}
+                <Route path="/settings" element={<Profile />} />
+                {/* Add other authenticated routes here, e.g., /learning-hub */}
               </Route>
 
               {/* Catch-all route */}

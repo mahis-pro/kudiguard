@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageCircle, Send, PlusCircle, LayoutDashboard, Settings, History, Lightbulb, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
+import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard'; // Import FinancialHealthScoreCard
 
 // Placeholder for chat messages
 interface ChatMessage {
@@ -19,15 +20,21 @@ interface ChatMessage {
 const ChatPage = () => {
   const { userDisplayName, isLoading: sessionLoading } = useSession();
   const [messageInput, setMessageInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      sender: 'ai',
-      text: `Hello ${userDisplayName || 'Vendor'}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
-      timestamp: new Date().toISOString(),
-      quickReplies: ['Check my financial health', 'Ask a question', 'Add new data'],
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  useEffect(() => {
+    if (!sessionLoading && userDisplayName) {
+      setMessages([
+        {
+          id: '1',
+          sender: 'ai',
+          text: `Hello ${userDisplayName}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
+          timestamp: new Date().toISOString(),
+          quickReplies: ['Check my financial health', 'Ask a question', 'Add new data'],
+        },
+      ]);
+    }
+  }, [sessionLoading, userDisplayName]);
 
   const handleSendMessage = () => {
     if (messageInput.trim() === '') return;
@@ -50,17 +57,11 @@ const ChatPage = () => {
         timestamp: new Date().toISOString(),
         quickReplies: ['Check my financial health', 'Decision History', 'Insights'],
         cards: [
-          <Card key="health-score-card" className="shadow-card bg-success-light border-success/20 mt-4">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center text-success">
-                <LayoutDashboard className="mr-2 h-5 w-5" /> Financial Health Score
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-success">Your business health is currently **Stable**.</p>
-              <p className="text-sm text-success/80 mt-1">Keep up the good work! Regular data updates help maintain this.</p>
-            </CardContent>
-          </Card>
+          <FinancialHealthScoreCard 
+            key="health-score-card" 
+            score="caution" 
+            message="Your business shows some areas for improvement. Let's review your recent expenses." 
+          />
         ]
       };
       setMessages((prev) => [...prev, aiResponse]);

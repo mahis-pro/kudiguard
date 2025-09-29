@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut } from 'lucide-react';
+import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History } from 'lucide-react'; // Added History icon
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
 
@@ -14,7 +14,8 @@ const BottomNavigationBar = () => {
   const navItems = [
     { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/insights', icon: LayoutDashboard, label: 'Insights' },
-    { path: '/settings', icon: Settings, label: 'Settings' }, // Settings will encompass Profile
+    { path: '/history', icon: History, label: 'History' }, // New nav item
+    { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
   const handleLogout = async () => {
