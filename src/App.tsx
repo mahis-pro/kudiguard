@@ -5,9 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
-import Login from "./pages/Login"; // Corrected import path
+import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
-import DashboardPage from "./pages/Dashboard";
+import DashboardPage from "./pages/Dashboard"; // Corrected import path
 import About from "./pages/About";
 import Profile from "./pages/Profile";
 import FinancialTips from "./pages/FinancialTips";

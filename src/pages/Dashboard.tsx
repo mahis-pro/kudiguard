@@ -1,101 +1,22 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Navigation from '@/components/Navigation';
 import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard';
 import TipOfTheDayCard from '@/components/TipOfTheDayCard';
-import { MessageCircle, TrendingUp, DollarSign, PiggyBank, History, BookOpen, HelpCircle } from 'lucide-react';
+import { MessageCircle, TrendingUp, DollarSign, PiggyBank, BookOpen, HelpCircle } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
-import { useQuery } from '@tanstack/react-query';
+// Removed useQuery import as decision data fetching is removed
 
-interface DashboardProps {
-  // onAskKudiGuard: () => void; // No longer needed as a prop, will use navigate directly
-}
+const Dashboard = () => {
+  const { userDisplayName, isLoading: sessionLoading } = useSession();
+  const navigate = useNavigate();
 
-// Interface for the combined data from decisions and recommendations tables
-interface DecisionWithRecommendation {
-  id: string; // Recommendation ID
-  created_at: string; // Recommendation creation date
-  decision_id: string;
-  user_id: string;
-  recommendation: { // This is the JSONB column from the recommendations table
-    decision_result: string;
-    decision_status: 'success' | 'warning' | 'danger';
-    explanation: string;
-    next_steps: string[];
-    financial_health_score: number;
-    score_interpretation: string;
-    numeric_breakdown: {
-      monthly_revenue: number;
-      monthly_expenses: number;
-      current_savings: number;
-      net_income: number;
-      staff_payroll: number;
-      // Add other relevant inputs here
-    };
-  };
-  decisions: { // This is the joined data from the decisions table
-    question: string;
-    inputs: { // The original inputs from the decision
-      monthlyRevenue: number;
-      monthlyExpenses: number;
-      currentSavings: number;
-      staffPayroll?: number;
-      inventoryValue?: number;
-      outstandingDebts?: number;
-      receivables?: number;
-      equipmentInvestment?: number;
-      marketingSpend?: number;
-      ownerWithdrawals?: number;
-      businessAge?: number;
-      industryType?: string;
-    };
-  }[]; // <--- Changed to array type
-}
-
-const Dashboard = (/* { onAskKudiGuard }: DashboardProps */) => { // Removed prop
-  const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
-  const navigate = useNavigate(); // Initialize useNavigate
-
-  const fetchDecisions = async () => {
-    if (!session?.user?.id) {
-      return [];
-    }
-    const { data, error } = await supabase
-      .from('recommendations')
-      .select(`
-        id,
-        created_at,
-        decision_id,
-        user_id,
-        recommendation,
-        decisions!fk_decision (
-          question,
-          inputs
-        )
-      `)
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
-    return data as DecisionWithRecommendation[];
-  };
-
-  const { data: recommendations, isLoading: recommendationsLoading, error: recommendationsError } = useQuery<DecisionWithRecommendation[], Error>({
-    queryKey: ['dashboardRecommendations', session?.user?.id],
-    queryFn: fetchDecisions,
-    enabled: !!session?.user?.id && !sessionLoading,
-  });
-
-  const latestRecommendation = recommendations && recommendations.length > 0 ? recommendations[0] : null;
-  
-  // Derive stats from latest recommendation's numeric_breakdown or use placeholders
-  const displayRevenue = latestRecommendation?.recommendation.numeric_breakdown.monthly_revenue || 0;
-  const displayExpenses = latestRecommendation?.recommendation.numeric_breakdown.monthly_expenses || 0;
-  const displaySavings = latestRecommendation?.recommendation.numeric_breakdown.current_savings || 0;
+  // Static placeholder stats for now
+  const displayRevenue = 150000;
+  const displayExpenses = 80000;
+  const displaySavings = 50000;
 
   const stats = [
     {
@@ -118,35 +39,13 @@ const Dashboard = (/* { onAskKudiGuard }: DashboardProps */) => { // Removed pro
     }
   ];
 
-  const recentRecommendations = recommendations ? recommendations.slice(0, 2) : []; // Show up to 2 most recent recommendations
+  // Static financial health score props
+  const financialHealthScoreProps = {
+    score: 'stable' as 'stable' | 'caution' | 'risky',
+    message: 'Start by asking KudiGuard your first financial question to get a personalized health assessment!',
+  };
 
-  // Financial Health Score and Interpretation now come from the latest recommendation
-  const healthScore = latestRecommendation?.recommendation.financial_health_score;
-  const healthInterpretation = latestRecommendation?.recommendation.score_interpretation;
-
-  let financialHealthScoreProps: { score: 'stable' | 'caution' | 'risky', message: string };
-
-  if (healthScore !== undefined && healthInterpretation) {
-    let scoreCategory: 'stable' | 'caution' | 'risky';
-    if (healthScore >= 80) {
-      scoreCategory = 'stable';
-    } else if (healthScore >= 40) {
-      scoreCategory = 'caution';
-    } else {
-      scoreCategory = 'risky';
-    }
-    financialHealthScoreProps = {
-      score: scoreCategory,
-      message: healthInterpretation,
-    };
-  } else {
-    financialHealthScoreProps = {
-      score: 'stable', // Default to stable if no recommendations yet
-      message: 'Start by asking KudiGuard your first financial question to get a personalized health assessment!',
-    };
-  }
-
-  if (sessionLoading || recommendationsLoading) {
+  if (sessionLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading dashboard...</p>
@@ -154,20 +53,12 @@ const Dashboard = (/* { onAskKudiGuard }: DashboardProps */) => { // Removed pro
     );
   }
 
-  if (recommendationsError) {
-    return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-        <p className="text-destructive">Error loading dashboard data: {recommendationsError.message}</p>
-      </div>
-    );
-  }
-
   const welcomeName = userDisplayName || "Vendor";
 
   return (
-    <div className="min-h-screen bg-gradient-subtle"> {/* Removed p-4 here */}
-      <Navigation /> {/* Moved outside the max-w-2xl div */}
-      <div className="max-w-2xl mx-auto space-y-6 p-4"> {/* Added p-4 here for content */}
+    <div className="min-h-screen bg-gradient-subtle">
+      <Navigation />
+      <div className="max-w-2xl mx-auto space-y-6 p-4">
         
         {/* Header */}
         <div className="text-center py-6">
@@ -194,9 +85,9 @@ const Dashboard = (/* { onAskKudiGuard }: DashboardProps */) => { // Removed pro
           ))}
         </div>
 
-        {/* Main Action Button */}
+        {/* Main Action Button - Placeholder for future chat page */}
         <Button 
-          onClick={() => navigate('/ask')} // Navigate to the new chat page
+          onClick={() => console.log('Ask KudiGuard clicked - implement new chat logic here')}
           className="w-full h-14 bg-gradient-primary hover:shadow-success text-lg font-semibold"
         >
           <MessageCircle className="mr-2 h-5 w-5" />
@@ -224,41 +115,24 @@ const Dashboard = (/* { onAskKudiGuard }: DashboardProps */) => { // Removed pro
           </Link>
         </div>
 
-        {/* Recent Decisions */}
+        {/* Start a New Conversation Card (replaces Recent Decisions) */}
         <Card className="shadow-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center">
-              <History className="mr-2 h-5 w-5 text-primary" />
-              Recent Decisions
+              <MessageCircle className="mr-2 h-5 w-5 text-primary" />
+              Start a New Conversation
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {recentRecommendations.length > 0 ? (
-              recentRecommendations.map((rec, index) => (
-                <div key={rec.id} className="flex items-center justify-between p-3 bg-accent rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{rec.decisions?.[0]?.question || 'Decision details missing'}</p> {/* Safely access question */}
-                    <p className="text-xs text-muted-foreground">{new Date(rec.created_at).toLocaleDateString('en-GB')}</p>
-                  </div>
-                  <div className={`px-2 py-1 rounded text-xs font-medium ${
-                    rec.recommendation.decision_status === 'success' ? 'bg-success-light text-success' : 'bg-warning-light text-warning'
-                  }`}>
-                    {rec.recommendation.decision_result}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-muted-foreground py-4">No decisions yet. Ask KudiGuard your first question!</p>
-            )}
-            
-            <Link to="/history">
-              <Button 
-                variant="outline" 
-                className="w-full mt-3"
-              >
-                View All History
-              </Button>
-            </Link>
+            <p className="text-center text-muted-foreground py-4">
+              Your decision history will appear here once you start asking KudiGuard questions again.
+            </p>
+            <Button 
+              onClick={() => console.log('Ask KudiGuard clicked - implement new chat logic here')}
+              className="w-full mt-3 bg-gradient-primary hover:shadow-success"
+            >
+              Ask KudiGuard Your First Question
+            </Button>
           </CardContent>
         </Card>
       </div>
