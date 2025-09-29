@@ -12,7 +12,7 @@ interface SessionContextType {
   isLoading: boolean;
   supabase: typeof supabase;
   userRole: UserRole | null;
-  avatarUrl: string | null;
+  // Removed avatarUrl from context type
   userDisplayName: string | null;
   // Removed onboardingCompleted, businessName, financialGoal from context
 }
@@ -23,7 +23,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  // Removed avatarUrl state
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,7 +35,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('role, avatar_url, full_name, business_name, business_type, monthly_sales_range, top_expense_categories') // Fetch new fields
+        .select('role, full_name, business_name, business_type, monthly_sales_range, top_expense_categories') // Removed avatar_url from select
         .eq('id', currentSession.user.id)
         .single();
 
@@ -43,7 +43,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         if (error.code === 'PGRST116' || !data) {
           // Profile not found, user needs to create one (initial setup)
           setUserRole("vendor"); // Default to vendor role
-          setAvatarUrl(null);
+          // setAvatarUrl(null); // Removed
           setUserDisplayName(currentSession.user.email || null);
           // If no profile, redirect to onboarding
           if (location.pathname !== '/onboarding') {
@@ -63,12 +63,12 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         }
       } else if (data) {
         const userRoleFromProfile = data.role as UserRole;
-        const userAvatarUrl = data.avatar_url;
+        // const userAvatarUrl = data.avatar_url; // Removed
         const userFullName = data.full_name;
         const userBusinessName = data.business_name;
-        const userBusinessType = data.business_type; // New field
-        const userMonthlySalesRange = data.monthly_sales_range; // New field
-        const userTopExpenseCategories = data.top_expense_categories; // New field
+        const userBusinessType = data.business_type;
+        const userMonthlySalesRange = data.monthly_sales_range;
+        const userTopExpenseCategories = data.top_expense_categories;
 
         let derivedDisplayName: string | null = null;
 
@@ -80,7 +80,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         }
 
         setUserRole(userRoleFromProfile);
-        setAvatarUrl(userAvatarUrl);
+        // setAvatarUrl(userAvatarUrl); // Removed
         setUserDisplayName(derivedDisplayName);
 
         // If any critical onboarding data is missing, redirect to onboarding
@@ -120,10 +120,10 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         // User signed out
         setIsLoading(false);
         setUserRole(null);
-        setAvatarUrl(null);
+        // setAvatarUrl(null); // Removed
         setUserDisplayName(null);
         // Redirect to login if signed out and on a protected route
-        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding']; // Include onboarding here
+        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding'];
         if (protectedRoutes.includes(location.pathname)) {
           navigate('/login');
         }
@@ -179,7 +179,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
 
 
   return (
-    <SessionContext.Provider value={{ session, isLoading, supabase, userRole, avatarUrl, userDisplayName }}>
+    <SessionContext.Provider value={{ session, isLoading, supabase, userRole, userDisplayName }}>
       {children}
     </SessionContext.Provider>
   );

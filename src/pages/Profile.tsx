@@ -12,12 +12,11 @@ import {
   Save,
   Bell,
   Shield,
-  Image,
-  LogOut,
+  LogOut, // Removed Image icon
   Building,
   DollarSign,
   ListChecks,
-  X // Added X for removing expense categories
+  X 
 } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,7 +30,7 @@ const Profile = () => {
     fullName: '',
     email: '',
     businessName: '',
-    avatarUrl: '',
+    // Removed avatarUrl state
     businessType: '',
     monthlySalesRange: '',
     topExpenseCategories: [] as string[],
@@ -66,7 +65,7 @@ const Profile = () => {
       const fetchProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, business_name, avatar_url, business_type, monthly_sales_range, top_expense_categories')
+          .select('full_name, business_name, business_type, monthly_sales_range, top_expense_categories') // Removed avatar_url from select
           .eq('id', session.user.id)
           .single();
 
@@ -81,7 +80,7 @@ const Profile = () => {
             fullName: data.full_name || '',
             email: session.user.email || '',
             businessName: data.business_name || '',
-            avatarUrl: data.avatar_url || '',
+            // Removed avatarUrl from setProfileData
             businessType: data.business_type || '',
             monthlySalesRange: data.monthly_sales_range || '',
             topExpenseCategories: data.top_expense_categories || [],
@@ -117,7 +116,7 @@ const Profile = () => {
         .update({
           full_name: profileData.fullName,
           business_name: profileData.businessName,
-          avatar_url: profileData.avatarUrl.trim() === '' ? null : profileData.avatarUrl,
+          // Removed avatar_url from update payload
           business_type: profileData.businessType,
           monthly_sales_range: profileData.monthlySalesRange,
           top_expense_categories: profileData.topExpenseCategories.length > 0 ? profileData.topExpenseCategories : null,
@@ -217,7 +216,7 @@ const Profile = () => {
     { key: 'fullName', label: 'Full Name', icon: User, type: 'text', component: Input },
     { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text', component: Input },
     { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text', component: Input },
-    { key: 'avatarUrl', label: 'Avatar URL', icon: Image, type: 'url', component: Input },
+    // Removed avatarUrl field
     { key: 'businessType', label: 'Business Type', icon: Building, type: 'select', options: businessTypeOptions },
     { key: 'monthlySalesRange', label: 'Average Monthly Sales Range', icon: DollarSign, type: 'select', options: monthlySalesRangeOptions },
   ];
@@ -229,11 +228,8 @@ const Profile = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
-            {profileData.avatarUrl ? (
-              <img src={profileData.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-            ) : (
-              <User className="h-10 w-10 text-primary-foreground" />
-            )}
+            {/* Removed avatar image display, now always shows User icon */}
+            <User className="h-10 w-10 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold text-primary mb-2">Settings</h1>
           <p className="text-muted-foreground">Manage your account information and preferences</p>

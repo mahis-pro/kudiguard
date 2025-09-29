@@ -9,15 +9,14 @@ import {
   User, 
   ArrowRight, 
   Briefcase, 
-  Image, 
   Building, 
   DollarSign, 
   ListChecks,
   ChevronLeft,
   CheckCircle,
-  HelpCircle, // Added HelpCircle
-  X // Added X
-} from 'lucide-react';
+  HelpCircle,
+  X 
+} from 'lucide-react'; // Removed Image icon
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,7 +31,7 @@ const Onboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
+  // Removed avatarUrl state
   const [businessType, setBusinessType] = useState('');
   const [monthlySalesRange, setMonthlySalesRange] = useState('');
   const [topExpenseCategories, setTopExpenseCategories] = useState<string[]>([]);
@@ -155,7 +154,7 @@ const Onboarding = () => {
         .update({ 
           full_name: fullName,
           business_name: businessName,
-          avatar_url: avatarUrl.trim() === '' ? null : avatarUrl,
+          // Removed avatar_url from update payload
           business_type: businessType,
           monthly_sales_range: monthlySalesRange,
           top_expense_categories: topExpenseCategories.length > 0 ? topExpenseCategories : null,
@@ -229,20 +228,7 @@ const Onboarding = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="avatarUrl" className="text-foreground font-medium flex items-center">
-                <Image className="mr-2 h-4 w-4 text-muted-foreground" />
-                Avatar URL (Optional)
-              </Label>
-              <Input
-                id="avatarUrl"
-                type="url"
-                placeholder="e.g., https://example.com/my-avatar.jpg"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                className="h-12"
-              />
-            </div>
+            {/* Removed Avatar URL input field */}
           </div>
         );
       case 2:
