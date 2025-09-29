@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-// Removed Navigation import as it's now handled by AuthenticatedLayout
 import { useToast } from '@/hooks/use-toast';
 import { 
   User, 
@@ -14,9 +13,15 @@ import {
   Bell,
   Shield,
   Image,
-  LogOut // Added LogOut icon for logout button
+  LogOut,
+  Building,
+  DollarSign,
+  ListChecks,
+  X // Added X for removing expense categories
 } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 const Profile = () => {
   const { session, supabase, isLoading, userDisplayName } = useSession();
@@ -27,8 +32,33 @@ const Profile = () => {
     email: '',
     businessName: '',
     avatarUrl: '',
+    businessType: '',
+    monthlySalesRange: '',
+    topExpenseCategories: [] as string[],
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [currentExpenseInput, setCurrentExpenseInput] = useState('');
+
+  // Predefined options for select fields (same as onboarding)
+  const businessTypeOptions = [
+    'Retail (e.g., shop, stall)', 
+    'Service (e.g., barber, tailor)', 
+    'Food & Beverage (e.g., restaurant, street food)', 
+    'Wholesale', 
+    'Online Business', 
+    'Other'
+  ];
+  const monthlySalesRangeOptions = [
+    'Below ₦50,000', 
+    '₦50,000 - ₦200,000', 
+    '₦200,001 - ₦500,000', 
+    '₦500,001 - ₦1,000,000', 
+    'Above ₦1,000,000'
+  ];
+  const commonExpenseCategories = [
+    'Rent', 'Inventory', 'Staff Salaries', 'Transportation', 'Marketing', 
+    'Utilities', 'Loan Repayments', 'Supplies', 'Maintenance', 'Other'
+  ];
 
   // Fetch user profile data
   useEffect(() => {
@@ -36,7 +66,7 @@ const Profile = () => {
       const fetchProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, business_name, avatar_url')
+          .select('full_name, business_name, avatar_url, business_type, monthly_sales_range, top_expense_categories')
           .eq('id', session.user.id)
           .single();
 
@@ -52,13 +82,16 @@ const Profile = () => {
             email: session.user.email || '',
             businessName: data.business_name || '',
             avatarUrl: data.avatar_url || '',
+            businessType: data.business_type || '',
+            monthlySalesRange: data.monthly_sales_range || '',
+            topExpenseCategories: data.top_expense_categories || [],
           });
         } else {
           // If no profile found, initialize with email and empty fields
           setProfileData(prev => ({
             ...prev,
             email: session.user.email || '',
-            fullName: userDisplayName || '', // Use userDisplayName from session context if available
+            fullName: userDisplayName || '',
           }));
         }
       };
@@ -84,7 +117,10 @@ const Profile = () => {
         .update({
           full_name: profileData.fullName,
           business_name: profileData.businessName,
-          avatar_url: profileData.avatarUrl.trim() === '' ? null : profileData.avatarUrl, // Set to null if empty
+          avatar_url: profileData.avatarUrl.trim() === '' ? null : profileData.avatarUrl,
+          business_type: profileData.businessType,
+          monthly_sales_range: profileData.monthlySalesRange,
+          top_expense_categories: profileData.topExpenseCategories.length > 0 ? profileData.topExpenseCategories : null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', session.user.id);
@@ -99,7 +135,6 @@ const Profile = () => {
       });
       setIsEditing(false);
       // Manually trigger a re-fetch of session context to update userDisplayName
-      // In a real app, SessionContextProvider might have a refreshProfile method
       window.location.reload(); // Simple reload for now to update context
     } catch (error: any) {
       console.error('Error saving profile:', error.message);
@@ -113,8 +148,26 @@ const Profile = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | string[]) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddExpenseCategory = () => {
+    const trimmedInput = currentExpenseInput.trim();
+    if (trimmedInput && !profileData.topExpenseCategories.includes(trimmedInput)) {
+      setProfileData((prev) => ({
+        ...prev,
+        topExpenseCategories: [...prev.topExpenseCategories, trimmedInput],
+      }));
+      setCurrentExpenseInput('');
+    }
+  };
+
+  const handleRemoveExpenseCategory = (categoryToRemove: string) => {
+    setProfileData((prev) => ({
+      ...prev,
+      topExpenseCategories: prev.topExpenseCategories.filter((cat) => cat !== categoryToRemove),
+    }));
   };
 
   const handleLogout = async () => {
@@ -161,15 +214,16 @@ const Profile = () => {
   const scoreInterpretation = "No decisions made yet. Your financial health score will appear here after your first analysis.";
 
   const profileFields = [
-    { key: 'fullName', label: 'Full Name', icon: User, type: 'text' },
-    { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text' },
-    { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text' },
-    { key: 'avatarUrl', label: 'Avatar URL', icon: Image, type: 'url' },
+    { key: 'fullName', label: 'Full Name', icon: User, type: 'text', component: Input },
+    { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text', component: Input },
+    { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text', component: Input },
+    { key: 'avatarUrl', label: 'Avatar URL', icon: Image, type: 'url', component: Input },
+    { key: 'businessType', label: 'Business Type', icon: Building, type: 'select', options: businessTypeOptions },
+    { key: 'monthlySalesRange', label: 'Average Monthly Sales Range', icon: DollarSign, type: 'select', options: monthlySalesRangeOptions },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      {/* Navigation is now handled by AuthenticatedLayout */}
       <div className="max-w-3xl mx-auto p-4">
         
         {/* Header */}
@@ -220,16 +274,91 @@ const Profile = () => {
                   <field.icon className="mr-2 h-4 w-4 text-muted-foreground" />
                   {field.label}
                 </Label>
-                <Input
-                  id={field.key}
-                  type={field.type}
-                  value={profileData[field.key as keyof typeof profileData]}
-                  onChange={(e) => handleInputChange(field.key, e.target.value)}
-                  disabled={!isEditing || field.readOnly}
-                  className={!isEditing || field.readOnly ? "bg-muted/50" : ""}
-                />
+                {field.type === 'select' ? (
+                  <Select 
+                    value={profileData[field.key as keyof typeof profileData] as string} 
+                    onValueChange={(value) => handleInputChange(field.key, value)}
+                    disabled={!isEditing || field.readOnly}
+                  >
+                    <SelectTrigger className={`h-12 ${!isEditing || field.readOnly ? "bg-muted/50" : ""}`}>
+                      <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {field.options?.map((option) => (
+                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id={field.key}
+                    type={field.type}
+                    value={profileData[field.key as keyof typeof profileData] as string}
+                    onChange={(e) => handleInputChange(field.key, e.target.value)}
+                    disabled={!isEditing || field.readOnly}
+                    className={!isEditing || field.readOnly ? "bg-muted/50" : ""}
+                  />
+                )}
               </div>
             ))}
+
+            {/* Top Expense Categories */}
+            <div className="space-y-2">
+              <Label htmlFor="topExpenseCategories" className="text-foreground font-medium flex items-center">
+                <ListChecks className="mr-2 h-4 w-4 text-muted-foreground" />
+                Top Expense Categories
+              </Label>
+              {isEditing ? (
+                <>
+                  <div className="flex space-x-2">
+                    <Select value={currentExpenseInput} onValueChange={setCurrentExpenseInput}>
+                      <SelectTrigger className="flex-1 h-12">
+                        <SelectValue placeholder="Select or type an expense" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {commonExpenseCategories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" onClick={handleAddExpenseCategory} variant="outline" className="h-12">Add</Button>
+                  </div>
+                  <Input
+                    type="text"
+                    placeholder="Or type a custom expense category"
+                    value={currentExpenseInput}
+                    onChange={(e) => setCurrentExpenseInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddExpenseCategory()}
+                    className="h-12 mt-2"
+                  />
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {profileData.topExpenseCategories.map((category) => (
+                      <Badge key={category} variant="secondary" className="pr-1">
+                        {category}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="ml-1 h-4 w-4 p-0.5 rounded-full hover:bg-destructive/20"
+                          onClick={() => handleRemoveExpenseCategory(category)}
+                        >
+                          <X className="h-3 w-3 text-destructive" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {profileData.topExpenseCategories.length > 0 ? (
+                    profileData.topExpenseCategories.map((category) => (
+                      <Badge key={category} variant="secondary">{category}</Badge>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No expense categories added.</p>
+                  )}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 

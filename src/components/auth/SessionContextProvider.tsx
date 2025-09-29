@@ -35,7 +35,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('role, avatar_url, full_name, business_name') // Fetch business_name as well
+        .select('role, avatar_url, full_name, business_name, business_type, monthly_sales_range, top_expense_categories') // Fetch new fields
         .eq('id', currentSession.user.id)
         .single();
 
@@ -65,7 +65,11 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         const userRoleFromProfile = data.role as UserRole;
         const userAvatarUrl = data.avatar_url;
         const userFullName = data.full_name;
-        const userBusinessName = data.business_name; // Get business name
+        const userBusinessName = data.business_name;
+        const userBusinessType = data.business_type; // New field
+        const userMonthlySalesRange = data.monthly_sales_range; // New field
+        const userTopExpenseCategories = data.top_expense_categories; // New field
+
         let derivedDisplayName: string | null = null;
 
         if (userFullName) {
@@ -79,8 +83,8 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         setAvatarUrl(userAvatarUrl);
         setUserDisplayName(derivedDisplayName);
 
-        // If full_name or business_name is missing, redirect to onboarding
-        if (!userFullName || !userBusinessName) {
+        // If any critical onboarding data is missing, redirect to onboarding
+        if (!userFullName || !userBusinessName || !userBusinessType || !userMonthlySalesRange || !userTopExpenseCategories) {
           if (location.pathname !== '/onboarding') {
             navigate('/onboarding');
             toast({
