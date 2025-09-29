@@ -48,9 +48,9 @@ const About = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-subtle"> {/* Removed p-4 */}
-      <Navigation /> {/* Moved outside */}
-      <div className="max-w-4xl mx-auto p-4"> {/* Added p-4 for content */}
+    <div className="min-h-screen bg-gradient-subtle">
+      <Navigation />
+      <div className="max-w-4xl mx-auto p-4">
         
         {/* Hero Section */}
         <div className="text-center mb-12">
@@ -155,7 +155,7 @@ const About = () => {
             <p className="mb-6 text-primary-foreground/90">
               Join thousands of vendors who trust KudiGuard for their financial decisions
             </p>
-            <Link to="/">
+            <Link to="/signup">
               <Button variant="secondary" size="lg" className="bg-white text-primary hover:bg-white/90">
                 Start Using KudiGuard
               </Button>

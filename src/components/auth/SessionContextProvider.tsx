@@ -35,7 +35,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('role, avatar_url, full_name') // Fetch full_name and role
+        .select('role, avatar_url, full_name, business_name') // Fetch business_name as well
         .eq('id', currentSession.user.id)
         .single();
 
@@ -45,6 +45,15 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           setUserRole("vendor"); // Default to vendor role
           setAvatarUrl(null);
           setUserDisplayName(currentSession.user.email || null);
+          // If no profile, redirect to onboarding
+          if (location.pathname !== '/onboarding') {
+            navigate('/onboarding');
+            toast({
+              title: "Complete Your Profile",
+              description: "Please set up your business profile to continue.",
+              variant: "default",
+            });
+          }
         } else {
           toast({
             title: "Profile Error",
@@ -56,6 +65,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         const userRoleFromProfile = data.role as UserRole;
         const userAvatarUrl = data.avatar_url;
         const userFullName = data.full_name;
+        const userBusinessName = data.business_name; // Get business name
         let derivedDisplayName: string | null = null;
 
         if (userFullName) {
@@ -68,6 +78,21 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         setUserRole(userRoleFromProfile);
         setAvatarUrl(userAvatarUrl);
         setUserDisplayName(derivedDisplayName);
+
+        // If full_name or business_name is missing, redirect to onboarding
+        if (!userFullName || !userBusinessName) {
+          if (location.pathname !== '/onboarding') {
+            navigate('/onboarding');
+            toast({
+              title: "Complete Your Profile",
+              description: "Please set up your business profile to continue.",
+              variant: "default",
+            });
+          }
+        } else if (location.pathname === '/onboarding' || location.pathname === '/login' || location.pathname === '/signup') {
+          // If profile is complete and user is on auth/onboarding page, redirect to chat
+          navigate('/chat');
+        }
       }
     } catch (err: any) {
       toast({
@@ -93,6 +118,11 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         setUserRole(null);
         setAvatarUrl(null);
         setUserDisplayName(null);
+        // Redirect to login if signed out and on a protected route
+        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding']; // Include onboarding here
+        if (protectedRoutes.includes(location.pathname)) {
+          navigate('/login');
+        }
       }
     });
 
@@ -102,42 +132,35 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         fetchAndSetUserProfile(initialSession);
       } else {
         setIsLoading(false);
+        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding'];
+        if (protectedRoutes.includes(location.pathname)) {
+          navigate('/login');
+        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, []); // Empty dependency array to run only once on mount
 
-  // Effect 2: Handle navigation based on session and current path
+  // Effect 2: Handle navigation based on session and current path (simplified)
+  // This effect is now largely handled within fetchAndSetUserProfile and the onAuthStateChange listener
+  // Keeping it minimal to avoid conflicts.
   useEffect(() => {
     if (isLoading) {
       return; // Wait for session and profile to load
     }
 
     const authRoutes = ['/login', '/signup', '/reset-password'];
-    const publicRoutes = ['/', '/about'];
-    const protectedRoutes = ['/dashboard', '/profile', '/history', '/tips', '/help'];
-
-    const isCurrentPathAuthOrPublic = authRoutes.includes(location.pathname) || publicRoutes.includes(location.pathname);
-    const isCurrentPathProtected = protectedRoutes.includes(location.pathname);
+    const publicRoutes = ['/', '/about', '/tips', '/help'];
+    const protectedRoutes = ['/chat', '/insights', '/settings']; // Onboarding is handled separately
 
     if (session) {
       // User is authenticated
-      if (!userDisplayName && location.pathname !== '/profile') {
-        // If user has no full_name set, redirect to profile for initial setup
-        navigate('/profile');
-        toast({
-          title: "Complete Your Profile",
-          description: "Please set your full name to continue.",
-          variant: "default",
-        });
-      } else if (userDisplayName && (isCurrentPathAuthOrPublic || location.pathname === '/onboarding')) {
-        // If user is authenticated and has a display name, redirect from auth/public pages to dashboard
-        navigate('/dashboard');
-      }
+      // Redirection from auth/public pages to /chat is handled in fetchAndSetUserProfile
+      // If user is on /onboarding and profile is complete, redirect to /chat (handled in fetchAndSetUserProfile)
     } else {
       // User is NOT authenticated
-      if (isCurrentPathProtected && !isCurrentPathAuthOrPublic) {
+      if (protectedRoutes.includes(location.pathname) || location.pathname === '/onboarding') {
         if (location.pathname !== '/login') { 
           toast({
             title: "Authentication Required",
@@ -149,6 +172,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
       }
     }
   }, [session, isLoading, userDisplayName, location.pathname, navigate, toast]);
+
 
   return (
     <SessionContext.Provider value={{ session, isLoading, supabase, userRole, avatarUrl, userDisplayName }}>

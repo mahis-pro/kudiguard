@@ -9,11 +9,9 @@ import {
   ArrowLeft,
   Menu,
   X,
-  LogOut // Import LogOut icon
 } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
-import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
-import { useToast } from '@/hooks/use-toast'; // Import useToast
+// Removed useSession and useToast imports as logout is moved
 
 interface NavigationProps {
   showBackButton?: boolean;
@@ -23,45 +21,18 @@ interface NavigationProps {
 const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { supabase } = useSession(); // Get supabase client from session context
-  const { toast } = useToast(); // Get toast function
 
+  // These items are for public pages or desktop view of authenticated pages
   const navItems = [
-    { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/profile', icon: User, label: 'Profile' },
-    // Removed: { path: '/history', icon: History, label: 'History' },
+    { path: '/about', icon: HelpCircle, label: 'About' }, // Example public nav item
     { path: '/tips', icon: BookOpen, label: 'Tips' },
     { path: '/help', icon: HelpCircle, label: 'Help' }
   ];
 
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out.",
-        variant: "default",
-      });
-      // SessionContextProvider will handle redirection to /login
-    } catch (error: any) {
-      console.error('Error logging out:', error.message);
-      toast({
-        title: "Logout Failed",
-        description: error.message || "An error occurred during logout.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsMobileMenuOpen(false); // Close mobile menu after action
-    }
-  };
-
   if (showBackButton && onBack) {
     return (
-      <header className="w-full bg-card shadow-card border-b border-border"> {/* Consistent header styling */}
-        <div className="container mx-auto px-4 py-4 flex items-center"> {/* Use container for consistent padding */}
+      <header className="w-full bg-card shadow-card border-b border-border">
+        <div className="container mx-auto px-4 py-4 flex items-center">
           <Button variant="ghost" onClick={onBack} className="mr-3 p-2">
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -78,9 +49,9 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
   }
 
   return (
-    <header className="w-full bg-card shadow-card border-b border-border"> {/* Changed to header, full width, card styling */}
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between"> {/* Added container for padding */}
-        <Link to="/dashboard" className="flex items-center">
+    <header className="w-full bg-card shadow-card border-b border-border">
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <Link to="/" className="flex items-center">
           <img 
             src={kudiGuardLogo} 
             alt="KudiGuard" 
@@ -88,7 +59,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
           />
         </Link>
         
-        {/* Desktop Navigation */}
+        {/* Desktop Navigation for public pages */}
         <nav className="hidden md:flex space-x-1">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -105,15 +76,17 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
               </Link>
             );
           })}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="text-destructive hover:bg-destructive/10"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
+          {/* Login/Signup buttons for public view */}
+          <Link to="/login">
+            <Button variant="outline" className="hover:bg-primary hover:text-primary-foreground">
+              Login
+            </Button>
+          </Link>
+          <Link to="/signup">
+            <Button className="bg-gradient-primary hover:shadow-success">
+              Sign Up
+            </Button>
+          </Link>
         </nav>
 
         {/* Mobile Menu Button */}
@@ -127,7 +100,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
         </Button>
       </div>
 
-      {/* Mobile Navigation Menu */}
+      {/* Mobile Navigation Menu for public pages */}
       {isMobileMenuOpen && (
         <div className="md:hidden border-t bg-card">
           <nav className="p-4 space-y-2">
@@ -150,15 +123,24 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
                 </Link>
               );
             })}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="w-full justify-start text-destructive hover:bg-destructive/10"
-            >
-              <LogOut className="h-4 w-4 mr-3" />
-              Logout
-            </Button>
+            <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+              >
+                Login
+              </Button>
+            </Link>
+            <Link to="/signup" onClick={() => setIsMobileMenuOpen(false)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+              >
+                Sign Up
+              </Button>
+            </Link>
           </nav>
         </div>
       )}

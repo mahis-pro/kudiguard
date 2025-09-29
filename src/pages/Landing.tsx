@@ -15,6 +15,7 @@ import {
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import HeroVisual from '@/components/HeroVisual';
 import HowItWorks from '@/components/HowItWorks';
+import Navigation from '@/components/Navigation'; // Import Navigation for public pages
 
 
 const Landing = () => {
@@ -44,30 +45,7 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       {/* Header */}
-      <header className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img 
-              src={kudiGuardLogo} 
-              alt="KudiGuard" 
-              className="h-12 w-12"
-            />
-            {/* Removed: <span className="text-2xl font-bold text-primary">KudiGuard</span> */}
-          </div>
-          <div className="flex space-x-3">
-            <Link to="/login">
-              <Button variant="outline" className="hover:bg-primary hover:text-primary-foreground">
-                Login
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button className="bg-gradient-primary hover:shadow-success">
-                Sign Up
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <Navigation /> {/* Use the public Navigation component */}
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16">
@@ -165,7 +143,6 @@ const Landing = () => {
               alt="KudiGuard" 
               className="h-8 w-8"
             />
-            {/* Removed: <span className="text-xl font-bold text-primary">KudiGuard</span> */}
           </div>
           <p className="text-muted-foreground">
             Empowering Nigerian vendors with smart financial decisions

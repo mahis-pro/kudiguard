@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Navigation from '@/components/Navigation';
+// Removed Navigation import as it's now handled by AuthenticatedLayout
 import { useToast } from '@/hooks/use-toast';
 import { 
   User, 
@@ -13,10 +13,10 @@ import {
   Save,
   Bell,
   Shield,
-  Image // Added Image icon
+  Image,
+  LogOut // Added LogOut icon for logout button
 } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
-// Removed useQuery import as decision data fetching is removed
 
 const Profile = () => {
   const { session, supabase, isLoading, userDisplayName } = useSession();
@@ -117,6 +117,28 @@ const Profile = () => {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+        variant: "default",
+      });
+      // SessionContextProvider will handle redirection to /login
+    } catch (error: any) {
+      console.error('Error logging out:', error.message);
+      toast({
+        title: "Logout Failed",
+        description: error.message || "An error occurred during logout.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
@@ -147,7 +169,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
-      <Navigation />
+      {/* Navigation is now handled by AuthenticatedLayout */}
       <div className="max-w-3xl mx-auto p-4">
         
         {/* Header */}
@@ -159,7 +181,7 @@ const Profile = () => {
               <User className="h-10 w-10 text-primary-foreground" />
             )}
           </div>
-          <h1 className="text-3xl font-bold text-primary mb-2">My Profile</h1>
+          <h1 className="text-3xl font-bold text-primary mb-2">Settings</h1>
           <p className="text-muted-foreground">Manage your account information and preferences</p>
         </div>
 
@@ -298,6 +320,19 @@ const Profile = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Logout Button */}
+        <Card className="shadow-card mt-6">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center">
+              <LogOut className="h-5 w-5 text-destructive mr-3" />
+              <p className="font-medium text-foreground">Logout</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Danger Zone */}
         <Card className="shadow-card mt-6 border-destructive/20">
