@@ -12,7 +12,6 @@ import {
   Save,
   Bell,
   Shield,
-  // Removed LogOut icon
   Building,
   DollarSign,
   ListChecks,
@@ -196,8 +195,8 @@ const Profile = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      <div className="max-w-3xl mx-auto p-4">
+    <div className="h-full bg-gradient-subtle"> {/* Changed min-h-screen to h-full */}
+      <div className="max-w-3xl mx-auto p-4"> {/* Kept p-4 for internal content padding */}
         
         {/* Header */}
         <div className="text-center mb-8">

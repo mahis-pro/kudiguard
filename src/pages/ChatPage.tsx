@@ -82,9 +82,9 @@ const ChatPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gradient-subtle"> {/* Changed min-h-screen to h-full */}
-      {/* Chat Header */}
-      <header className="bg-card shadow-card border-b border-border p-4 flex items-center justify-between"> {/* Removed md:ml-64 */}
+    <div className="flex flex-col flex-1 bg-gradient-subtle"> {/* Changed h-full to flex-1 */}
+      {/* Chat Header - no md:ml-64 needed, AuthenticatedLayout handles it */}
+      <header className="bg-card shadow-card border-b border-border p-4 flex items-center justify-between">
         <div className="flex items-center">
           <MessageCircle className="h-6 w-6 text-primary mr-3" />
           <h1 className="text-xl font-bold text-primary">KudiGuard Analyst</h1>
@@ -92,8 +92,8 @@ const ChatPage = () => {
         {/* Future: Add profile icon or settings shortcut here */}
       </header>
 
-      {/* Chat Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4"> {/* Removed md:ml-64 */}
+      {/* Chat Messages Area - no md:ml-64 needed */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -130,8 +130,8 @@ const ChatPage = () => {
         ))}
       </div>
 
-      {/* Chat Input */}
-      <div className="bg-card border-t border-border p-4 flex items-center"> {/* Removed md:ml-64 */}
+      {/* Chat Input - no md:ml-64 needed */}
+      <div className="bg-card border-t border-border p-4 flex items-center">
         <Input
           type="text"
           placeholder="Ask KudiGuard a question..."

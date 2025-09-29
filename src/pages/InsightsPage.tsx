@@ -1,81 +1,188 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LayoutDashboard, TrendingUp, AlertTriangle, Lightbulb } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, CalendarDays, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useSession } from '@/components/auth/SessionContextProvider';
 import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard';
-import TipOfTheDayCard from '@/components/TipOfTheDayCard'; // Reusing existing component
 
 const InsightsPage = () => {
-  // Mock data for demonstration
-  const mockHealthScore = {
-    score: 'stable' as 'stable' | 'caution' | 'risky',
-    message: 'Your business shows strong financial stability. Keep monitoring your expenses to maintain this trend.',
-  };
+  const { userDisplayName, isLoading } = useSession();
 
-  const mockAlerts = [
-    { id: 1, type: 'warning', message: 'Inventory costs increased by 15% last month. Review supplier prices.' },
-    { id: 2, type: 'info', message: 'Consider setting a savings goal for business expansion.' },
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
+        <p className="text-muted-foreground">Loading insights...</p>
+      </div>
+    );
+  }
+
+  const firstName = userDisplayName ? userDisplayName.split(' ')[0] : 'User';
+
+  // Placeholder data for demonstration
+  const totalRevenue = 1250000;
+  const totalExpenses = 980000;
+  const netProfit = totalRevenue - totalExpenses;
+  const profitMargin = (netProfit / totalRevenue) * 100;
+  const recentTransactions = [
+    { id: '1', type: 'expense', description: 'Inventory purchase', amount: 150000, date: '2023-10-26', status: 'completed' },
+    { id: '2', type: 'revenue', description: 'Sales from market', amount: 80000, date: '2023-10-25', status: 'completed' },
+    { id: '3', type: 'expense', description: 'Staff salaries', amount: 70000, date: '2023-10-25', status: 'completed' },
+    { id: '4', type: 'revenue', description: 'Online sales', amount: 45000, date: '2023-10-24', status: 'completed' },
+  ];
+  const topExpenses = [
+    { category: 'Inventory', amount: 450000, percentage: 45 },
+    { category: 'Staff Salaries', amount: 200000, percentage: 20 },
+    { category: 'Rent', amount: 100000, percentage: 10 },
+    { category: 'Transportation', amount: 80000, percentage: 8 },
+  ];
+  const recommendations = [
+    { id: 'r1', text: 'Consider negotiating better prices with your inventory suppliers to improve profit margins.', type: 'action' },
+    { id: 'r2', text: 'Your marketing spend is low; explore digital marketing to reach more customers.', type: 'tip' },
+    { id: 'r3', text: 'Review your transportation costs; group deliveries or explore alternative logistics.', type: 'action' },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4 md:p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center mb-6">
-          <LayoutDashboard className="h-8 w-8 text-primary mr-3" />
-          <h1 className="text-3xl font-bold text-primary">Insights</h1>
+    <div className="h-full bg-gradient-subtle"> {/* Changed min-h-screen to h-full, removed p-4 */}
+      <div className="max-w-4xl mx-auto"> {/* Kept max-w-4xl mx-auto */}
+        <h1 className="text-3xl font-bold text-primary mb-6">Hello, {firstName}! Your Business Insights</h1>
+        
+        {/* Financial Health Score Card */}
+        <div className="mb-6">
+          <FinancialHealthScoreCard 
+            score="stable"
+            message="Your business is performing well! Keep up the great work." 
+          />
         </div>
 
-        <div className="grid gap-6 mb-8">
-          {/* Financial Health Score */}
-          <FinancialHealthScoreCard {...mockHealthScore} />
-
-          {/* Graphs Section */}
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="flex items-center text-xl">
-                <TrendingUp className="mr-2 h-5 w-5 text-primary" />
-                Performance Overview
-              </CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="h-48 flex items-center justify-center bg-muted/50 rounded-md text-muted-foreground">
-                {/* Placeholder for actual charts */}
-                <p>Graphs (Revenue vs. Expenses, Savings Trend) will appear here.</p>
-              </div>
+              <div className="text-2xl font-bold">₦{totalRevenue.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">+20.1% from last month</p>
             </CardContent>
           </Card>
+          <Card className="shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <TrendingDown className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₦{totalExpenses.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">+5.3% from last month</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₦{netProfit.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">+15.8% from last month</p>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
+              <BarChart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{profitMargin.toFixed(1)}%</div>
+              <p className="text-xs text-muted-foreground">Target: 25%</p>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Alerts Panel */}
+        {/* Recent Transactions */}
+        <Card className="shadow-card mb-6">
+          <CardHeader>
+            <CardTitle className="text-xl">Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    {transaction.type === 'expense' ? (
+                      <XCircle className="h-5 w-5 text-destructive mr-3" />
+                    ) : (
+                      <CheckCircle className="h-5 w-5 text-success mr-3" />
+                    )}
+                    <div>
+                      <p className="font-medium">{transaction.description}</p>
+                      <p className="text-sm text-muted-foreground">{new Date(transaction.date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <p className={`font-bold ${transaction.type === 'expense' ? 'text-destructive' : 'text-success'}`}>
+                    {transaction.type === 'expense' ? '-' : '+'}₦{transaction.amount.toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <Button variant="link" className="mt-4 p-0">View all transactions</Button>
+          </CardContent>
+        </Card>
+
+        {/* Top Expenses & Recommendations */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle className="flex items-center text-xl">
-                <AlertTriangle className="mr-2 h-5 w-5 text-warning" />
-                Alerts & Recommendations
-              </CardTitle>
+              <CardTitle className="text-xl">Top Expense Categories</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {mockAlerts.length > 0 ? (
-                mockAlerts.map(alert => (
-                  <div key={alert.id} className={`p-3 rounded-md ${alert.type === 'warning' ? 'bg-warning-light border border-warning/20 text-warning' : 'bg-accent border border-border text-foreground'}`}>
-                    <p className="text-sm">{alert.message}</p>
+            <CardContent>
+              <div className="space-y-3">
+                {topExpenses.map((expense, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <p className="text-sm">{expense.category}</p>
+                    <div className="flex items-center">
+                      <p className="text-sm font-medium mr-2">₦{expense.amount.toLocaleString()}</p>
+                      <Badge variant="secondary">{expense.percentage}%</Badge>
+                    </div>
                   </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground text-sm">No new alerts at the moment. All good!</p>
-              )}
-              <div className="mt-4 p-3 bg-primary-light/20 rounded-md">
-                <h3 className="font-semibold text-primary mb-1">Top 3 things to fix this month:</h3>
-                <ul className="list-disc list-inside text-sm text-primary/90">
-                  <li>Review inventory turnover rate.</li>
-                  <li>Increase marketing spend by 5% to boost sales.</li>
-                  <li>Allocate 10% of net profit to emergency savings.</li>
-                </ul>
+                ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Tip of the Day */}
-          <TipOfTheDayCard />
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-xl">KudiGuard Recommendations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recommendations.map((rec) => (
+                  <div key={rec.id} className="flex items-start">
+                    <Info className="h-5 w-5 text-primary mr-3 mt-1" />
+                    <div>
+                      <p className="font-medium">{rec.text}</p>
+                      <Badge variant="outline" className="mt-1">{rec.type === 'action' ? 'Actionable' : 'Tip'}</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button variant="link" className="mt-4 p-0">View all recommendations</Button>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Upcoming Financial Events (Placeholder) */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="text-xl">Upcoming Financial Events</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center text-muted-foreground">
+              <CalendarDays className="h-5 w-5 mr-2" />
+              <p>No upcoming events. Add data to get personalized reminders!</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
