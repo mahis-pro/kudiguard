@@ -13,56 +13,13 @@ import {
   Save,
   Bell,
   Shield,
-  CheckCircle,
-  XCircle,
   Image // Added Image icon
 } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
-import { useQuery } from '@tanstack/react-query';
-
-// Interface for the combined data from decisions and recommendations tables
-interface DecisionWithRecommendation {
-  id: string; // Recommendation ID
-  created_at: string; // Recommendation creation date
-  decision_id: string;
-  user_id: string;
-  recommendation: { // This is the JSONB column from the recommendations table
-    decision_result: string;
-    decision_status: 'success' | 'warning' | 'danger';
-    explanation: string;
-    next_steps: string[];
-    financial_health_score: number;
-    score_interpretation: string;
-    numeric_breakdown: {
-      monthly_revenue: number;
-      monthly_expenses: number;
-      current_savings: number;
-      net_income: number;
-      staff_payroll: number;
-      // Add other relevant inputs here
-    };
-  };
-  decisions: { // This is the joined data from the decisions table
-    question: string;
-    inputs: { // The original inputs from the decision
-      monthlyRevenue: number;
-      monthlyExpenses: number;
-      currentSavings: number;
-      staffPayroll?: number;
-      inventoryValue?: number;
-      outstandingDebts?: number;
-      receivables?: number;
-      equipmentInvestment?: number;
-      marketingSpend?: number;
-      ownerWithdrawals?: number;
-      businessAge?: number;
-      industryType?: string;
-    };
-  }[]; // <--- Changed to array type
-}
+// Removed useQuery import as decision data fetching is removed
 
 const Profile = () => {
-  const { session, supabase, isLoading, userDisplayName, avatarUrl } = useSession();
+  const { session, supabase, isLoading, userDisplayName } = useSession();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -108,39 +65,6 @@ const Profile = () => {
       fetchProfile();
     }
   }, [session, isLoading, supabase, toast, userDisplayName]);
-
-  // Fetch user recommendations (decisions)
-  const fetchRecommendations = async () => {
-    if (!session?.user?.id) {
-      return [];
-    }
-    const { data, error } = await supabase
-      .from('recommendations')
-      .select(`
-        id,
-        created_at,
-        decision_id,
-        user_id,
-        recommendation,
-        decisions (
-          question,
-          inputs
-        )
-      `)
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
-    return data as DecisionWithRecommendation[];
-  };
-
-  const { data: recommendations, isLoading: recommendationsLoading, error: recommendationsError } = useQuery<DecisionWithRecommendation[], Error>({
-    queryKey: ['userRecommendationsProfile', session?.user?.id],
-    queryFn: fetchRecommendations,
-    enabled: !!session?.user?.id && !isLoading,
-  });
 
   const handleSave = async () => {
     if (!session?.user?.id) {
@@ -193,7 +117,7 @@ const Profile = () => {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
-  if (isLoading || recommendationsLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading profile...</p>
@@ -201,41 +125,34 @@ const Profile = () => {
     );
   }
 
-  if (recommendationsError) {
-    return (
-      <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
-        <p className="text-destructive">Error loading recommendations for profile: {recommendationsError.message}</p>
-      </div>
-    );
-  }
-
-  const profileFields = [
-    { key: 'fullName', label: 'Full Name', icon: User, type: 'text' },
-    { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text' },
-    { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text' },
-    { key: 'avatarUrl', label: 'Avatar URL', icon: Image, type: 'url' }, // Added avatar URL field
-  ];
-
-  const totalDecisions = recommendations?.length || 0;
-  const recommendedDecisions = recommendations?.filter(rec => rec.recommendation.decision_status === 'success').length || 0;
-  const savedPotentialLoss = 0; // This would require complex calculation, keeping as 0 for now
+  // Static placeholder stats
+  const totalDecisions = 0;
+  const recommendedActions = 0;
+  const savedPotentialLoss = 0; 
   
   const memberSinceDate = session?.user?.created_at 
     ? new Date(session.user.created_at).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' }) 
     : 'N/A';
 
-  const latestRecommendation = recommendations && recommendations.length > 0 ? recommendations[0] : null;
-  const financialHealthScore = latestRecommendation?.recommendation.financial_health_score;
-  const scoreInterpretation = latestRecommendation?.recommendation.score_interpretation;
+  // Static financial health score and interpretation
+  const financialHealthScore = 0;
+  const scoreInterpretation = "No decisions made yet. Your financial health score will appear here after your first analysis.";
+
+  const profileFields = [
+    { key: 'fullName', label: 'Full Name', icon: User, type: 'text' },
+    { key: 'email', label: 'Email Address', icon: Mail, readOnly: true, type: 'text' },
+    { key: 'businessName', label: 'Business Name', icon: Briefcase, type: 'text' },
+    { key: 'avatarUrl', label: 'Avatar URL', icon: Image, type: 'url' },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-subtle"> {/* Removed p-4 */}
-      <Navigation /> {/* Moved outside */}
-      <div className="max-w-3xl mx-auto p-4"> {/* Added p-4 for content */}
+    <div className="min-h-screen bg-gradient-subtle">
+      <Navigation />
+      <div className="max-w-3xl mx-auto p-4">
         
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden"> {/* Added overflow-hidden */}
+          <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
             {profileData.avatarUrl ? (
               <img src={profileData.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />
             ) : (
@@ -283,7 +200,7 @@ const Profile = () => {
                 </Label>
                 <Input
                   id={field.key}
-                  type={field.type} // Use type from field definition
+                  type={field.type}
                   value={profileData[field.key as keyof typeof profileData]}
                   onChange={(e) => handleInputChange(field.key, e.target.value)}
                   disabled={!isEditing || field.readOnly}
@@ -294,7 +211,7 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Business Stats (Now Dynamic) */}
+        {/* Business Stats (Now Static) */}
         <Card className="shadow-card mb-6">
           <CardHeader>
             <CardTitle className="text-xl">Business Overview</CardTitle>
@@ -307,7 +224,7 @@ const Profile = () => {
               </div>
               <div className="text-center p-4 bg-primary-light/20 rounded-lg">
                 <p className="text-sm text-muted-foreground">Recommended Actions</p>
-                <p className="text-2xl font-bold text-primary">{recommendedDecisions}</p>
+                <p className="text-2xl font-bold text-primary">{recommendedActions}</p>
               </div>
               <div className="text-center p-4 bg-warning-light rounded-lg">
                 <p className="text-sm text-muted-foreground">Potential Loss Avoided</p>

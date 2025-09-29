@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { 
   Home, 
   User, 
-  History, 
   BookOpen, 
   HelpCircle, 
   ArrowLeft,
@@ -30,7 +29,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
   const navItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/profile', icon: User, label: 'Profile' },
-    { path: '/history', icon: History, label: 'History' },
+    // Removed: { path: '/history', icon: History, label: 'History' },
     { path: '/tips', icon: BookOpen, label: 'Tips' },
     { path: '/help', icon: HelpCircle, label: 'Help' }
   ];
