@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, Zap, Banknote, Layers, ShieldCheck } from 'lucide-react';
 
 interface DecisionCardProps {
   data: {
@@ -22,6 +22,19 @@ interface DecisionCardProps {
     outstanding_supplier_debts?: number | null; // Allow null
     supplier_discount_percentage?: number | null; // Allow null
     storage_cost_percentage_of_order?: number | null; // Allow null
+    // New fields for equipment
+    estimated_equipment_cost?: number | null;
+    expected_revenue_increase_monthly?: number | null;
+    expected_expense_decrease_monthly?: number | null;
+    equipment_lifespan_months?: number | null;
+    is_critical_replacement?: boolean | null;
+    is_power_solution?: boolean | null;
+    current_energy_cost_monthly?: number | null;
+    has_diversified_revenue_streams?: boolean | null;
+    existing_debt_load_monthly_repayments?: number | null;
+    financing_required?: boolean | null;
+    financing_interest_rate_annual_percentage?: number | null;
+    financing_term_months?: number | null;
   };
 }
 
@@ -39,6 +52,19 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     outstanding_supplier_debts,
     supplier_discount_percentage,
     storage_cost_percentage_of_order,
+    // Equipment fields
+    estimated_equipment_cost,
+    expected_revenue_increase_monthly,
+    expected_expense_decrease_monthly,
+    equipment_lifespan_months,
+    is_critical_replacement,
+    is_power_solution,
+    current_energy_cost_monthly,
+    has_diversified_revenue_streams,
+    existing_debt_load_monthly_repayments,
+    financing_required,
+    financing_interest_rate_annual_percentage,
+    financing_term_months,
   } = data;
 
   const getRecommendationDetails = () => {
@@ -80,6 +106,20 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
 
   const { Icon, title, badgeVariant, cardClasses, iconClasses } = getRecommendationDetails();
 
+  const hasEquipmentData = 
+    estimated_equipment_cost !== null && estimated_equipment_cost !== undefined ||
+    expected_revenue_increase_monthly !== null && expected_revenue_increase_monthly !== undefined ||
+    expected_expense_decrease_monthly !== null && expected_expense_decrease_monthly !== undefined ||
+    equipment_lifespan_months !== null && equipment_lifespan_months !== undefined ||
+    is_critical_replacement !== null && is_critical_replacement !== undefined ||
+    is_power_solution !== null && is_power_solution !== undefined ||
+    current_energy_cost_monthly !== null && current_energy_cost_monthly !== undefined ||
+    has_diversified_revenue_streams !== null && has_diversified_revenue_streams !== undefined ||
+    existing_debt_load_monthly_repayments !== null && existing_debt_load_monthly_repayments !== undefined ||
+    financing_required !== null && financing_required !== undefined ||
+    financing_interest_rate_annual_percentage !== null && financing_interest_rate_annual_percentage !== undefined ||
+    financing_term_months !== null && financing_term_months !== undefined;
+
   return (
     <Card className={`shadow-md mt-2 ${cardClasses}`}>
       <CardHeader className="pb-3">
@@ -101,7 +141,8 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
          (average_receivables_turnover_days !== null && average_receivables_turnover_days !== undefined) ||
          (outstanding_supplier_debts !== null && outstanding_supplier_debts !== undefined) ||
          (supplier_discount_percentage !== null && supplier_discount_percentage !== undefined) ||
-         (storage_cost_percentage_of_order !== null && storage_cost_percentage_of_order !== undefined) ? (
+         (storage_cost_percentage_of_order !== null && storage_cost_percentage_of_order !== undefined) ||
+         hasEquipmentData ? (
           <div>
             <h4 className="font-semibold text-foreground mb-2">Decision Parameters:</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
@@ -151,6 +192,80 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
                 <div className="flex items-center">
                   <Percent className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
                   <span className="text-muted-foreground">Storage Cost: <span className="font-medium text-foreground">{storage_cost_percentage_of_order}%</span></span>
+                </div>
+              )}
+
+              {/* New Equipment Fields */}
+              {estimated_equipment_cost !== null && estimated_equipment_cost !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Equipment Cost: <span className="font-medium text-foreground currency">{estimated_equipment_cost.toLocaleString()}</span></span>
+                </div>
+              )}
+              {expected_revenue_increase_monthly !== null && expected_revenue_increase_monthly !== undefined && (
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Expected Revenue Increase: <span className="font-medium text-foreground currency">{expected_revenue_increase_monthly.toLocaleString()}</span>/month</span>
+                </div>
+              )}
+              {expected_expense_decrease_monthly !== null && expected_expense_decrease_monthly !== undefined && (
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Expected Expense Decrease: <span className="font-medium text-foreground currency">{expected_expense_decrease_monthly.toLocaleString()}</span>/month</span>
+                </div>
+              )}
+              {equipment_lifespan_months !== null && equipment_lifespan_months !== undefined && (
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Equipment Lifespan: <span className="font-medium text-foreground">{equipment_lifespan_months}</span> months</span>
+                </div>
+              )}
+              {is_critical_replacement !== null && is_critical_replacement !== undefined && (
+                <div className="flex items-center">
+                  <ShieldCheck className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Critical Replacement: <span className="font-medium text-foreground">{is_critical_replacement ? 'Yes' : 'No'}</span></span>
+                </div>
+              )}
+              {is_power_solution !== null && is_power_solution !== undefined && (
+                <div className="flex items-center">
+                  <Zap className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Power Solution: <span className="font-medium text-foreground">{is_power_solution ? 'Yes' : 'No'}</span></span>
+                </div>
+              )}
+              {current_energy_cost_monthly !== null && current_energy_cost_monthly !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Current Monthly Energy Cost: <span className="font-medium text-foreground currency">{current_energy_cost_monthly.toLocaleString()}</span></span>
+                </div>
+              )}
+              {has_diversified_revenue_streams !== null && has_diversified_revenue_streams !== undefined && (
+                <div className="flex items-center">
+                  <Layers className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Diversified Revenue: <span className="font-medium text-foreground">{has_diversified_revenue_streams ? 'Yes' : 'No'}</span></span>
+                </div>
+              )}
+              {existing_debt_load_monthly_repayments !== null && existing_debt_load_monthly_repayments !== undefined && (
+                <div className="flex items-center">
+                  <Banknote className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Existing Monthly Debt Repayments: <span className="font-medium text-foreground currency">{existing_debt_load_monthly_repayments.toLocaleString()}</span></span>
+                </div>
+              )}
+              {financing_required !== null && financing_required !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Financing Required: <span className="font-medium text-foreground">{financing_required ? 'Yes' : 'No'}</span></span>
+                </div>
+              )}
+              {financing_interest_rate_annual_percentage !== null && financing_interest_rate_annual_percentage !== undefined && (
+                <div className="flex items-center">
+                  <Percent className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Annual Interest Rate: <span className="font-medium text-foreground">{financing_interest_rate_annual_percentage}%</span></span>
+                </div>
+              )}
+              {financing_term_months !== null && financing_term_months !== undefined && (
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Financing Term: <span className="font-medium text-foreground">{financing_term_months}</span> months</span>
                 </div>
               )}
             </div>

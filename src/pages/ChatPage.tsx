@@ -59,7 +59,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Hello ${userDisplayName}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
           timestamp: new Date().toISOString(),
-          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Add new data'], // Added restock quick reply
+          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I buy new equipment?', 'Add new data'], // Added equipment quick reply
         },
       ]);
     }
@@ -160,12 +160,21 @@ const ChatPage = () => {
 
     if (pendingDataRequest && currentIntent && currentQuestion) {
       // If AI is waiting for data, try to parse the input for the specific field
-      const valueMatch = messageInput.match(/(\d[\d,\.]*)/); // Extract numbers
-      let parsedValue: number | undefined;
-      if (valueMatch && valueMatch[1]) {
-        parsedValue = parseFloat(valueMatch[1].replace(/,/g, ''));
-        if (isNaN(parsedValue) || parsedValue < 0) {
-          parsedValue = undefined; // Invalid number
+      let parsedValue: number | boolean | undefined;
+      const lowerCaseInput = messageInput.toLowerCase();
+
+      if (pendingDataRequest.field === "is_critical_replacement" || 
+          pendingDataRequest.field === "is_power_solution" ||
+          pendingDataRequest.field === "has_diversified_revenue_streams" ||
+          pendingDataRequest.field === "financing_required") {
+        parsedValue = lowerCaseInput === 'true' || lowerCaseInput === 'yes';
+      } else {
+        const valueMatch = messageInput.match(/(\d[\d,\.]*)/); // Extract numbers
+        if (valueMatch && valueMatch[1]) {
+          parsedValue = parseFloat(valueMatch[1].replace(/,/g, ''));
+          if (isNaN(parsedValue) || parsedValue < 0) {
+            parsedValue = undefined; // Invalid number
+          }
         }
       }
 
@@ -173,7 +182,7 @@ const ChatPage = () => {
         const retryMessage: ChatMessage = {
           id: String(Date.now()),
           sender: 'ai',
-          text: `I couldn't understand the value. Please provide a number for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000').`,
+          text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000' or 'true/false').`,
           timestamp: new Date().toISOString(),
           quickReplies: ['Cancel'],
         };
@@ -215,6 +224,12 @@ const ChatPage = () => {
         // For now, we'll just proceed with the inventory intent and let the engine ask for specifics.
         // If a discount is implied but not specified, the engine will ask for it.
       }
+    } else if (lowerCaseMessage.includes('equipment') || lowerCaseMessage.includes('asset') || lowerCaseMessage.includes('machine') || lowerCaseMessage.includes('generator') || lowerCaseMessage.includes('solar') || lowerCaseMessage.includes('inverter') || lowerCaseMessage.includes('oven') || lowerCaseMessage.includes('fridge') || lowerCaseMessage.includes('delivery bike')) {
+      intentDetected = 'equipment';
+      // Infer is_power_solution if keywords are present
+      if (lowerCaseMessage.includes('generator') || lowerCaseMessage.includes('solar') || lowerCaseMessage.includes('inverter') || lowerCaseMessage.includes('power')) {
+        initialPayload.is_power_solution = true;
+      }
     }
 
     if (intentDetected) {
@@ -226,7 +241,7 @@ const ChatPage = () => {
       const noIntentResponse: ChatMessage = {
         id: String(Date.now()),
         sender: 'ai',
-        text: "I'm currently specialized in hiring and inventory decisions. Please ask me a question like 'Can I afford to hire a new staff member?' or 'Should I restock my shop?'.",
+        text: "I'm currently specialized in hiring, inventory, and equipment decisions. Please ask me a question like 'Can I afford to hire a new staff member?', 'Should I restock my shop?', or 'Should I buy new equipment?'.",
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, noIntentResponse]);
@@ -248,7 +263,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
-        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Add new data'],
+        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I buy new equipment?', 'Add new data'],
       };
       setMessages((prev) => [...prev, cancelMessage]);
     } else {
@@ -325,7 +340,7 @@ const ChatPage = () => {
         <div className="bg-card border-t border-border p-4 flex items-center flex-shrink-0">
           <Input
             type="text"
-            placeholder={pendingDataRequest ? pendingDataRequest.prompt : "Ask about hiring or restocking..."}
+            placeholder={pendingDataRequest ? pendingDataRequest.prompt : "Ask about hiring, restocking, or equipment..."}
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
