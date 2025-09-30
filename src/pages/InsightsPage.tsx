@@ -5,11 +5,49 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard';
+import { useQuery } from '@tanstack/react-query';
 
 const InsightsPage = () => {
-  const { userDisplayName, isLoading } = useSession();
+  const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
 
-  if (isLoading) {
+  const userId = session?.user?.id;
+
+  // Fetch latest financial entry
+  const { data: financialData, isLoading: financialLoading, error: financialError } = useQuery({
+    queryKey: ['latestFinancialEntry', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from('financial_entries')
+        .select('monthly_revenue, monthly_expenses, current_savings')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 means no rows found
+      return data;
+    },
+    enabled: !!userId,
+  });
+
+  // Fetch recent decisions
+  const { data: decisionsData, isLoading: decisionsLoading, error: decisionsError } = useQuery({
+    queryKey: ['recentDecisions', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from('decisions')
+        .select('id, question, recommendation, reasoning, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(3); // Fetch top 3 recent decisions for recommendations
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+
+  if (sessionLoading || financialLoading || decisionsLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading insights...</p>
@@ -17,30 +55,38 @@ const InsightsPage = () => {
     );
   }
 
+  if (financialError || decisionsError) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-4 text-destructive">
+        <p>Error loading data: {financialError?.message || decisionsError?.message}</p>
+      </div>
+    );
+  }
+
   const firstName = userDisplayName ? userDisplayName.split(' ')[0] : 'User';
 
-  // Placeholder data for demonstration
-  const totalRevenue = 1250000;
-  const totalExpenses = 980000;
+  const totalRevenue = financialData?.monthly_revenue || 0;
+  const totalExpenses = financialData?.monthly_expenses || 0;
+  const currentSavings = financialData?.current_savings || 0;
   const netProfit = totalRevenue - totalExpenses;
-  const profitMargin = (netProfit / totalRevenue) * 100;
-  const recentTransactions = [
-    { id: '1', type: 'expense', description: 'Inventory purchase', amount: 150000, date: '2023-10-26', status: 'completed' },
-    { id: '2', type: 'revenue', description: 'Sales from market', amount: 80000, date: '2023-10-25', status: 'completed' },
-    { id: '3', type: 'expense', description: 'Staff salaries', amount: 70000, date: '2023-10-25', status: 'completed' },
-    { id: '4', type: 'revenue', description: 'Online sales', amount: 45000, date: '2023-10-24', status: 'completed' },
-  ];
-  const topExpenses = [
-    { category: 'Inventory', amount: 450000, percentage: 45 },
-    { category: 'Staff Salaries', amount: 200000, percentage: 20 },
-    { category: 'Rent', amount: 100000, percentage: 10 },
-    { category: 'Transportation', amount: 80000, percentage: 8 },
-  ];
-  const recommendations = [
-    { id: 'r1', text: 'Consider negotiating better prices with your inventory suppliers to improve profit margins.', type: 'action' },
-    { id: 'r2', text: 'Your marketing spend is low; explore digital marketing to reach more customers.', type: 'tip' },
-    { id: 'r3', text: 'Review your transportation costs; group deliveries or explore alternative logistics.', type: 'action' },
-  ];
+  const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
+  // Placeholder for financial health score logic (will be dynamic later)
+  let healthScore: 'stable' | 'caution' | 'risky' = 'caution';
+  let healthMessage = "No recent financial data. Please add your monthly revenue, expenses, and savings to get a personalized health score.";
+
+  if (financialData) {
+    if (netProfit > 0 && currentSavings >= totalExpenses) {
+      healthScore = 'stable';
+      healthMessage = "Your business is performing well with positive profit and healthy savings. Keep up the great work!";
+    } else if (netProfit > 0 || currentSavings > 0) {
+      healthScore = 'caution';
+      healthMessage = "Your business shows potential, but there are areas to improve, such as increasing savings or optimizing expenses.";
+    } else {
+      healthScore = 'risky';
+      healthMessage = "Your business is currently facing challenges. Focus on increasing revenue and reducing expenses to improve stability.";
+    }
+  }
 
   return (
     <div className="h-full overflow-y-auto">
@@ -49,40 +95,40 @@ const InsightsPage = () => {
         
         <div className="mb-6">
           <FinancialHealthScoreCard 
-            score="stable"
-            message="Your business is performing well! Keep up the great work." 
+            score={healthScore}
+            message={healthMessage} 
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{totalRevenue.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+              <div className="text-2xl font-bold currency">{totalRevenue.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Latest entry</p>
             </CardContent>
           </Card>
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+              <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
               <TrendingDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{totalExpenses.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">+5.3% from last month</p>
+              <div className="text-2xl font-bold currency">{totalExpenses.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Latest entry</p>
             </CardContent>
           </Card>
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₦{netProfit.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">+15.8% from last month</p>
+              <div className="text-2xl font-bold currency">{netProfit.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Latest calculation</p>
             </CardContent>
           </Card>
           <Card className="shadow-card">
@@ -92,80 +138,39 @@ const InsightsPage = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{profitMargin.toFixed(1)}%</div>
-              <p className="text-xs text-muted-foreground">Target: 25%</p>
+              <p className="text-xs text-muted-foreground">Based on latest data</p>
             </CardContent>
           </Card>
         </div>
 
         <Card className="shadow-card mb-6">
           <CardHeader>
-            <CardTitle className="text-xl">Recent Transactions</CardTitle>
+            <CardTitle className="text-xl">KudiGuard Recommendations</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    {transaction.type === 'expense' ? (
-                      <XCircle className="h-5 w-5 text-destructive mr-3" />
-                    ) : (
-                      <CheckCircle className="h-5 w-5 text-success mr-3" />
-                    )}
-                    <div>
-                      <p className="font-medium">{transaction.description}</p>
-                      <p className="text-sm text-muted-foreground">{new Date(transaction.date).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  <p className={`font-bold ${transaction.type === 'expense' ? 'text-destructive' : 'text-success'}`}>
-                    {transaction.type === 'expense' ? '-' : '+'}₦{transaction.amount.toLocaleString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <Button variant="link" className="mt-4 p-0">View all transactions</Button>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="text-xl">Top Expense Categories</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {topExpenses.map((expense, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <p className="text-sm">{expense.category}</p>
-                    <div className="flex items-center">
-                      <p className="text-sm font-medium mr-2">₦{expense.amount.toLocaleString()}</p>
-                      <Badge variant="secondary">{expense.percentage}%</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="text-xl">KudiGuard Recommendations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recommendations.map((rec) => (
-                  <div key={rec.id} className="flex items-start">
+              {decisionsData && decisionsData.length > 0 ? (
+                decisionsData.map((decision) => (
+                  <div key={decision.id} className="flex items-start">
                     <Info className="h-5 w-5 text-primary mr-3 mt-1" />
                     <div>
-                      <p className="font-medium">{rec.text}</p>
-                      <Badge variant="outline" className="mt-1">{rec.type === 'action' ? 'Actionable' : 'Tip'}</Badge>
+                      <p className="font-medium">{decision.question}</p>
+                      <p className="text-sm text-muted-foreground">{decision.reasoning}</p>
+                      <Badge variant="outline" className="mt-1">{decision.recommendation}</Badge>
                     </div>
                   </div>
-                ))}
-              </div>
-              <Button variant="link" className="mt-4 p-0">View all recommendations</Button>
-            </CardContent>
-          </Card>
-        </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground">No recent recommendations. Ask KudiGuard a question!</p>
+              )}
+            </div>
+            {decisionsData && decisionsData.length > 0 && (
+              <Button variant="link" className="mt-4 p-0" onClick={() => window.location.href = '/history'}>
+                View all decisions
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
         <Card className="shadow-card">
           <CardHeader>
