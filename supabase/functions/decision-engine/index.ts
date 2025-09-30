@@ -351,14 +351,17 @@ serve(async (req) => {
       throw new AuthError("User not authenticated.");
     }
     user = authUser;
+    console.log(`[${requestId}] User authenticated: ${user.id}`);
 
     // 2. Input Validation
     const body = await req.json();
+    console.log(`[${requestId}] Received request body:`, redactSensitiveData(body));
     const validationResult = DecisionEngineInputSchema.safeParse(body);
     if (!validationResult.success) {
       throw new InputValidationError("Invalid input.", validationResult.error.toString());
     }
     const { intent, question, payload } = validationResult.data;
+    console.log(`[${requestId}] Validated input - Intent: ${intent}, Question: "${question}", Payload:`, payload);
 
     // 3. Fetch Latest Financial Data and User Profile
     const { data: financialData, error: financialError } = await supabase
@@ -377,6 +380,7 @@ serve(async (req) => {
         404
       );
     }
+    console.log(`[${requestId}] Fetched financial data:`, financialData);
 
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
@@ -392,8 +396,8 @@ serve(async (req) => {
         404
       );
     }
-
-    const isFmcgVendor = profileData.is_fmcg_vendor;
+    const isFmcgVendor = profileData.is_fmcg_vendor === true; // Ensure it's a boolean
+    console.log(`[${requestId}] Fetched profile data - isFmcgVendor: ${isFmcgVendor}`);
 
     // 4. Decision Logic (Vertical Slice for 'hiring' and 'inventory')
     let recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
@@ -413,6 +417,7 @@ serve(async (req) => {
 
       // If estimated_salary is not provided, request it from the user
       if (estimatedSalary === undefined || estimatedSalary === null) {
+        console.log(`[${requestId}] Data needed: estimated_salary`);
         return new Response(JSON.stringify({
           success: true,
           data: {
@@ -490,9 +495,9 @@ serve(async (req) => {
     } else if (intent === 'inventory') {
       estimatedInventoryCost = payload?.estimated_inventory_cost;
       inventoryTurnoverDays = payload?.inventory_turnover_days;
+      outstandingSupplierDebts = payload?.outstanding_supplier_debts;
       supplierCreditTermsDays = payload?.supplier_credit_terms_days;
       averageReceivablesTurnoverDays = payload?.average_receivables_turnover_days;
-      outstandingSupplierDebts = payload?.outstanding_supplier_debts;
       supplierDiscountPercentage = payload?.supplier_discount_percentage;
       storageCostPercentageOfOrder = payload?.storage_cost_percentage_of_order;
 
@@ -507,6 +512,7 @@ serve(async (req) => {
 
       // --- Data Gathering Sequence for Inventory ---
       if (estimatedInventoryCost === undefined || estimatedInventoryCost === null) {
+        console.log(`[${requestId}] Data needed: estimated_inventory_cost`);
         return new Response(JSON.stringify({
           success: true,
           data: {
@@ -521,6 +527,7 @@ serve(async (req) => {
         }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
       }
       if (inventoryTurnoverDays === undefined || inventoryTurnoverDays === null) {
+        console.log(`[${requestId}] Data needed: inventory_turnover_days`);
         return new Response(JSON.stringify({
           success: true,
           data: {
@@ -535,6 +542,7 @@ serve(async (req) => {
         }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
       }
       if (outstandingSupplierDebts === undefined || outstandingSupplierDebts === null) {
+        console.log(`[${requestId}] Data needed: outstanding_supplier_debts`);
         return new Response(JSON.stringify({
           success: true,
           data: {
@@ -552,6 +560,7 @@ serve(async (req) => {
       // Conditional data requests for Rule 2 (FMCG specific)
       if (isFmcgVendor) {
         if (supplierCreditTermsDays === undefined || supplierCreditTermsDays === null) {
+          console.log(`[${requestId}] Data needed: supplier_credit_terms_days (FMCG)`);
           return new Response(JSON.stringify({
             success: true,
             data: {
@@ -566,6 +575,7 @@ serve(async (req) => {
           }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
         }
         if (averageReceivablesTurnoverDays === undefined || averageReceivablesTurnoverDays === null) {
+          console.log(`[${requestId}] Data needed: average_receivables_turnover_days (FMCG)`);
           return new Response(JSON.stringify({
             success: true,
             data: {
@@ -586,6 +596,7 @@ serve(async (req) => {
       // For simplicity, let's assume if supplier_discount_percentage is provided, we ask for storage cost.
       if (supplierDiscountPercentage !== undefined && supplierDiscountPercentage !== null) {
         if (storageCostPercentageOfOrder === undefined || storageCostPercentageOfOrder === null) {
+          console.log(`[${requestId}] Data needed: storage_cost_percentage_of_order (Bulk Purchase)`);
           return new Response(JSON.stringify({
             success: true,
             data: {
@@ -602,12 +613,35 @@ serve(async (req) => {
       }
       // --- End Data Gathering Sequence ---
 
+      // --- Final Validation before Rule Evaluation ---
+      if (estimatedInventoryCost === undefined || inventoryTurnoverDays === undefined || outstandingSupplierDebts === undefined ||
+          (isFmcgVendor && (supplierCreditTermsDays === undefined || averageReceivablesTurnoverDays === undefined)) ||
+          (supplierDiscountPercentage !== undefined && storageCostPercentageOfOrder === undefined)) {
+        throw new CustomError(
+          ERROR_CODES.MISSING_REQUIRED_FIELD,
+          "Critical inventory data is missing after collection. Please restart the conversation.",
+          SEVERITY.HIGH,
+          500
+        );
+      }
+      console.log(`[${requestId}] All required inventory data collected.`);
+
+      // Type assertion after validation
+      const finalEstimatedInventoryCost = estimatedInventoryCost!;
+      const finalInventoryTurnoverDays = inventoryTurnoverDays!;
+      const finalOutstandingSupplierDebts = outstandingSupplierDebts!;
+      const finalSupplierCreditTermsDays = isFmcgVendor ? supplierCreditTermsDays! : undefined;
+      const finalAverageReceivablesTurnoverDays = isFmcgVendor ? averageReceivablesTurnoverDays! : undefined;
+      const finalSupplierDiscountPercentage = supplierDiscountPercentage;
+      const finalStorageCostPercentageOfOrder = storageCostPercentageOfOrder;
+
+
       // --- Rule Evaluation ---
 
       // Rule 3: Reject conditions (highest priority)
-      if (outstandingSupplierDebts > (0.40 * monthly_revenue)) { // Outstanding supplier debts > 40% of monthly revenue
+      if (finalOutstandingSupplierDebts > (0.40 * monthly_revenue)) { // Outstanding supplier debts > 40% of monthly revenue
         rejectScore++;
-        reasons.push(`Your outstanding supplier debts (₦${outstandingSupplierDebts.toLocaleString()}) are more than 40% of your monthly revenue (₦${monthly_revenue.toLocaleString()}).`);
+        reasons.push(`Your outstanding supplier debts (₦${finalOutstandingSupplierDebts.toLocaleString()}) are more than 40% of your monthly revenue (₦${monthly_revenue.toLocaleString()}).`);
       }
       // Simplified: Cash flow shows 2 consecutive negative months -> check if latest net income is negative
       if (net_income < 0) {
@@ -627,37 +661,37 @@ serve(async (req) => {
         // If not rejected, evaluate other rules for APPROVE/WAIT
         
         // Rule 1: Restock if inventory turnover < 30 days AND cash reserves cover 120% of order value.
-        const cashReservesCoverOrder = current_savings >= (1.20 * estimatedInventoryCost);
-        if (inventoryTurnoverDays < 30 && cashReservesCoverOrder) {
+        const cashReservesCoverOrder = current_savings >= (1.20 * finalEstimatedInventoryCost);
+        if (finalInventoryTurnoverDays < 30 && cashReservesCoverOrder) {
           approveScore++;
-          reasons.push(`Your inventory turnover is fast (${inventoryTurnoverDays} days) and your cash reserves (₦${current_savings.toLocaleString()}) comfortably cover 120% of the order value (₦${(1.20 * estimatedInventoryCost).toLocaleString()}).`);
+          reasons.push(`Your inventory turnover is fast (${finalInventoryTurnoverDays} days) and your cash reserves (₦${current_savings.toLocaleString()}) comfortably cover 120% of the order value (₦${(1.20 * finalEstimatedInventoryCost).toLocaleString()}).`);
         } else {
-          if (inventoryTurnoverDays >= 30) reasons.push(`Your inventory turnover is slow (${inventoryTurnoverDays} days).`);
-          if (!cashReservesCoverOrder) reasons.push(`Your cash reserves (₦${current_savings.toLocaleString()}) do not cover 120% of the order value (₦${(1.20 * estimatedInventoryCost).toLocaleString()}).`);
+          if (finalInventoryTurnoverDays >= 30) reasons.push(`Your inventory turnover is slow (${finalInventoryTurnoverDays} days).`);
+          if (!cashReservesCoverOrder) reasons.push(`Your cash reserves (₦${current_savings.toLocaleString()}) do not cover 120% of the order value (₦${(1.20 * finalEstimatedInventoryCost).toLocaleString()}).`);
           waitScore++;
         }
 
         // Rule 2: For FMCG vendors, allow restock on credit if supplier terms ≤ 30 days and average receivables turnover < 25 days.
-        if (isFmcgVendor && supplierCreditTermsDays !== undefined && averageReceivablesTurnoverDays !== undefined) {
-          if (supplierCreditTermsDays <= 30 && averageReceivablesTurnoverDays < 25) {
+        if (isFmcgVendor && finalSupplierCreditTermsDays !== undefined && finalAverageReceivablesTurnoverDays !== undefined) {
+          if (finalSupplierCreditTermsDays <= 30 && finalAverageReceivablesTurnoverDays < 25) {
             approveScore++; // This rule can also contribute to approval
-            reasons.push(`As an FMCG vendor, your supplier credit terms (${supplierCreditTermsDays} days) are favorable and your receivables turnover is efficient (${averageReceivablesTurnoverDays} days).`);
+            reasons.push(`As an FMCG vendor, your supplier credit terms (${finalSupplierCreditTermsDays} days) are favorable and your receivables turnover is efficient (${finalAverageReceivablesTurnoverDays} days).`);
           } else {
-            if (supplierCreditTermsDays > 30) reasons.push(`As an FMCG vendor, your supplier credit terms (${supplierCreditTermsDays} days) are longer than ideal.`);
-            if (averageReceivablesTurnoverDays >= 25) reasons.push(`As an FMCG vendor, your average receivables turnover (${averageReceivablesTurnoverDays} days) is slower than recommended.`);
+            if (finalSupplierCreditTermsDays > 30) reasons.push(`As an FMCG vendor, your supplier credit terms (${finalSupplierCreditTermsDays} days) are longer than ideal.`);
+            if (finalAverageReceivablesTurnoverDays >= 25) reasons.push(`As an FMCG vendor, your average receivables turnover (${finalAverageReceivablesTurnoverDays} days) is slower than recommended.`);
             waitScore++;
           }
         }
 
         // Additional Case: Bulk-purchase recommendation if supplier discount ≥ 15% and storage cost ≤ 5% of order value.
-        if (supplierDiscountPercentage !== undefined && storageCostPercentageOfOrder !== undefined) {
-          if (supplierDiscountPercentage >= 15 && storageCostPercentageOfOrder <= 5) {
+        if (finalSupplierDiscountPercentage !== undefined && finalStorageCostPercentageOfOrder !== undefined) {
+          if (finalSupplierDiscountPercentage >= 15 && finalStorageCostPercentageOfOrder <= 5) {
             // This is a positive indicator, but might not directly lead to APPROVE if other rules fail
-            reasons.push(`Consider a bulk purchase due to a significant supplier discount (${supplierDiscountPercentage}%) and low storage costs (${storageCostPercentageOfOrder}%).`);
+            reasons.push(`Consider a bulk purchase due to a significant supplier discount (${finalSupplierDiscountPercentage}%) and low storage costs (${finalStorageCostPercentageOfOrder}%).`);
             actionable_steps.push('Explore the possibility of a bulk purchase to maximize savings from the supplier discount.');
           } else {
-            if (supplierDiscountPercentage < 15) reasons.push(`The supplier discount (${supplierDiscountPercentage}%) is not substantial enough for a bulk purchase recommendation.`);
-            if (storageCostPercentageOfOrder > 5) reasons.push(`Storage costs (${storageCostPercentageOfOrder}%) are too high to justify a bulk purchase at this time.`);
+            if (finalSupplierDiscountPercentage < 15) reasons.push(`The supplier discount (${finalSupplierDiscountPercentage}%) is not substantial enough for a bulk purchase recommendation.`);
+            if (finalStorageCostPercentageOfOrder > 5) reasons.push(`Storage costs (${finalStorageCostPercentageOfOrder}%) are too high to justify a bulk purchase at this time.`);
           }
         }
 
@@ -674,34 +708,39 @@ serve(async (req) => {
 
       // Ensure actionable steps are unique and relevant
       actionable_steps = Array.from(new Set(actionable_steps));
+      console.log(`[${requestId}] Decision made - Recommendation: ${recommendation}, Reasoning: "${reasoning}", Steps:`, actionable_steps);
 
     } else {
       throw new InputValidationError("Unsupported Intent", `Intent '${intent}' is not yet supported.`);
     }
 
     // 5. Save Decision to Database
+    const decisionToSave = {
+      user_id: user.id,
+      question: question,
+      recommendation: recommendation,
+      reasoning: reasoning,
+      actionable_steps: actionable_steps,
+      financial_snapshot: financialData,
+      estimated_salary: estimatedSalary,
+      estimated_inventory_cost: estimatedInventoryCost, // Save new fields
+      inventory_turnover_days: inventoryTurnoverDays,
+      supplier_credit_terms_days: supplierCreditTermsDays,
+      average_receivables_turnover_days: averageReceivablesTurnoverDays,
+      outstanding_supplier_debts: outstandingSupplierDebts,
+      supplier_discount_percentage: supplierDiscountPercentage,
+      storage_cost_percentage_of_order: storageCostPercentageOfOrder,
+    };
+    console.log(`[${requestId}] Attempting to save decision:`, decisionToSave);
+
     const { data: savedDecision, error: insertError } = await supabase
       .from('decisions')
-      .insert({
-        user_id: user.id,
-        question: question,
-        recommendation: recommendation,
-        reasoning: reasoning,
-        actionable_steps: actionable_steps,
-        financial_snapshot: financialData,
-        estimated_salary: estimatedSalary,
-        estimated_inventory_cost: estimatedInventoryCost, // Save new fields
-        inventory_turnover_days: inventoryTurnoverDays,
-        supplier_credit_terms_days: supplierCreditTermsDays,
-        average_receivables_turnover_days: averageReceivablesTurnoverDays,
-        outstanding_supplier_debts: outstandingSupplierDebts,
-        supplier_discount_percentage: supplierDiscountPercentage,
-        storage_cost_percentage_of_order: storageCostPercentageOfOrder,
-      })
+      .insert(decisionToSave)
       .select()
       .single();
 
     if (insertError) {
+      console.error(`[${requestId}] Database insert error:`, insertError);
       throw new CustomError(
         ERROR_CODES.RECOMMENDATION_INSERT_FAILED,
         `Failed to save decision: ${insertError.message}`,
@@ -710,6 +749,7 @@ serve(async (req) => {
         insertError
       );
     }
+    console.log(`[${requestId}] Decision saved successfully:`, savedDecision);
 
     // 6. Format and Return Response
     const responsePayload = {
@@ -722,6 +762,7 @@ serve(async (req) => {
         version: API_VERSION,
       },
     };
+    console.log(`[${requestId}] Returning success response.`);
 
     return new Response(JSON.stringify(responsePayload), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
@@ -729,6 +770,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
+    console.error(`[${requestId}] Caught error in main handler:`, error);
     return handleError(error, requestId, user ? user.id : null, supabase, API_VERSION, req.body);
   }
 });
