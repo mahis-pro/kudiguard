@@ -15,7 +15,7 @@ import {
   ERROR_CODES,
   SEVERITY,
   API_VERSION
-} from '../_shared/mod.ts';
+} from 'shared/mod.ts';
 
 const ESTIMATED_SALARY = 50000; // Hardcoded for now, will be dynamic later
 
