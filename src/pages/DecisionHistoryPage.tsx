@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertCircle, Clock, Eye, MessageCircle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Clock, Eye, MessageCircle, DollarSign, CalendarDays } from 'lucide-react'; // Import new icons
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import DecisionDetailsDialog from '@/components/DecisionDetailsDialog';
-import { useIsMobile } from '@/hooks/use-mobile'; // Import useIsMobile
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const DecisionHistoryPage = () => {
   const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState<any | null>(null);
-  const isMobile = useIsMobile(); // Use the hook to detect mobile
+  const isMobile = useIsMobile();
 
   const userId = session?.user?.id;
 
@@ -23,7 +23,7 @@ const DecisionHistoryPage = () => {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('decisions')
-        .select('id, question, recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary, created_at')
+        .select('id, question, recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary, estimated_inventory_cost, inventory_turnover_days, supplier_credit_terms_days, average_receivables_turnover_days, outstanding_supplier_debts, supplier_discount_percentage, storage_cost_percentage_of_order, created_at') // Include new fields
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
       if (error) throw error;

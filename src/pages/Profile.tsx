@@ -15,11 +15,14 @@ import {
   Building,
   DollarSign,
   ListChecks,
-  X 
+  X,
+  HelpCircle
 } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch'; // Import Switch
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'; // Import Tooltip
 
 const Profile = () => {
   const { session, supabase, isLoading, userDisplayName } = useSession();
@@ -32,6 +35,7 @@ const Profile = () => {
     businessType: '',
     monthlySalesRange: '',
     topExpenseCategories: [] as string[],
+    isFmcgVendor: false, // New state for FMCG vendor
   });
   const [isSaving, setIsSaving] = useState(false);
   const [currentExpenseInput, setCurrentExpenseInput] = useState('');
@@ -61,7 +65,7 @@ const Profile = () => {
       const fetchProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, business_name, business_type, monthly_sales_range, top_expense_categories')
+          .select('full_name, business_name, business_type, monthly_sales_range, top_expense_categories, is_fmcg_vendor') // Include new field
           .eq('id', session.user.id)
           .single();
 
@@ -79,6 +83,7 @@ const Profile = () => {
             businessType: data.business_type || '',
             monthlySalesRange: data.monthly_sales_range || '',
             topExpenseCategories: data.top_expense_categories || [],
+            isFmcgVendor: data.is_fmcg_vendor || false, // Set new state
           });
         } else {
           setProfileData(prev => ({
@@ -113,6 +118,7 @@ const Profile = () => {
           business_type: profileData.businessType,
           monthly_sales_range: profileData.monthlySalesRange,
           top_expense_categories: profileData.topExpenseCategories.length > 0 ? profileData.topExpenseCategories : null,
+          is_fmcg_vendor: profileData.isFmcgVendor, // Save new field
           updated_at: new Date().toISOString(),
         })
         .eq('id', session.user.id);
@@ -139,7 +145,7 @@ const Profile = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: string | string[]) => {
+  const handleInputChange = (field: string, value: string | string[] | boolean) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -258,6 +264,26 @@ const Profile = () => {
                 )}
               </div>
             ))}
+
+            <div className="flex items-center justify-between space-x-2 pt-2">
+              <Label htmlFor="isFmcgVendor" className="text-foreground font-medium flex items-center">
+                Is your business a Fast-Moving Consumer Goods (FMCG) vendor?
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="ml-1 h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>FMCG businesses sell products quickly (e.g., food, beverages, toiletries).</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
+              <Switch
+                id="isFmcgVendor"
+                checked={profileData.isFmcgVendor}
+                onCheckedChange={(checked) => handleInputChange('isFmcgVendor', checked)}
+                disabled={!isEditing}
+              />
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="topExpenseCategories" className="text-foreground font-medium flex items-center">

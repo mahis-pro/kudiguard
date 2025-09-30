@@ -16,12 +16,13 @@ import {
   CheckCircle,
   HelpCircle,
   X 
-} from 'lucide-react'; // Removed Image icon
+} from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch'; // Import Switch
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -31,11 +32,11 @@ const Onboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
-  // Removed avatarUrl state
   const [businessType, setBusinessType] = useState('');
   const [monthlySalesRange, setMonthlySalesRange] = useState('');
   const [topExpenseCategories, setTopExpenseCategories] = useState<string[]>([]);
   const [currentExpenseInput, setCurrentExpenseInput] = useState('');
+  const [isFmcgVendor, setIsFmcgVendor] = useState(false); // New state for FMCG vendor
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -68,11 +69,11 @@ const Onboarding = () => {
       const checkProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, business_name, business_type, monthly_sales_range, top_expense_categories')
+          .select('full_name, business_name, business_type, monthly_sales_range, top_expense_categories, is_fmcg_vendor') // Include new field
           .eq('id', session.user.id)
           .single();
 
-        if (data && data.full_name && data.business_name && data.business_type && data.monthly_sales_range && data.top_expense_categories) {
+        if (data && data.full_name && data.business_name && data.business_type && data.monthly_sales_range && data.top_expense_categories && (data.is_fmcg_vendor !== null)) { // Check for is_fmcg_vendor
           navigate('/chat'); // Redirect to chat if onboarding is complete
           toast({
             title: "Profile Already Set",
@@ -86,6 +87,7 @@ const Onboarding = () => {
           setBusinessType(data.business_type || '');
           setMonthlySalesRange(data.monthly_sales_range || '');
           setTopExpenseCategories(data.top_expense_categories || []);
+          setIsFmcgVendor(data.is_fmcg_vendor || false); // Set new state
         } else if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
           toast({
             title: "Error fetching profile",
@@ -154,10 +156,10 @@ const Onboarding = () => {
         .update({ 
           full_name: fullName,
           business_name: businessName,
-          // Removed avatar_url from update payload
           business_type: businessType,
           monthly_sales_range: monthlySalesRange,
           top_expense_categories: topExpenseCategories.length > 0 ? topExpenseCategories : null,
+          is_fmcg_vendor: isFmcgVendor, // Save new field
           updated_at: new Date().toISOString(),
         })
         .eq('id', session.user.id);
@@ -227,8 +229,6 @@ const Onboarding = () => {
                 required
               />
             </div>
-
-            {/* Removed Avatar URL input field */}
           </div>
         );
       case 2:
@@ -282,6 +282,25 @@ const Onboarding = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex items-center justify-between space-x-2 pt-2">
+              <Label htmlFor="isFmcgVendor" className="text-foreground font-medium flex items-center">
+                Is your business a Fast-Moving Consumer Goods (FMCG) vendor?
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="ml-1 h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>FMCG businesses sell products quickly (e.g., food, beverages, toiletries).</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
+              <Switch
+                id="isFmcgVendor"
+                checked={isFmcgVendor}
+                onCheckedChange={setIsFmcgVendor}
+              />
             </div>
           </div>
         );

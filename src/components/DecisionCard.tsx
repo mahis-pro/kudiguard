@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock } from 'lucide-react'; // Import Clock icon
 
 interface DecisionCardProps {
   data: {
@@ -13,12 +13,33 @@ interface DecisionCardProps {
       monthly_expenses: number;
       current_savings: number;
     };
-    estimated_salary?: number; // Added estimated_salary to the interface
+    estimated_salary?: number;
+    // New fields for inventory
+    estimated_inventory_cost?: number;
+    inventory_turnover_days?: number;
+    supplier_credit_terms_days?: number;
+    average_receivables_turnover_days?: number;
+    outstanding_supplier_debts?: number;
+    supplier_discount_percentage?: number;
+    storage_cost_percentage_of_order?: number;
   };
 }
 
 const DecisionCard = ({ data }: DecisionCardProps) => {
-  const { recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary } = data;
+  const { 
+    recommendation, 
+    reasoning, 
+    actionable_steps, 
+    financial_snapshot, 
+    estimated_salary,
+    estimated_inventory_cost, // Destructure new fields
+    inventory_turnover_days,
+    supplier_credit_terms_days,
+    average_receivables_turnover_days,
+    outstanding_supplier_debts,
+    supplier_discount_percentage,
+    storage_cost_percentage_of_order,
+  } = data;
 
   const getRecommendationDetails = () => {
     switch (recommendation) {
@@ -73,12 +94,58 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
           <p className="text-sm text-foreground/90">{reasoning}</p>
         </div>
 
-        {estimated_salary !== undefined && (
+        {(estimated_salary !== undefined || estimated_inventory_cost !== undefined) && (
           <div>
             <h4 className="font-semibold text-foreground mb-2">Decision Parameters:</h4>
-            <div className="flex items-center text-sm">
-              <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-              <span className="text-muted-foreground">Estimated New Hire Salary: <span className="font-medium text-foreground currency">{estimated_salary.toLocaleString()}</span>/month</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              {estimated_salary !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Estimated New Hire Salary: <span className="font-medium text-foreground currency">{estimated_salary.toLocaleString()}</span>/month</span>
+                </div>
+              )}
+              {estimated_inventory_cost !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Estimated Inventory Cost: <span className="font-medium text-foreground currency">{estimated_inventory_cost.toLocaleString()}</span></span>
+                </div>
+              )}
+              {inventory_turnover_days !== undefined && (
+                <div className="flex items-center">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Inventory Turnover: <span className="font-medium text-foreground">{inventory_turnover_days}</span> days</span>
+                </div>
+              )}
+              {supplier_credit_terms_days !== undefined && (
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Supplier Credit Terms: <span className="font-medium text-foreground">{supplier_credit_terms_days}</span> days</span>
+                </div>
+              )}
+              {average_receivables_turnover_days !== undefined && (
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Receivables Turnover: <span className="font-medium text-foreground">{average_receivables_turnover_days}</span> days</span>
+                </div>
+              )}
+              {outstanding_supplier_debts !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Outstanding Debts: <span className="font-medium text-foreground currency">{outstanding_supplier_debts.toLocaleString()}</span></span>
+                </div>
+              )}
+              {supplier_discount_percentage !== undefined && (
+                <div className="flex items-center">
+                  <Percent className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Supplier Discount: <span className="font-medium text-foreground">{supplier_discount_percentage}%</span></span>
+                </div>
+              )}
+              {storage_cost_percentage_of_order !== undefined && (
+                <div className="flex items-center">
+                  <Percent className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Storage Cost: <span className="font-medium text-foreground">{storage_cost_percentage_of_order}%</span></span>
+                </div>
+              )}
             </div>
           </div>
         )}
