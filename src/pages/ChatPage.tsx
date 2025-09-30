@@ -77,8 +77,37 @@ const ChatPage = () => {
       }
 
       if (!edgeFunctionResult || !edgeFunctionResult.success) {
-        const errorMessage = edgeFunctionResult?.error?.details || "An unknown error occurred from the AI.";
-        throw new Error(errorMessage);
+        // Handle specific error codes from the Edge Function
+        let errorMessage = "An unknown error occurred from the AI.";
+        let quickReplies: string[] = ['Add new data', 'Try again'];
+
+        if (edgeFunctionResult?.error?.code === 'DECISION_NOT_FOUND') {
+          errorMessage = "I can't provide a recommendation without your financial data. Please add your monthly revenue, expenses, and savings first.";
+          quickReplies = ['Add new data'];
+        } else if (edgeFunctionResult?.error?.details) {
+          errorMessage = edgeFunctionResult.error.details;
+        } else if (edgeFunctionResult?.error?.message) {
+          errorMessage = edgeFunctionResult.error.message;
+        }
+        
+        const errorResponse: ChatMessage = {
+          id: String(Date.now()),
+          sender: 'ai',
+          text: `Error: ${errorMessage}`,
+          timestamp: new Date().toISOString(),
+          quickReplies: quickReplies,
+        };
+        setMessages((prev) => [...prev, errorResponse]);
+        toast({
+          title: "Analysis Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setPendingDataRequest(null); // Clear any pending data requests on error
+        setCurrentIntent(null);
+        setCurrentQuestion(null);
+        setCurrentPayload({});
+        return; // Exit early after handling the error
       }
 
       if (edgeFunctionResult.data?.data_needed) {
