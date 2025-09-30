@@ -195,16 +195,33 @@ const ChatPage = () => {
 
     // Initial intent detection
     const lowerCaseMessage = messageInput.toLowerCase();
+    let intentDetected: string | null = null;
+    let initialPayload: Record<string, any> = {};
+
     if (lowerCaseMessage.includes('hire') || lowerCaseMessage.includes('staff') || lowerCaseMessage.includes('employee')) {
-      setCurrentIntent('hiring');
-      setCurrentQuestion(messageInput);
-      setCurrentPayload({}); // Reset payload for new intent
-      sendToDecisionEngine('hiring', messageInput);
+      intentDetected = 'hiring';
     } else if (lowerCaseMessage.includes('inventory') || lowerCaseMessage.includes('stock') || lowerCaseMessage.includes('restock') || lowerCaseMessage.includes('buy more')) {
-      setCurrentIntent('inventory');
+      intentDetected = 'inventory';
+
+      // Check for bulk/discount related keywords and extract percentage
+      const discountMatch = lowerCaseMessage.match(/(\d+(\.\d+)?)% discount/);
+      if (discountMatch && discountMatch[1]) {
+        const discount = parseFloat(discountMatch[1]);
+        if (!isNaN(discount) && discount >= 0 && discount <= 100) {
+          initialPayload.supplier_discount_percentage = discount;
+        }
+      } else if (lowerCaseMessage.includes('bulk') || lowerCaseMessage.includes('wholesale') || lowerCaseMessage.includes('large quantity')) {
+        // If bulk is mentioned but no discount, we can still flag it for potential discount/storage cost questions later
+        // For now, we'll just proceed with the inventory intent and let the engine ask for specifics.
+        // If a discount is implied but not specified, the engine will ask for it.
+      }
+    }
+
+    if (intentDetected) {
+      setCurrentIntent(intentDetected);
       setCurrentQuestion(messageInput);
-      setCurrentPayload({}); // Reset payload for new intent
-      sendToDecisionEngine('inventory', messageInput);
+      setCurrentPayload(initialPayload); // Set initial payload
+      sendToDecisionEngine(intentDetected, messageInput, initialPayload);
     } else {
       const noIntentResponse: ChatMessage = {
         id: String(Date.now()),
