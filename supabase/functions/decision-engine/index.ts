@@ -354,26 +354,26 @@ export type DecisionResult = {
   reasoning: string;
   actionable_steps: string[];
   financial_snapshot: FinancialData;
-  estimated_salary?: number;
-  estimated_inventory_cost?: number;
-  inventory_turnover_days?: number;
-  supplier_credit_terms_days?: number;
-  average_receivables_turnover_days?: number;
-  outstanding_supplier_debts?: number;
-  supplier_discount_percentage?: number;
-  storage_cost_percentage_of_order?: number;
-  estimated_equipment_cost?: number;
-  expected_revenue_increase_monthly?: number;
-  expected_expense_decrease_monthly?: number;
-  equipment_lifespan_months?: number;
-  is_critical_replacement?: boolean;
-  is_power_solution?: boolean;
-  current_energy_cost_monthly?: number;
-  has_diversified_revenue_streams?: boolean;
-  existing_debt_load_monthly_repayments?: number;
-  financing_required?: boolean;
-  financing_interest_rate_annual_percentage?: number;
-  financing_term_months?: number;
+  estimated_salary?: number | null;
+  estimated_inventory_cost?: number | null;
+  inventory_turnover_days?: number | null;
+  supplier_credit_terms_days?: number | null;
+  average_receivables_turnover_days?: number | null;
+  outstanding_supplier_debts?: number | null;
+  supplier_discount_percentage?: number | null;
+  storage_cost_percentage_of_order?: number | null;
+  estimated_equipment_cost?: number | null;
+  expected_revenue_increase_monthly?: number | null;
+  expected_expense_decrease_monthly?: number | null;
+  equipment_lifespan_months?: number | null;
+  is_critical_replacement?: boolean | null;
+  is_power_solution?: boolean | null;
+  current_energy_cost_monthly?: number | null;
+  has_diversified_revenue_streams?: boolean | null;
+  existing_debt_load_monthly_repayments?: number | null;
+  financing_required?: boolean | null;
+  financing_interest_rate_annual_percentage?: number | null;
+  financing_term_months?: number | null;
 };
 
 // Define a type for the data needed response
@@ -1177,26 +1177,26 @@ serve(async (req) => {
       reasoning: decision.reasoning,
       actionable_steps: decision.actionable_steps,
       financial_snapshot: decision.financial_snapshot,
-      estimated_salary: decision.estimated_salary,
-      estimated_inventory_cost: decision.estimated_inventory_cost,
-      inventory_turnover_days: decision.inventory_turnover_days,
-      supplier_credit_terms_days: decision.supplier_credit_terms_days,
-      average_receivables_turnover_days: decision.average_receivables_turnover_days,
-      outstanding_supplier_debts: decision.outstanding_supplier_debts,
-      supplier_discount_percentage: decision.supplier_discount_percentage,
-      storage_cost_percentage_of_order: decision.storage_cost_percentage_of_order,
-      estimated_equipment_cost: decision.estimated_equipment_cost,
-      expected_revenue_increase_monthly: decision.expected_revenue_increase_monthly,
-      expected_expense_decrease_monthly: decision.expected_expense_decrease_monthly,
-      equipment_lifespan_months: decision.equipment_lifespan_months,
-      is_critical_replacement: decision.is_critical_replacement,
-      is_power_solution: decision.is_power_solution,
-      current_energy_cost_monthly: decision.current_energy_cost_monthly,
-      has_diversified_revenue_streams: decision.has_diversified_revenue_streams,
-      existing_debt_load_monthly_repayments: decision.existing_debt_load_monthly_repayments,
-      financing_required: decision.financing_required,
-      financing_interest_rate_annual_percentage: decision.financing_interest_rate_annual_percentage,
-      financing_term_months: decision.financing_term_months,
+      estimated_salary: decision.estimated_salary ?? null,
+      estimated_inventory_cost: decision.estimated_inventory_cost ?? null,
+      inventory_turnover_days: decision.inventory_turnover_days ?? null,
+      supplier_credit_terms_days: decision.supplier_credit_terms_days ?? null,
+      average_receivables_turnover_days: decision.average_receivables_turnover_days ?? null,
+      outstanding_supplier_debts: decision.outstanding_supplier_debts ?? null,
+      supplier_discount_percentage: decision.supplier_discount_percentage ?? null,
+      storage_cost_percentage_of_order: decision.storage_cost_percentage_of_order ?? null,
+      estimated_equipment_cost: decision.estimated_equipment_cost ?? null,
+      expected_revenue_increase_monthly: decision.expected_revenue_increase_monthly ?? null,
+      expected_expense_decrease_monthly: decision.expected_expense_decrease_monthly ?? null,
+      equipment_lifespan_months: decision.equipment_lifespan_months ?? null,
+      is_critical_replacement: decision.is_critical_replacement ?? null,
+      is_power_solution: decision.is_power_solution ?? null,
+      current_energy_cost_monthly: decision.current_energy_cost_monthly ?? null,
+      has_diversified_revenue_streams: decision.has_diversified_revenue_streams ?? null,
+      existing_debt_load_monthly_repayments: decision.existing_debt_load_monthly_repayments ?? null,
+      financing_required: decision.financing_required ?? null,
+      financing_interest_rate_annual_percentage: decision.financing_interest_rate_annual_percentage ?? null,
+      financing_term_months: decision.financing_term_months ?? null,
     };
     console.log(`[${requestId}] Attempting to save decision:`, decisionToSave);
 
