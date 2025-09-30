@@ -189,7 +189,7 @@ async function logError(
     requestId,
     vendorId,
     errorCode,
-    severity,
+        severity,
     timestamp,
     stack: stack || (originalError instanceof Error ? originalError.stack : undefined),
     payload: redactSensitiveData(payload),
@@ -1015,6 +1015,26 @@ export function makeEquipmentDecision(
   // Ensure actionable steps are unique and relevant
   actionable_steps = Array.from(new Set(actionable_steps));
 
+  // Log the final decision before returning
+  console.log(`[${requestId}] Final Equipment Decision:`, {
+    recommendation,
+    reasoning,
+    actionable_steps,
+    financial_snapshot: financialData,
+    estimated_equipment_cost: finalEstimatedEquipmentCost,
+    expected_revenue_increase_monthly: finalExpectedRevenueIncreaseMonthly,
+    expected_expense_decrease_monthly: finalExpectedExpenseDecreaseMonthly,
+    equipment_lifespan_months: equipmentLifespanMonths,
+    is_critical_replacement: finalIsCriticalReplacement,
+    is_power_solution: finalIsPowerSolution,
+    current_energy_cost_monthly: finalCurrentEnergyCostMonthly,
+    has_diversified_revenue_streams: finalHasDiversifiedRevenueStreams,
+    existing_debt_load_monthly_repayments: finalExistingDebtLoadMonthlyRepayments,
+    financing_required: finalFinancingRequired,
+    financing_interest_rate_annual_percentage: finalFinancingInterestRateAnnualPercentage,
+    financing_term_months: finalFinancingTermMonths,
+  });
+
   return {
     decision: {
       recommendation,
@@ -1024,7 +1044,7 @@ export function makeEquipmentDecision(
       estimated_equipment_cost: finalEstimatedEquipmentCost,
       expected_revenue_increase_monthly: finalExpectedRevenueIncreaseMonthly,
       expected_expense_decrease_monthly: finalExpectedExpenseDecreaseMonthly,
-      equipment_lifespan_months: equipmentLifespanMonths, // This was not prompted, so it might be undefined
+      equipment_lifespan_months: equipmentLifespanMonths,
       is_critical_replacement: finalIsCriticalReplacement,
       is_power_solution: finalIsPowerSolution,
       current_energy_cost_monthly: finalCurrentEnergyCostMonthly,
