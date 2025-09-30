@@ -62,25 +62,35 @@ const ChatPage = () => {
   const sendToDecisionEngine = async (intent: string, decision_type: string, payload?: Record<string, any>) => {
     setIsAiTyping(true);
     try {
-      const { data, error } = await supabase.functions.invoke('decision-engine', {
+      const { data: edgeFunctionResult, error: invokeError } = await supabase.functions.invoke('decision-engine', {
         body: { intent, decision_type, payload },
       });
 
-      if (error) throw error;
+      if (invokeError) {
+        // This handles network errors or issues with invoking the function itself
+        throw invokeError;
+      }
 
-      // Handle case where AI needs more data
-      if (data.data_needed) {
-        setPendingDataRequest(data.data_needed);
+      // Now, check the 'success' flag from the Edge Function's *response body*
+      if (!edgeFunctionResult || !edgeFunctionResult.success) {
+        // This means the Edge Function executed, but returned an application-level error
+        const errorMessage = edgeFunctionResult?.error?.details || "An unknown error occurred from the AI.";
+        throw new Error(errorMessage);
+      }
+
+      // Handle case where AI needs more data (this structure is directly from the Edge Function's 'data' field)
+      if (edgeFunctionResult.data?.data_needed) {
+        setPendingDataRequest(edgeFunctionResult.data.data_needed);
         const dataNeededMessage: ChatMessage = {
           id: String(Date.now()),
           sender: 'ai',
-          text: data.data_needed.prompt,
+          text: edgeFunctionResult.data.data_needed.prompt,
           timestamp: new Date().toISOString(),
-          dataNeeded: data.data_needed, // Store the request context
-          quickReplies: ['Cancel'], // Allow user to cancel the data request
+          dataNeeded: edgeFunctionResult.data.data_needed,
+          quickReplies: ['Cancel'],
         };
         setMessages((prev) => [...prev, dataNeededMessage]);
-        return; // Stop here, waiting for user input
+        return;
       }
 
       // Regular decision response
@@ -89,7 +99,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: "I've analyzed your financial data. Here is my recommendation:",
         timestamp: new Date().toISOString(),
-        cards: [<DecisionCard key="decision-card" data={data.data} />],
+        cards: [<DecisionCard key="decision-card" data={edgeFunctionResult.data} />],
         quickReplies: ['Thanks!', 'What else can you do?'],
       };
       setMessages((prev) => [...prev, aiResponse]);
