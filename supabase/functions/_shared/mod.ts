@@ -12,12 +12,7 @@ export { CustomError, InputValidationError, AuthError, ForbiddenError, handleErr
 
 // Re-export from schemas.ts
 export {
-  FinancialDataSchema,
   DecisionEngineInputSchema,
-  UpdateFeedbackInputSchema,
-  ValidateInputsSchema,
-  CalculateScoreInputSchema,
-  WebhookListenerInputSchema,
 } from './schemas.ts';
 
 // Re-export SupabaseClient type for convenience

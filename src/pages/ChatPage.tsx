@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
-import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard';
 import AddDataModal from '@/components/AddDataModal';
+import DecisionCard from '@/components/DecisionCard'; // Import the new component
+import { useToast } from '@/hooks/use-toast';
 
 interface ChatMessage {
   id: string;
@@ -25,7 +26,8 @@ const TypingIndicator = () => (
 );
 
 const ChatPage = () => {
-  const { userDisplayName, isLoading: sessionLoading } = useSession();
+  const { userDisplayName, isLoading: sessionLoading, supabase } = useSession();
+  const { toast } = useToast();
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isAiTyping, setIsAiTyping] = useState(false);
@@ -44,11 +46,77 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Hello ${userDisplayName}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
           timestamp: new Date().toISOString(),
-          quickReplies: ['Check my financial health', 'Should I hire someone?', 'Add new data'],
+          quickReplies: ['Should I hire someone?', 'Add new data'],
         },
       ]);
     }
   }, [sessionLoading, userDisplayName]);
+
+  const getAiDecision = async (messageText: string) => {
+    setIsAiTyping(true);
+    let intent = null;
+
+    // Temporary keyword spotting logic
+    const lowerCaseMessage = messageText.toLowerCase();
+    if (lowerCaseMessage.includes('hire') || lowerCaseMessage.includes('staff') || lowerCaseMessage.includes('employee')) {
+      intent = { intent: 'hiring', decision_type: 'hiring_affordability' };
+    }
+
+    if (!intent) {
+      const noIntentResponse: ChatMessage = {
+        id: String(Date.now()),
+        sender: 'ai',
+        text: "I'm sorry, I'm currently specialized in hiring decisions. Please ask me a question like 'Can I afford to hire a new staff member?'.",
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, noIntentResponse]);
+      setIsAiTyping(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('decision-engine', {
+        body: intent,
+      });
+
+      if (error) throw error;
+
+      const aiResponse: ChatMessage = {
+        id: String(Date.now()),
+        sender: 'ai',
+        text: "I've analyzed your financial data. Here is my recommendation:",
+        timestamp: new Date().toISOString(),
+        cards: [<DecisionCard key="decision-card" data={data.data} />],
+        quickReplies: ['Thanks!', 'What else can you do?'],
+      };
+      setMessages((prev) => [...prev, aiResponse]);
+
+    } catch (error: any) {
+      console.error("Error invoking edge function:", error);
+      let errorMessage = "An unexpected error occurred while analyzing your request.";
+      if (error.context?.details) {
+        errorMessage = error.context.details;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      const errorResponse: ChatMessage = {
+        id: String(Date.now()),
+        sender: 'ai',
+        text: `Error: ${errorMessage}`,
+        timestamp: new Date().toISOString(),
+        quickReplies: ['Add new data', 'Try again'],
+      };
+      setMessages((prev) => [...prev, errorResponse]);
+      toast({
+        title: "Analysis Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsAiTyping(false);
+    }
+  };
 
   const handleSendMessage = () => {
     if (messageInput.trim() === '') return;
@@ -60,53 +128,8 @@ const ChatPage = () => {
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, newMessage]);
+    getAiDecision(messageInput);
     setMessageInput('');
-    setIsAiTyping(true);
-
-    setTimeout(() => {
-      const aiResponseText = `That's a great question, ${userDisplayName || 'Vendor'}! Based on your current data, here's a quick look at your business health.`;
-      const responseWords = aiResponseText.split(' ');
-      
-      const newAiMessage: ChatMessage = {
-        id: String(Date.now() + 1),
-        sender: 'ai',
-        text: '',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, newAiMessage]);
-
-      let wordIndex = 0;
-      const intervalId = setInterval(() => {
-        if (wordIndex < responseWords.length) {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === newAiMessage.id ? { ...msg, text: `${msg.text} ${responseWords[wordIndex]}`.trim() } : msg
-            )
-          );
-          wordIndex++;
-        } else {
-          clearInterval(intervalId);
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === newAiMessage.id
-                ? {
-                    ...msg,
-                    cards: [
-                      <FinancialHealthScoreCard
-                        key="health-score-card"
-                        score="caution"
-                        message="Your business shows some areas for improvement. Let's review your recent expenses."
-                      />,
-                    ],
-                    quickReplies: ['Tell me more', 'Decision History', 'Insights'],
-                  }
-                : msg
-            )
-          );
-          setIsAiTyping(false);
-        }
-      }, 100);
-    }, 1000);
   };
 
   const handleQuickReply = (reply: string) => {
@@ -120,17 +143,7 @@ const ChatPage = () => {
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, newMessage]);
-      setIsAiTyping(true);
-      setTimeout(() => {
-        const aiResponse: ChatMessage = {
-          id: String(Date.now() + 1),
-          sender: 'ai',
-          text: `Okay, let's look at your ${reply.toLowerCase()}.`,
-          timestamp: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, aiResponse]);
-        setIsAiTyping(false);
-      }, 1000);
+      getAiDecision(reply);
     }
   };
 
@@ -200,7 +213,7 @@ const ChatPage = () => {
         <div className="bg-card border-t border-border p-4 flex items-center flex-shrink-0">
           <Input
             type="text"
-            placeholder="Ask KudiGuard a question..."
+            placeholder="Ask about hiring a new staff member..."
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
