@@ -1,10 +1,10 @@
 // supabase/functions/decision-engine/index.ts
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { API_VERSION, CORS_HEADERS, ERROR_CODES, SEVERITY } from 'shared/constants.ts';
-import { generateRequestId, getSupabaseClient } from 'shared/utils.ts';
-import { CustomError, InputValidationError, AuthError, handleError } from 'shared/errors.ts';
-import { DecisionEngineInputSchema } from 'shared/schemas.ts';
+import { API_VERSION, CORS_HEADERS, ERROR_CODES, SEVERITY } from '../_shared/constants.ts';
+import { generateRequestId, getSupabaseClient } from '../_shared/utils.ts';
+import { CustomError, InputValidationError, AuthError, handleError } from '../_shared/errors.ts';
+import { DecisionEngineInputSchema } from '../_shared/schemas.ts';
 
 const ESTIMATED_SALARY = 50000; // Hardcoded for now, will be dynamic later
 
