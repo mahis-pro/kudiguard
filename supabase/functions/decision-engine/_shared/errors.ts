@@ -1,8 +1,8 @@
 // supabase/functions/decision-engine/_shared/errors.ts
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { ErrorCode, SEVERITY, Severity, CORS_HEADERS, ERROR_CODES } from './constants.ts'; // Updated import
-import { redactSensitiveData } from './utils.ts'; // Updated import
+import { ErrorCode, SEVERITY, Severity, CORS_HEADERS, ERROR_CODES } from './constants.ts';
+import { redactSensitiveData } from './utils.ts';
 
 // --- Custom Error Classes ---
 export class CustomError extends Error {

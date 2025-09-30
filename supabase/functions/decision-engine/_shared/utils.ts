@@ -1,7 +1,7 @@
 // supabase/functions/decision-engine/_shared/utils.ts
 
 import { v4 as uuidv4 } from 'https://esm.sh/uuid@9.0.1';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'; // Import createClient here
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 export function generateRequestId(): string {
   return uuidv4();
