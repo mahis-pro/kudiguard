@@ -1,4 +1,4 @@
-// supabase/functions/_shared/schemas.ts
+// supabase/functions/decision-engine/schemas.ts
 
 import { z } from 'https://deno.land/x/zod@v3.23.0/mod.ts';
 

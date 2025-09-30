@@ -1,4 +1,4 @@
-// supabase/functions/_shared/errors.ts
+// supabase/functions/decision-engine/errors.ts
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { ErrorCode, SEVERITY, Severity, CORS_HEADERS, ERROR_CODES } from './constants.ts';

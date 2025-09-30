@@ -1,4 +1,4 @@
-// supabase/functions/_shared/constants.ts
+// supabase/functions/decision-engine/constants.ts
 
 export const API_VERSION = "v1.0";
 
