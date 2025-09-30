@@ -59,11 +59,11 @@ const ChatPage = () => {
     }
   }, [sessionLoading, userDisplayName]);
 
-  const sendToDecisionEngine = async (intent: string, decision_type: string, payload?: Record<string, any>) => {
+  const sendToDecisionEngine = async (intent: string, question: string, payload?: Record<string, any>) => {
     setIsAiTyping(true);
     try {
       const { data: edgeFunctionResult, error: invokeError } = await supabase.functions.invoke('decision-engine', {
-        body: { intent, decision_type, payload },
+        body: { intent, question, payload }, // Pass question to the Edge Function
       });
 
       if (invokeError) {
@@ -150,9 +150,11 @@ const ChatPage = () => {
         if (salaryMatch && salaryMatch[1]) {
           const estimatedSalary = parseFloat(salaryMatch[1].replace(/,/g, ''));
           if (!isNaN(estimatedSalary) && estimatedSalary >= 0) {
+            // Re-send with the original question and the new salary
+            const originalQuestion = messages.find(msg => msg.sender === 'user' && msg.text.includes('hire'))?.text || "Hiring decision"; // Find the original question
             sendToDecisionEngine(
               pendingDataRequest.intent_context.intent,
-              pendingDataRequest.intent_context.decision_type,
+              originalQuestion, // Pass the original question
               { estimated_salary: estimatedSalary }
             );
             setMessageInput('');
@@ -178,7 +180,7 @@ const ChatPage = () => {
     // Initial intent detection
     const lowerCaseMessage = messageInput.toLowerCase();
     if (lowerCaseMessage.includes('hire') || lowerCaseMessage.includes('staff') || lowerCaseMessage.includes('employee')) {
-      sendToDecisionEngine('hiring', 'hiring_affordability');
+      sendToDecisionEngine('hiring', messageInput); // Pass the user's message as the question
     } else {
       const noIntentResponse: ChatMessage = {
         id: String(Date.now()),

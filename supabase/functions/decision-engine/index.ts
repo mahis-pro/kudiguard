@@ -317,7 +317,7 @@ export const DecisionEngineInputSchema = z.object({
     // 'debt', 
     // 'expansion'
   ]),
-  decision_type: z.string(), // e.g., "hiring_affordability"
+  question: z.string(), // Add question to the input schema
   payload: z.object({
     estimated_salary: z.number().min(0).optional(), // Make estimated_salary optional in payload
   }).optional(), // Payload itself is optional
@@ -350,7 +350,7 @@ serve(async (req) => {
     if (!validationResult.success) {
       throw new InputValidationError("Invalid input.", validationResult.error.toString());
     }
-    const { intent, payload } = validationResult.data;
+    const { intent, question, payload } = validationResult.data; // Destructure question
 
     // 3. Fetch Latest Financial Data
     const { data: financialData, error: dbError } = await supabase
@@ -371,7 +371,9 @@ serve(async (req) => {
     }
 
     // 4. Decision Logic (Vertical Slice for 'hiring')
-    let recommendation, reasoning, actionable_steps;
+    let recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
+    let reasoning: string;
+    let actionable_steps: string[];
     let estimatedSalary: number | undefined;
 
     if (intent === 'hiring') {
@@ -385,7 +387,7 @@ serve(async (req) => {
             data_needed: {
               field: "estimated_salary",
               prompt: "What is the estimated monthly salary for the new hire (in ₦)?",
-              intent_context: { intent, decision_type: validationResult.data.decision_type },
+              intent_context: { intent, decision_type: "hiring_affordability" }, // Use a specific decision_type
             }
           },
           error: null,
@@ -457,16 +459,35 @@ serve(async (req) => {
       throw new InputValidationError("Unsupported Intent", `Intent '${intent}' is not yet supported.`);
     }
 
-    // 5. Format and Return Response
+    // 5. Save Decision to Database
+    const { data: savedDecision, error: insertError } = await supabase
+      .from('decisions')
+      .insert({
+        user_id: user.id,
+        question: question,
+        recommendation: recommendation,
+        reasoning: reasoning,
+        actionable_steps: actionable_steps,
+        financial_snapshot: financialData,
+        estimated_salary: estimatedSalary, // Save estimated_salary
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      throw new CustomError(
+        ERROR_CODES.RECOMMENDATION_INSERT_FAILED,
+        `Failed to save decision: ${insertError.message}`,
+        SEVERITY.HIGH,
+        500,
+        insertError
+      );
+    }
+
+    // 6. Format and Return Response
     const responsePayload = {
       success: true,
-      data: {
-        recommendation,
-        reasoning,
-        actionable_steps,
-        financial_snapshot: financialData,
-        estimated_salary: estimatedSalary, // Add estimated_salary to the payload
-      },
+      data: savedDecision, // Return the saved decision data
       error: null,
       meta: {
         requestId,
