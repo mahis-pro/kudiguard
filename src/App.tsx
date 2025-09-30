@@ -17,10 +17,17 @@ import SignUpScreen from "./components/SignUpScreen";
 import ResetPassword from "./pages/ResetPassword";
 import { SessionContextProvider } from "./components/auth/SessionContextProvider";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout";
-import InsightsPage from "./pages/InsightsPage"; // New import
-import DecisionHistoryPage from "./pages/DecisionHistoryPage"; // New import
+import InsightsPage from "./pages/InsightsPage";
+import DecisionHistoryPage from "./pages/DecisionHistoryPage";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Disable automatic refetching when window regains focus
+      staleTime: 1000 * 60 * 5, // Data is considered fresh for 5 minutes
+    },
+  },
+});
 
 const App = () => {
   return (
@@ -44,8 +51,8 @@ const App = () => {
               {/* Authenticated Routes */}
               <Route element={<AuthenticatedLayout />}>
                 <Route path="/chat" element={<ChatPage />} />
-                <Route path="/insights" element={<InsightsPage />} /> {/* New route */}
-                <Route path="/history" element={<DecisionHistoryPage />} /> {/* New route */}
+                <Route path="/insights" element={<InsightsPage />} />
+                <Route path="/history" element={<DecisionHistoryPage />} />
                 <Route path="/settings" element={<Profile />} />
                 {/* Add other authenticated routes here, e.g., /learning-hub */}
               </Route>
