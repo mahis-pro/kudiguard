@@ -13,11 +13,12 @@ interface DecisionCardProps {
       monthly_expenses: number;
       current_savings: number;
     };
+    estimated_salary?: number; // Added estimated_salary to the interface
   };
 }
 
 const DecisionCard = ({ data }: DecisionCardProps) => {
-  const { recommendation, reasoning, actionable_steps, financial_snapshot } = data;
+  const { recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary } = data;
 
   const getRecommendationDetails = () => {
     switch (recommendation) {
@@ -71,6 +72,16 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
           <h4 className="font-semibold text-foreground mb-1">Reasoning:</h4>
           <p className="text-sm text-foreground/90">{reasoning}</p>
         </div>
+
+        {estimated_salary !== undefined && (
+          <div>
+            <h4 className="font-semibold text-foreground mb-2">Decision Parameters:</h4>
+            <div className="flex items-center text-sm">
+              <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+              <span className="text-muted-foreground">Estimated New Hire Salary: <span className="font-medium text-foreground currency">{estimated_salary.toLocaleString()}</span>/month</span>
+            </div>
+          </div>
+        )}
 
         <div>
           <h4 className="font-semibold text-foreground mb-2">Financial Snapshot Used:</h4>

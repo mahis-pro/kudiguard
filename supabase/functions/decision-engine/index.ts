@@ -397,7 +397,7 @@ serve(async (req) => {
       if (net_income >= 3 * ESTIMATED_SALARY) {
         score += 1;
       } else {
-        reasons.push(`Your net income (₦${net_income.toLocaleString()}) is not at least 3x the estimated salary (₦${(3 * ESTIMATED_SALARY).toLocaleString()}) for a new hire.`);
+        reasons.push(`Your net income (₦${net_income.toLocaleString()}) is not at least 3x the estimated salary for a new hire.`); // Modified reasoning
       }
 
       // Determine final recommendation
@@ -438,6 +438,7 @@ serve(async (req) => {
         reasoning,
         actionable_steps,
         financial_snapshot: financialData,
+        estimated_salary: ESTIMATED_SALARY, // Add estimated_salary to the payload
       },
       error: null,
       meta: {
