@@ -768,32 +768,184 @@ serve(async (req) => {
       console.log(`[${requestId}] Decision made - Recommendation: ${recommendation}, Reasoning: "${reasoning}", Steps:`, actionable_steps);
 
     } else if (intent === 'equipment') {
-      let currentPayload = validationResult.data.payload || {}; // Make payload mutable and initialize safely
+      const { monthly_revenue, monthly_expenses, current_savings } = financialData; // Need these for checks
 
-      // Ensure isPowerSolution is always defined and added to currentPayload
-      let isPowerSolutionDetermined: boolean;
-      if (question.toLowerCase().includes('generator') || question.toLowerCase().includes('solar') || question.toLowerCase().includes('inverter') || question.toLowerCase().includes('power')) {
-        isPowerSolutionDetermined = true;
-      } else {
-        isPowerSolutionDetermined = false;
-      }
-      currentPayload = { ...currentPayload, is_power_solution: isPowerSolutionDetermined };
-
-      // Ensure hasDiversifiedRevenueStreams is always defined or explicitly left for prompting
-      let hasDiversifiedRevenueStreamsDetermined: boolean | undefined = currentPayload.has_diversified_revenue_streams;
-      if (hasDiversifiedRevenueStreamsDetermined === undefined || hasDiversifiedRevenueStreamsDetermined === null) {
-        if (currentPayload.estimated_equipment_cost !== undefined && currentPayload.estimated_equipment_cost !== null && currentPayload.estimated_equipment_cost > 1000000) {
-          // If it's a large investment, and not yet in payload, it needs to be prompted.
-          // Do NOT default it here. Leave it undefined to trigger the prompt.
+      // Step 1: Determine is_power_solution (can be inferred from question or explicitly provided)
+      if (currentPayload.is_power_solution === undefined || currentPayload.is_power_solution === null) {
+        if (question.toLowerCase().includes('generator') || question.toLowerCase().includes('solar') || question.toLowerCase().includes('inverter') || question.toLowerCase().includes('power')) {
+          currentPayload.is_power_solution = true;
         } else {
-          hasDiversifiedRevenueStreamsDetermined = true; // Default to true if not capital intensive
+          currentPayload.is_power_solution = false;
         }
       }
-      if (hasDiversifiedRevenueStreamsDetermined !== undefined && hasDiversifiedRevenueStreamsDetermined !== null) {
-        currentPayload = { ...currentPayload, has_diversified_revenue_streams: hasDiversifiedRevenueStreamsDetermined };
+
+      // Step 2: Prompt for estimated_equipment_cost if missing
+      if (currentPayload.estimated_equipment_cost === undefined || currentPayload.estimated_equipment_cost === null) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "estimated_equipment_cost",
+              prompt: "What is the estimated cost of the equipment (in ₦)?",
+              intent_context: { intent, decision_type: "equipment_purchase", current_payload: currentPayload },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
       }
 
-      // Now, assign all local variables from the (potentially updated) currentPayload
+      // Step 3: Prompt for is_critical_replacement if missing
+      if (currentPayload.is_critical_replacement === undefined || currentPayload.is_critical_replacement === null) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "is_critical_replacement",
+              prompt: "Is this equipment a critical replacement for something broken that currently stops or severely impedes core business operations? (true/false)",
+              intent_context: { intent, decision_type: "equipment_purchase", current_payload: currentPayload },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+      }
+
+      // Step 4: Prompt for expected_revenue_increase_monthly if missing
+      if (currentPayload.expected_revenue_increase_monthly === undefined || currentPayload.expected_revenue_increase_monthly === null) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "expected_revenue_increase_monthly",
+              prompt: "How much do you expect this equipment to increase your monthly revenue (in ₦)?",
+              intent_context: { intent, decision_type: "equipment_purchase", current_payload: currentPayload },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+      }
+
+      // Step 5: Prompt for expected_expense_decrease_monthly if missing
+      if (currentPayload.expected_expense_decrease_monthly === undefined || currentPayload.expected_expense_decrease_monthly === null) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "expected_expense_decrease_monthly",
+              prompt: "How much do you expect this equipment to decrease your monthly expenses (in ₦)?",
+              intent_context: { intent, decision_type: "equipment_purchase", current_payload: currentPayload },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+      }
+
+      // Step 6: Prompt for existing_debt_load_monthly_repayments if missing
+      if (currentPayload.existing_debt_load_monthly_repayments === undefined || currentPayload.existing_debt_load_monthly_repayments === null) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "existing_debt_load_monthly_repayments",
+              prompt: "What are your total monthly repayments for existing business loans or significant debts (in ₦)?",
+              intent_context: { intent, decision_type: "equipment_purchase", current_payload: currentPayload },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+      }
+
+      // Step 7: Conditional prompt for current_energy_cost_monthly if it's a power solution and missing
+      if (currentPayload.is_power_solution && (currentPayload.current_energy_cost_monthly === undefined || currentPayload.current_energy_cost_monthly === null)) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "current_energy_cost_monthly",
+              prompt: "What is your current average monthly energy cost (in ₦)?",
+              intent_context: { intent, decision_type: "equipment_purchase", current_payload: currentPayload },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+      }
+
+      // Step 8: Conditional prompt for has_diversified_revenue_streams if estimated_equipment_cost is high and missing
+      if (currentPayload.estimated_equipment_cost > 1000000 && (currentPayload.has_diversified_revenue_streams === undefined || currentPayload.has_diversified_revenue_streams === null)) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "has_diversified_revenue_streams",
+              prompt: "Does your business have at least two distinct, significant revenue streams? (true/false)",
+              intent_context: { intent, decision_type: "equipment_purchase", current_payload: currentPayload },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+      } else if (currentPayload.has_diversified_revenue_streams === undefined) {
+        // Default to true if not capital intensive and not explicitly set
+        currentPayload.has_diversified_revenue_streams = true;
+      }
+
+      // Step 9: Conditional prompt for financing_required if estimated_equipment_cost is high relative to savings and missing
+      if (currentPayload.estimated_equipment_cost > (0.5 * current_savings) && (currentPayload.financing_required === undefined || currentPayload.financing_required === null)) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "financing_required",
+              prompt: "Will you need external financing (e.g., a loan) for this purchase? (true/false)",
+              intent_context: { intent, decision_type: "equipment_purchase", current_payload: currentPayload },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+      } else if (currentPayload.financing_required === undefined) {
+        // Default to false if not high relative to savings and not explicitly set
+        currentPayload.financing_required = false;
+      }
+
+      // Step 10: Conditional prompts for financing details if financing_required is true and missing
+      if (currentPayload.financing_required) {
+        if (currentPayload.financing_interest_rate_annual_percentage === undefined || currentPayload.financing_interest_rate_annual_percentage === null) {
+          return new Response(JSON.stringify({
+            success: true,
+            data: {
+              data_needed: {
+                field: "financing_interest_rate_annual_percentage",
+                prompt: "What is the estimated annual interest rate (%) for the financing?",
+                intent_context: { intent, decision_type: "equipment_purchase", current_payload: currentPayload },
+              }
+            },
+            error: null,
+            meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+          }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+        }
+        if (currentPayload.financing_term_months === undefined || currentPayload.financing_term_months === null) {
+          return new Response(JSON.stringify({
+            success: true,
+            data: {
+              data_needed: {
+                field: "financing_term_months",
+                prompt: "What is the estimated loan term in months for the financing?",
+                intent_context: { intent, decision_type: "equipment_purchase", current_payload: currentPayload },
+              }
+            },
+            error: null,
+            meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+          }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+        }
+      }
+
+      // After all prompts, assign local variables from the final currentPayload for decision logic
       estimatedEquipmentCost = currentPayload.estimated_equipment_cost;
       expectedRevenueIncreaseMonthly = currentPayload.expected_revenue_increase_monthly;
       expectedExpenseDecreaseMonthly = currentPayload.expected_expense_decrease_monthly;
@@ -807,7 +959,6 @@ serve(async (req) => {
       financingInterestRateAnnualPercentage = currentPayload.financing_interest_rate_annual_percentage;
       financingTermMonths = currentPayload.financing_term_months;
 
-      const { monthly_revenue, monthly_expenses, current_savings } = financialData;
       const net_income = monthly_revenue - monthly_expenses;
       const profit_margin = monthly_revenue > 0 ? (net_income / monthly_revenue) * 100 : 0;
       const savings_buffer_months = monthly_expenses > 0 ? current_savings / monthly_expenses : Infinity;
@@ -818,245 +969,30 @@ serve(async (req) => {
       let approveConditionsMet = 0;
       let waitConditionsMet = 0;
 
-      // --- Data Gathering Sequence for Equipment ---
-      if (estimatedEquipmentCost === undefined || estimatedEquipmentCost === null) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: {
-            data_needed: {
-              field: "estimated_equipment_cost",
-              prompt: "What is the estimated cost of the equipment (in ₦)?",
-              intent_context: { 
-                intent, 
-                decision_type: "equipment_purchase",
-                current_payload: currentPayload // Pass the current accumulated payload
-              },
-            }
-          },
-          error: null,
-          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-      }
-      if (isCriticalReplacement === undefined || isCriticalReplacement === null) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: {
-            data_needed: {
-              field: "is_critical_replacement",
-              prompt: "Is this equipment a critical replacement for something broken that currently stops or severely impedes core business operations? (true/false)",
-              intent_context: { 
-                intent, 
-                decision_type: "equipment_purchase",
-                current_payload: currentPayload // Pass the current accumulated payload
-              },
-            }
-          },
-          error: null,
-          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-      }
-      if (expectedRevenueIncreaseMonthly === undefined || expectedRevenueIncreaseMonthly === null) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: {
-            data_needed: {
-              field: "expected_revenue_increase_monthly",
-              prompt: "How much do you expect this equipment to increase your monthly revenue (in ₦)?",
-              intent_context: { 
-                intent, 
-                decision_type: "equipment_purchase",
-                current_payload: currentPayload // Pass the current accumulated payload
-              },
-            }
-          },
-          error: null,
-          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-      }
-      if (expectedExpenseDecreaseMonthly === undefined || expectedExpenseDecreaseMonthly === null) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: {
-            data_needed: {
-              field: "expected_expense_decrease_monthly",
-              prompt: "How much do you expect this equipment to decrease your monthly expenses (in ₦)?",
-              intent_context: { 
-                intent, 
-                decision_type: "equipment_purchase",
-                current_payload: currentPayload // Pass the current accumulated payload
-              },
-            }
-          },
-          error: null,
-          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-      }
-      if (existingDebtLoadMonthlyRepayments === undefined || existingDebtLoadMonthlyRepayments === null) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: {
-            data_needed: {
-              field: "existing_debt_load_monthly_repayments",
-              prompt: "What are your total monthly repayments for existing business loans or significant debts (in ₦)?",
-              intent_context: { 
-                intent, 
-                decision_type: "equipment_purchase",
-                current_payload: currentPayload // Pass the current accumulated payload
-              },
-            }
-          },
-          error: null,
-          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-      }
-
-      // Conditional prompts
-      if (isPowerSolution && (currentEnergyCostMonthly === undefined || currentEnergyCostMonthly === null)) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: {
-            data_needed: {
-              field: "current_energy_cost_monthly",
-              prompt: "What is your current average monthly energy cost (in ₦)?",
-              intent_context: { 
-                intent, 
-                decision_type: "equipment_purchase",
-                current_payload: currentPayload // Pass the current accumulated payload
-              },
-            }
-          },
-          error: null,
-          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-      }
-
-      if (estimatedEquipmentCost > 1000000 && (hasDiversifiedRevenueStreams === undefined || hasDiversifiedRevenueStreams === null)) { // Trigger for Rule 3
-        return new Response(JSON.stringify({
-          success: true,
-          data: {
-            data_needed: {
-              field: "has_diversified_revenue_streams",
-              prompt: "Does your business have at least two distinct, significant revenue streams? (true/false)",
-              intent_context: { 
-                intent, 
-                decision_type: "equipment_purchase",
-                current_payload: currentPayload // Pass the current accumulated payload
-              },
-            }
-          },
-          error: null,
-          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-      }
-
-      // If estimatedEquipmentCost is high relative to current_savings (e.g., > 50% of savings)
-      if (estimatedEquipmentCost > (0.5 * current_savings) && (financingRequired === undefined || financingRequired === null)) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: {
-            data_needed: {
-              field: "financing_required",
-              prompt: "Will you need external financing (e.g., a loan) for this purchase? (true/false)",
-              intent_context: { 
-                intent, 
-                decision_type: "equipment_purchase",
-                current_payload: currentPayload // Pass the current accumulated payload
-              },
-            }
-          },
-          error: null,
-          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-      }
-      if (financingRequired && (financingInterestRateAnnualPercentage === undefined || financingInterestRateAnnualPercentage === null)) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: {
-            data_needed: {
-              field: "financing_interest_rate_annual_percentage",
-              prompt: "What is the estimated annual interest rate (%) for the financing?",
-              intent_context: { 
-                intent, 
-                decision_type: "equipment_purchase",
-                current_payload: currentPayload // Pass the current accumulated payload
-              },
-            }
-          },
-          error: null,
-          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-      }
-      if (financingRequired && (financingTermMonths === undefined || financingTermMonths === null)) {
-        return new Response(JSON.stringify({
-          success: true,
-          data: {
-            data_needed: {
-              field: "financing_term_months",
-              prompt: "What is the estimated loan term in months for the financing?",
-              intent_context: { 
-                intent, 
-                decision_type: "equipment_purchase",
-                current_payload: currentPayload // Pass the current accumulated payload
-              },
-            }
-          },
-          error: null,
-          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-      }
-
-      // --- Final Validation before Rule Evaluation ---
-      if (estimatedEquipmentCost === undefined || expectedRevenueIncreaseMonthly === undefined || expectedExpenseDecreaseMonthly === undefined ||
-          isCriticalReplacement === undefined || existingDebtLoadMonthlyRepayments === undefined ||
-          (isPowerSolution && currentEnergyCostMonthly === undefined) ||
-          (estimatedEquipmentCost > 1000000 && hasDiversifiedRevenueStreams === undefined) ||
-          (financingRequired && (financingInterestRateAnnualPercentage === undefined || financingTermMonths === undefined))) {
-        throw new CustomError(
-          ERROR_CODES.MISSING_REQUIRED_FIELD,
-          "Critical equipment data is missing after collection. Please restart the conversation.",
-          SEVERITY.HIGH,
-          500
-        );
-      }
-      console.log(`[${requestId}] All required equipment data collected.`);
-
-      // Type assertion after validation
-      const finalEstimatedEquipmentCost = estimatedEquipmentCost!;
-      const finalExpectedRevenueIncreaseMonthly = expectedRevenueIncreaseMonthly!;
-      const finalExpectedExpenseDecreaseMonthly = expectedExpenseDecreaseMonthly!;
-      const finalIsCriticalReplacement = isCriticalReplacement!;
-      const finalIsPowerSolution = isPowerSolution!;
-      const finalCurrentEnergyCostMonthly = currentEnergyCostMonthly ?? 0; // Default to 0 if not a power solution
-      const finalHasDiversifiedRevenueStreams = hasDiversifiedRevenueStreams!;
-      const finalExistingDebtLoadMonthlyRepayments = existingDebtLoadMonthlyRepayments!;
-      const finalFinancingRequired = financingRequired!;
-      const finalFinancingInterestRateAnnualPercentage = financingInterestRateAnnualPercentage ?? 0;
-      const finalFinancingTermMonths = financingTermMonths ?? 1; // Default to 1 to avoid division by zero
-
-      const monthly_profit_increase = finalExpectedRevenueIncreaseMonthly + finalExpectedExpenseDecreaseMonthly;
-      const payback_months = monthly_profit_increase > 0 ? finalEstimatedEquipmentCost / monthly_profit_increase : Infinity;
+      const monthly_profit_increase = (expectedRevenueIncreaseMonthly ?? 0) + (expectedExpenseDecreaseMonthly ?? 0);
+      const payback_months = monthly_profit_increase > 0 ? (estimatedEquipmentCost ?? 0) / monthly_profit_increase : Infinity;
       const productivity_gain_percentage = net_income > 0 ? (monthly_profit_increase / net_income) * 100 : 0;
-      const energy_cost_percentage_of_expenses = monthly_expenses > 0 ? (finalCurrentEnergyCostMonthly / monthly_expenses) * 100 : 0;
+      const energy_cost_percentage_of_expenses = monthly_expenses > 0 ? (currentEnergyCostMonthly ?? 0) / monthly_expenses * 100 : 0;
 
       // --- A. Immediate REJECT Conditions (Highest Priority) ---
       // Rule 3: Capital-Intensive & Undiversified (Refined)
-      if (finalEstimatedEquipmentCost > 1000000 && !finalHasDiversifiedRevenueStreams && !finalIsCriticalReplacement) {
+      if ((estimatedEquipmentCost ?? 0) > 1000000 && !hasDiversifiedRevenueStreams && !isCriticalReplacement) {
         rejectConditionsMet++;
         reasons.push(`Investing over ₦1,000,000 without diversified revenue streams is too risky, as it concentrates your business's financial exposure and could jeopardize stability if one stream falters.`);
         actionable_steps.push("Focus on developing at least one additional significant and stable revenue stream before considering such a large, non-critical investment.");
       }
 
       // Severe Negative Net Income (Non-Critical)
-      if (net_income < 0 && !finalIsCriticalReplacement) {
+      if (net_income < 0 && !isCriticalReplacement) {
         rejectConditionsMet++;
         reasons.push(`Your business is currently unprofitable (Net Income: ₦${net_income.toLocaleString()}). Adding new costs for non-critical equipment would worsen your financial situation.`);
         actionable_steps.push("Prioritize increasing revenue and aggressively cutting non-essential expenses to achieve consistent profitability before any new investments.");
       }
 
       // Overwhelming Existing Debt (Non-Critical)
-      if (finalExistingDebtLoadMonthlyRepayments > (0.30 * monthly_revenue) && !finalIsCriticalReplacement) {
+      if ((existingDebtLoadMonthlyRepayments ?? 0) > (0.30 * monthly_revenue) && !isCriticalReplacement) {
         rejectConditionsMet++;
-        reasons.push(`Your existing debt burden (₦${finalExistingDebtLoadMonthlyRepayments.toLocaleString()} monthly) is already high, exceeding 30% of your monthly revenue. Taking on more debt for non-critical equipment could lead to severe cash flow problems.`);
+        reasons.push(`Your existing debt burden (₦${(existingDebtLoadMonthlyRepayments ?? 0).toLocaleString()} monthly) is already high, exceeding 30% of your monthly revenue. Taking on more debt for non-critical equipment could lead to severe cash flow problems.`);
         actionable_steps.push("Focus on significantly reducing your current debt load to improve financial stability and free up cash flow for future investments.");
       }
 
@@ -1066,7 +1002,7 @@ serve(async (req) => {
       } else {
         // --- B. Strong APPROVE Conditions ---
         // Critical Replacement Override
-        if (finalIsCriticalReplacement && (current_savings >= finalEstimatedEquipmentCost || (current_savings + net_income * 2) >= finalEstimatedEquipmentCost)) {
+        if (isCriticalReplacement && (current_savings >= (estimatedEquipmentCost ?? 0) || (current_savings + net_income * 2) >= (estimatedEquipmentCost ?? 0))) {
           approveConditionsMet++;
           reasons.push(`This equipment is a critical replacement essential for your business operations. Your financials, while potentially tight, can support this necessary investment.`);
           actionable_steps.push("Proceed with the purchase. Ensure minimal downtime during installation. If cash flow is tight, explore short-term, low-interest financing options or temporary solutions.");
@@ -1080,14 +1016,14 @@ serve(async (req) => {
         }
 
         // Rule 2: Small Equipment, Healthy Business
-        if (finalEstimatedEquipmentCost <= 200000 && profit_margin >= 15 && savings_buffer_months >= 2) {
+        if ((estimatedEquipmentCost ?? 0) <= 200000 && profit_margin >= 15 && savings_buffer_months >= 2) {
           approveConditionsMet++;
-          reasons.push(`This small investment (₦${finalEstimatedEquipmentCost.toLocaleString()}) is well within your business's capacity, given your healthy profit margins (${profit_margin.toFixed(1)}%) and strong savings buffer (${savings_buffer_months.toFixed(1)} months).`);
+          reasons.push(`This small investment (₦${(estimatedEquipmentCost ?? 0).toLocaleString()}) is well within your business's capacity, given your healthy profit margins (${profit_margin.toFixed(1)}%) and strong savings buffer (${savings_buffer_months.toFixed(1)} months).`);
           actionable_steps.push("Ensure the equipment aligns with your long-term business goals.", "Consider potential maintenance costs.");
         }
 
         // Additional Case: Prioritized Power Solution (Nigerian Context)
-        if (finalIsPowerSolution && energy_cost_percentage_of_expenses > 15) {
+        if (isPowerSolution && energy_cost_percentage_of_expenses > 15) {
           // This acts as a strong positive factor. It can upgrade a 'WAIT' to an 'APPROVE' or solidify an 'APPROVE'
           approveConditionsMet++; // Give it a strong weight
           reasons.push(`Your high energy costs (currently ${energy_cost_percentage_of_expenses.toFixed(1)}% of monthly expenses) are a significant drain. This power solution investment is highly prioritized as it will likely lead to substantial operational savings and improved stability.`);
@@ -1115,16 +1051,16 @@ serve(async (req) => {
             reasons.push(`Your savings buffer (${savings_buffer_months.toFixed(1)} months) is less than the recommended 2 months of expenses, making new investments risky.`);
             actionable_steps.push("Build up your emergency savings to at least 2 months of operational expenses.");
           }
-          if (finalExistingDebtLoadMonthlyRepayments > (0.15 * monthly_revenue) && finalExistingDebtLoadMonthlyRepayments <= (0.30 * monthly_revenue)) {
-            reasons.push(`Your existing debt load (₦${finalExistingDebtLoadMonthlyRepayments.toLocaleString()} monthly) is moderate. Adding more debt might strain your cash flow.`);
+          if ((existingDebtLoadMonthlyRepayments ?? 0) > (0.15 * monthly_revenue) && (existingDebtLoadMonthlyRepayments ?? 0) <= (0.30 * monthly_revenue)) {
+            reasons.push(`Your existing debt load (₦${(existingDebtLoadMonthlyRepayments ?? 0).toLocaleString()} monthly) is moderate. Adding more debt might strain your cash flow.`);
             actionable_steps.push("Consider reducing existing debts or exploring financing options with more favorable terms.");
           }
-          if (finalFinancingRequired && finalFinancingInterestRateAnnualPercentage > 25) {
-            reasons.push(`The estimated annual interest rate for financing (${finalFinancingInterestRateAnnualPercentage}%) is quite high, significantly increasing the total cost of the equipment.`);
+          if (financingRequired && (financingInterestRateAnnualPercentage ?? 0) > 25) {
+            reasons.push(`The estimated annual interest rate for financing (${(financingInterestRateAnnualPercentage ?? 0)}%) is quite high, significantly increasing the total cost of the equipment.`);
             actionable_steps.push("Seek alternative financing options with lower interest rates or consider delaying the purchase until better terms are available.");
           }
-          if (finalFinancingRequired && finalFinancingTermMonths > 36) { // Example: long term for small business
-            reasons.push(`A long financing term of ${finalFinancingTermMonths} months could tie up your cash flow for an extended period.`);
+          if (financingRequired && (financingTermMonths ?? 0) > 36) { // Example: long term for small business
+            reasons.push(`A long financing term of ${(financingTermMonths ?? 0)} months could tie up your cash flow for an extended period.`);
             actionable_steps.push("Explore options for a shorter loan term or consider a smaller, more affordable equipment purchase.");
           }
           if (reasons.length === 0) {
