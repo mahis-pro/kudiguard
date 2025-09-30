@@ -374,8 +374,9 @@ serve(async (req) => {
     if (!validationResult.success) {
       throw new InputValidationError("Invalid input.", validationResult.error.toString());
     }
-    const { intent, question, payload } = validationResult.data;
-    console.log(`[${requestId}] Validated input - Intent: ${intent}, Question: "${question}", Payload:`, payload);
+    let currentPayload = validationResult.data.payload || {}; // Make payload mutable and initialize safely
+    const { intent, question } = validationResult.data;
+    console.log(`[${requestId}] Validated input - Intent: ${intent}, Question: "${question}", Payload:`, currentPayload);
 
     // 3. Fetch Latest Financial Data and User Profile
     const { data: financialData, error: financialError } = await supabase
@@ -441,7 +442,7 @@ serve(async (req) => {
 
 
     if (intent === 'hiring') {
-      estimatedSalary = payload?.estimated_salary;
+      estimatedSalary = currentPayload?.estimated_salary;
 
       // If estimated_salary is not provided, request it from the user
       if (estimatedSalary === undefined || estimatedSalary === null) {
@@ -452,7 +453,11 @@ serve(async (req) => {
             data_needed: {
               field: "estimated_salary",
               prompt: "What is the estimated monthly salary for the new hire (in ₦)?",
-              intent_context: { intent, decision_type: "hiring_affordability" },
+              intent_context: { 
+                intent, 
+                decision_type: "hiring_affordability",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
             }
           },
           error: null,
@@ -521,13 +526,13 @@ serve(async (req) => {
         ];
       }
     } else if (intent === 'inventory') {
-      estimatedInventoryCost = payload?.estimated_inventory_cost;
-      inventoryTurnoverDays = payload?.inventory_turnover_days;
-      outstandingSupplierDebts = payload?.outstanding_supplier_debts;
-      supplierCreditTermsDays = payload?.supplier_credit_terms_days;
-      averageReceivablesTurnoverDays = payload?.average_receivables_turnover_days;
-      supplierDiscountPercentage = payload?.supplier_discount_percentage;
-      storageCostPercentageOfOrder = payload?.storage_cost_percentage_of_order;
+      estimatedInventoryCost = currentPayload?.estimated_inventory_cost;
+      inventoryTurnoverDays = currentPayload?.inventory_turnover_days;
+      outstandingSupplierDebts = currentPayload?.outstanding_supplier_debts;
+      supplierCreditTermsDays = currentPayload?.supplier_credit_terms_days;
+      averageReceivablesTurnoverDays = currentPayload?.average_receivables_turnover_days;
+      supplierDiscountPercentage = currentPayload?.supplier_discount_percentage;
+      storageCostPercentageOfOrder = currentPayload?.storage_cost_percentage_of_order;
 
       const { monthly_revenue, monthly_expenses, current_savings } = financialData;
       const net_income = monthly_revenue - monthly_expenses;
@@ -547,7 +552,11 @@ serve(async (req) => {
             data_needed: {
               field: "estimated_inventory_cost",
               prompt: "What is the estimated cost of the new inventory you want to purchase (in ₦)?",
-              intent_context: { intent, decision_type: "inventory_purchase" },
+              intent_context: { 
+                intent, 
+                decision_type: "inventory_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
             }
           },
           error: null,
@@ -562,7 +571,11 @@ serve(async (req) => {
             data_needed: {
               field: "inventory_turnover_days",
               prompt: "What is your average inventory turnover in days (how long it takes to sell all your stock)?",
-              intent_context: { intent, decision_type: "inventory_purchase" },
+              intent_context: { 
+                intent, 
+                decision_type: "inventory_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
             }
           },
           error: null,
@@ -577,7 +590,11 @@ serve(async (req) => {
             data_needed: {
               field: "outstanding_supplier_debts",
               prompt: "What is your total outstanding debt to suppliers (in ₦)?",
-              intent_context: { intent, decision_type: "inventory_purchase" },
+              intent_context: { 
+                intent, 
+                decision_type: "inventory_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
             }
           },
           error: null,
@@ -595,7 +612,11 @@ serve(async (req) => {
               data_needed: {
                 field: "supplier_credit_terms_days",
                 prompt: "What are your supplier's credit terms in days (how long do you have to pay)?",
-                intent_context: { intent, decision_type: "inventory_purchase" },
+                intent_context: { 
+                  intent, 
+                  decision_type: "inventory_purchase",
+                  current_payload: currentPayload // Pass the current accumulated payload
+                },
               }
             },
             error: null,
@@ -610,7 +631,11 @@ serve(async (req) => {
               data_needed: {
                 field: "average_receivables_turnover_days",
                 prompt: "What is your average receivables turnover in days (how long customers take to pay you)?",
-                intent_context: { intent, decision_type: "inventory_purchase" },
+                intent_context: { 
+                  intent, 
+                  decision_type: "inventory_purchase",
+                  current_payload: currentPayload // Pass the current accumulated payload
+                },
               }
             },
             error: null,
@@ -631,7 +656,11 @@ serve(async (req) => {
               data_needed: {
                 field: "storage_cost_percentage_of_order",
                 prompt: "What is the estimated storage cost for this bulk order as a percentage of the order value (e.g., '5' for 5%)?",
-                intent_context: { intent, decision_type: "inventory_purchase" },
+                intent_context: { 
+                  intent, 
+                  decision_type: "inventory_purchase",
+                  current_payload: currentPayload // Pass the current accumulated payload
+                },
               }
             },
             error: null,
@@ -739,18 +768,44 @@ serve(async (req) => {
       console.log(`[${requestId}] Decision made - Recommendation: ${recommendation}, Reasoning: "${reasoning}", Steps:`, actionable_steps);
 
     } else if (intent === 'equipment') {
-      estimatedEquipmentCost = payload?.estimated_equipment_cost;
-      expectedRevenueIncreaseMonthly = payload?.expected_revenue_increase_monthly;
-      expectedExpenseDecreaseMonthly = payload?.expected_expense_decrease_monthly;
-      equipmentLifespanMonths = payload?.equipment_lifespan_months;
-      isCriticalReplacement = payload?.is_critical_replacement;
-      isPowerSolution = payload?.is_power_solution;
-      currentEnergyCostMonthly = payload?.current_energy_cost_monthly;
-      hasDiversifiedRevenueStreams = payload?.has_diversified_revenue_streams;
-      existingDebtLoadMonthlyRepayments = payload?.existing_debt_load_monthly_repayments;
-      financingRequired = payload?.financing_required;
-      financingInterestRateAnnualPercentage = payload?.financing_interest_rate_annual_percentage;
-      financingTermMonths = payload?.financing_term_months;
+      let currentPayload = validationResult.data.payload || {}; // Make payload mutable and initialize safely
+
+      // Ensure isPowerSolution is always defined and added to currentPayload
+      let isPowerSolutionDetermined: boolean;
+      if (question.toLowerCase().includes('generator') || question.toLowerCase().includes('solar') || question.toLowerCase().includes('inverter') || question.toLowerCase().includes('power')) {
+        isPowerSolutionDetermined = true;
+      } else {
+        isPowerSolutionDetermined = false;
+      }
+      currentPayload = { ...currentPayload, is_power_solution: isPowerSolutionDetermined };
+
+      // Ensure hasDiversifiedRevenueStreams is always defined or explicitly left for prompting
+      let hasDiversifiedRevenueStreamsDetermined: boolean | undefined = currentPayload.has_diversified_revenue_streams;
+      if (hasDiversifiedRevenueStreamsDetermined === undefined || hasDiversifiedRevenueStreamsDetermined === null) {
+        if (currentPayload.estimated_equipment_cost !== undefined && currentPayload.estimated_equipment_cost !== null && currentPayload.estimated_equipment_cost > 1000000) {
+          // If it's a large investment, and not yet in payload, it needs to be prompted.
+          // Do NOT default it here. Leave it undefined to trigger the prompt.
+        } else {
+          hasDiversifiedRevenueStreamsDetermined = true; // Default to true if not capital intensive
+        }
+      }
+      if (hasDiversifiedRevenueStreamsDetermined !== undefined && hasDiversifiedRevenueStreamsDetermined !== null) {
+        currentPayload = { ...currentPayload, has_diversified_revenue_streams: hasDiversifiedRevenueStreamsDetermined };
+      }
+
+      // Now, assign all local variables from the (potentially updated) currentPayload
+      estimatedEquipmentCost = currentPayload.estimated_equipment_cost;
+      expectedRevenueIncreaseMonthly = currentPayload.expected_revenue_increase_monthly;
+      expectedExpenseDecreaseMonthly = currentPayload.expected_expense_decrease_monthly;
+      equipmentLifespanMonths = currentPayload.equipment_lifespan_months;
+      isCriticalReplacement = currentPayload.is_critical_replacement;
+      isPowerSolution = currentPayload.is_power_solution; 
+      currentEnergyCostMonthly = currentPayload.current_energy_cost_monthly;
+      hasDiversifiedRevenueStreams = currentPayload.has_diversified_revenue_streams; 
+      existingDebtLoadMonthlyRepayments = currentPayload.existing_debt_load_monthly_repayments;
+      financingRequired = currentPayload.financing_required;
+      financingInterestRateAnnualPercentage = currentPayload.financing_interest_rate_annual_percentage;
+      financingTermMonths = currentPayload.financing_term_months;
 
       const { monthly_revenue, monthly_expenses, current_savings } = financialData;
       const net_income = monthly_revenue - monthly_expenses;
@@ -771,7 +826,11 @@ serve(async (req) => {
             data_needed: {
               field: "estimated_equipment_cost",
               prompt: "What is the estimated cost of the equipment (in ₦)?",
-              intent_context: { intent, decision_type: "equipment_purchase" },
+              intent_context: { 
+                intent, 
+                decision_type: "equipment_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
             }
           },
           error: null,
@@ -785,7 +844,11 @@ serve(async (req) => {
             data_needed: {
               field: "is_critical_replacement",
               prompt: "Is this equipment a critical replacement for something broken that currently stops or severely impedes core business operations? (true/false)",
-              intent_context: { intent, decision_type: "equipment_purchase" },
+              intent_context: { 
+                intent, 
+                decision_type: "equipment_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
             }
           },
           error: null,
@@ -799,7 +862,11 @@ serve(async (req) => {
             data_needed: {
               field: "expected_revenue_increase_monthly",
               prompt: "How much do you expect this equipment to increase your monthly revenue (in ₦)?",
-              intent_context: { intent, decision_type: "equipment_purchase" },
+              intent_context: { 
+                intent, 
+                decision_type: "equipment_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
             }
           },
           error: null,
@@ -813,7 +880,11 @@ serve(async (req) => {
             data_needed: {
               field: "expected_expense_decrease_monthly",
               prompt: "How much do you expect this equipment to decrease your monthly expenses (in ₦)?",
-              intent_context: { intent, decision_type: "equipment_purchase" },
+              intent_context: { 
+                intent, 
+                decision_type: "equipment_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
             }
           },
           error: null,
@@ -827,7 +898,11 @@ serve(async (req) => {
             data_needed: {
               field: "existing_debt_load_monthly_repayments",
               prompt: "What are your total monthly repayments for existing business loans or significant debts (in ₦)?",
-              intent_context: { intent, decision_type: "equipment_purchase" },
+              intent_context: { 
+                intent, 
+                decision_type: "equipment_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
             }
           },
           error: null,
@@ -836,93 +911,98 @@ serve(async (req) => {
       }
 
       // Conditional prompts
-      if (question.toLowerCase().includes('generator') || question.toLowerCase().includes('solar') || question.toLowerCase().includes('inverter') || question.toLowerCase().includes('power')) {
-        isPowerSolution = true;
-        if (currentEnergyCostMonthly === undefined || currentEnergyCostMonthly === null) {
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              data_needed: {
-                field: "current_energy_cost_monthly",
-                prompt: "What is your current average monthly energy cost (in ₦)?",
-                intent_context: { intent, decision_type: "equipment_purchase" },
-              }
-            },
-            error: null,
-            meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-          }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-        }
-      } else {
-        isPowerSolution = false; // Explicitly set if not a power solution
+      if (isPowerSolution && (currentEnergyCostMonthly === undefined || currentEnergyCostMonthly === null)) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "current_energy_cost_monthly",
+              prompt: "What is your current average monthly energy cost (in ₦)?",
+              intent_context: { 
+                intent, 
+                decision_type: "equipment_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
       }
 
-      if (estimatedEquipmentCost > 1000000) { // Trigger for Rule 3
-        if (hasDiversifiedRevenueStreams === undefined || hasDiversifiedRevenueStreams === null) {
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              data_needed: {
-                field: "has_diversified_revenue_streams",
-                prompt: "Does your business have at least two distinct, significant revenue streams? (true/false)",
-                intent_context: { intent, decision_type: "equipment_purchase" },
-              }
-            },
-            error: null,
-            meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-          }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-        }
-      } else {
-        hasDiversifiedRevenueStreams = true; // Assume true if not capital intensive for this rule
+      if (estimatedEquipmentCost > 1000000 && (hasDiversifiedRevenueStreams === undefined || hasDiversifiedRevenueStreams === null)) { // Trigger for Rule 3
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "has_diversified_revenue_streams",
+              prompt: "Does your business have at least two distinct, significant revenue streams? (true/false)",
+              intent_context: { 
+                intent, 
+                decision_type: "equipment_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
       }
 
       // If estimatedEquipmentCost is high relative to current_savings (e.g., > 50% of savings)
-      if (estimatedEquipmentCost > (0.5 * current_savings)) {
-        if (financingRequired === undefined || financingRequired === null) {
-          return new Response(JSON.stringify({
-            success: true,
-            data: {
-              data_needed: {
-                field: "financing_required",
-                prompt: "Will you need external financing (e.g., a loan) for this purchase? (true/false)",
-                intent_context: { intent, decision_type: "equipment_purchase" },
-              }
-            },
-            error: null,
-            meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-          }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-        }
-        if (financingRequired) {
-          if (financingInterestRateAnnualPercentage === undefined || financingInterestRateAnnualPercentage === null) {
-            return new Response(JSON.stringify({
-              success: true,
-              data: {
-                data_needed: {
-                  field: "financing_interest_rate_annual_percentage",
-                  prompt: "What is the estimated annual interest rate (%) for the financing?",
-                  intent_context: { intent, decision_type: "equipment_purchase" },
-                }
+      if (estimatedEquipmentCost > (0.5 * current_savings) && (financingRequired === undefined || financingRequired === null)) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "financing_required",
+              prompt: "Will you need external financing (e.g., a loan) for this purchase? (true/false)",
+              intent_context: { 
+                intent, 
+                decision_type: "equipment_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
               },
-              error: null,
-              meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-            }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-          }
-          if (financingTermMonths === undefined || financingTermMonths === null) {
-            return new Response(JSON.stringify({
-              success: true,
-              data: {
-                data_needed: {
-                  field: "financing_term_months",
-                  prompt: "What is the estimated loan term in months for the financing?",
-                  intent_context: { intent, decision_type: "equipment_purchase" },
-                }
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+      }
+      if (financingRequired && (financingInterestRateAnnualPercentage === undefined || financingInterestRateAnnualPercentage === null)) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "financing_interest_rate_annual_percentage",
+              prompt: "What is the estimated annual interest rate (%) for the financing?",
+              intent_context: { 
+                intent, 
+                decision_type: "equipment_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
               },
-              error: null,
-              meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
-            }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
-          }
-        }
-      } else {
-        financingRequired = false; // Assume no financing needed if cost is low relative to savings
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
+      }
+      if (financingRequired && (financingTermMonths === undefined || financingTermMonths === null)) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "financing_term_months",
+              prompt: "What is the estimated loan term in months for the financing?",
+              intent_context: { 
+                intent, 
+                decision_type: "equipment_purchase",
+                current_payload: currentPayload // Pass the current accumulated payload
+              },
+            }
+          },
+          error: null,
+          meta: { requestId, timestamp: new Date().toISOString(), version: API_VERSION },
+        }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }, status: 200 });
       }
 
       // --- Final Validation before Rule Evaluation ---

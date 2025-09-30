@@ -18,7 +18,7 @@ interface ChatMessage {
   dataNeeded?: {
     field: string;
     prompt: string;
-    intent_context: { intent: string; decision_type: string; };
+    intent_context: { intent: string; decision_type: string; current_payload?: Record<string, any>; }; // Added current_payload
   };
   // Store the original question for multi-step data collection
   originalQuestion?: string; 
@@ -115,7 +115,9 @@ const ChatPage = () => {
         setPendingDataRequest(edgeFunctionResult.data.data_needed);
         setCurrentIntent(intent); // Keep track of the original intent
         setCurrentQuestion(question); // Keep track of the original question
-        setCurrentPayload(prev => ({ ...prev, ...payload })); // Accumulate payload
+        // IMPORTANT: Update currentPayload with the payload sent back by the Edge Function
+        // This ensures all previously collected data is preserved.
+        setCurrentPayload(edgeFunctionResult.data.data_needed.intent_context.current_payload || {}); 
         
         const dataNeededMessage: ChatMessage = {
           id: String(Date.now()),
@@ -125,7 +127,8 @@ const ChatPage = () => {
           dataNeeded: edgeFunctionResult.data.data_needed,
           quickReplies: ['Cancel'],
           originalQuestion: question,
-          collectedPayload: { ...currentPayload, ...payload }, // Pass accumulated payload
+          // The collectedPayload in ChatMessage should reflect the full payload for the next step
+          collectedPayload: edgeFunctionResult.data.data_needed.intent_context.current_payload || {}, 
         };
         setMessages((prev) => [...prev, dataNeededMessage]);
         return;
