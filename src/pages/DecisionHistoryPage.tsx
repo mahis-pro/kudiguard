@@ -2,20 +2,21 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertCircle, Clock, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Clock, Eye, MessageCircle } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import DecisionDetailsDialog from '@/components/DecisionDetailsDialog'; // Import the new dialog
+import DecisionDetailsDialog from '@/components/DecisionDetailsDialog';
+import { useIsMobile } from '@/hooks/use-mobile'; // Import useIsMobile
 
 const DecisionHistoryPage = () => {
   const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [selectedDecision, setSelectedDecision] = useState<any | null>(null); // State to hold the decision for the modal
+  const [selectedDecision, setSelectedDecision] = useState<any | null>(null);
+  const isMobile = useIsMobile(); // Use the hook to detect mobile
 
   const userId = session?.user?.id;
 
-  // Fetch decisions from Supabase
   const { data: decisions, isLoading: decisionsLoading, error: decisionsError } = useQuery({
     queryKey: ['decisionHistory', userId],
     queryFn: async () => {
@@ -47,8 +48,6 @@ const DecisionHistoryPage = () => {
     );
   }
 
-  const firstName = userDisplayName ? userDisplayName.split(' ')[0] : 'User';
-
   const getRecommendationBadge = (recommendation: string) => {
     switch (recommendation) {
       case 'APPROVE':
@@ -78,45 +77,75 @@ const DecisionHistoryPage = () => {
             <CardTitle className="text-xl">Your Business Decisions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[120px]">Date</TableHead>
-                    <TableHead>Question</TableHead>
-                    <TableHead>Recommendation</TableHead>
-                    <TableHead className="text-center">Details</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {decisions && decisions.length > 0 ? (
-                    decisions.map((decision) => (
-                      <TableRow key={decision.id}>
-                        <TableCell className="font-medium">{new Date(decision.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{decision.question}</TableCell>
-                        <TableCell>{getRecommendationBadge(decision.recommendation)}</TableCell>
-                        <TableCell className="text-center">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleViewDetails(decision)}
-                            className="flex items-center justify-center mx-auto"
-                          >
-                            <Eye className="h-4 w-4 mr-2" /> View
-                          </Button>
-                        </TableCell>
+            {decisions && decisions.length > 0 ? (
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[120px]">Date</TableHead>
+                        <TableHead>Question</TableHead>
+                        <TableHead>Recommendation</TableHead>
+                        <TableHead className="text-center">Details</TableHead>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                        No decisions recorded yet. Start a chat to get your first recommendation!
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    </TableHeader>
+                    <TableBody>
+                      {decisions.map((decision) => (
+                        <TableRow key={decision.id}>
+                          <TableCell className="font-medium">{new Date(decision.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{decision.question}</TableCell>
+                          <TableCell>{getRecommendationBadge(decision.recommendation)}</TableCell>
+                          <TableCell className="text-center">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleViewDetails(decision)}
+                              className="flex items-center justify-center mx-auto"
+                            >
+                              <Eye className="h-4 w-4 mr-2" /> View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                  {decisions.map((decision) => (
+                    <Card key={decision.id} className="shadow-sm border">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground flex items-center">
+                            <Clock className="h-4 w-4 mr-2" />
+                            {new Date(decision.created_at).toLocaleDateString()}
+                          </span>
+                          {getRecommendationBadge(decision.recommendation)}
+                        </div>
+                        <p className="font-semibold text-foreground flex items-start">
+                          <MessageCircle className="h-4 w-4 text-primary mr-2 mt-1 flex-shrink-0" />
+                          {decision.question}
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewDetails(decision)}
+                          className="w-full mt-2"
+                        >
+                          <Eye className="h-4 w-4 mr-2" /> View Details
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-muted-foreground py-8">
+                No decisions recorded yet. Start a chat to get your first recommendation!
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
