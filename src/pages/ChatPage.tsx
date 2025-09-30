@@ -15,6 +15,12 @@ interface ChatMessage {
   timestamp: string;
   cards?: React.ReactNode[];
   quickReplies?: string[];
+  // New field to indicate if AI is asking for specific data
+  dataNeeded?: {
+    field: string;
+    prompt: string;
+    intent_context: { intent: string; decision_type: string; };
+  };
 }
 
 const TypingIndicator = () => (
@@ -32,6 +38,7 @@ const ChatPage = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
+  const [pendingDataRequest, setPendingDataRequest] = useState<ChatMessage['dataNeeded'] | null>(null); // New state for pending data
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,35 +59,31 @@ const ChatPage = () => {
     }
   }, [sessionLoading, userDisplayName]);
 
-  const getAiDecision = async (messageText: string) => {
+  const sendToDecisionEngine = async (intent: string, decision_type: string, payload?: Record<string, any>) => {
     setIsAiTyping(true);
-    let intent = null;
-
-    // Temporary keyword spotting logic
-    const lowerCaseMessage = messageText.toLowerCase();
-    if (lowerCaseMessage.includes('hire') || lowerCaseMessage.includes('staff') || lowerCaseMessage.includes('employee')) {
-      intent = { intent: 'hiring', decision_type: 'hiring_affordability' };
-    }
-
-    if (!intent) {
-      const noIntentResponse: ChatMessage = {
-        id: String(Date.now()),
-        sender: 'ai',
-        text: "I'm sorry, I'm currently specialized in hiring decisions. Please ask me a question like 'Can I afford to hire a new staff member?'.",
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, noIntentResponse]);
-      setIsAiTyping(false);
-      return;
-    }
-
     try {
       const { data, error } = await supabase.functions.invoke('decision-engine', {
-        body: intent,
+        body: { intent, decision_type, payload },
       });
 
       if (error) throw error;
 
+      // Handle case where AI needs more data
+      if (data.data_needed) {
+        setPendingDataRequest(data.data_needed);
+        const dataNeededMessage: ChatMessage = {
+          id: String(Date.now()),
+          sender: 'ai',
+          text: data.data_needed.prompt,
+          timestamp: new Date().toISOString(),
+          dataNeeded: data.data_needed, // Store the request context
+          quickReplies: ['Cancel'], // Allow user to cancel the data request
+        };
+        setMessages((prev) => [...prev, dataNeededMessage]);
+        return; // Stop here, waiting for user input
+      }
+
+      // Regular decision response
       const aiResponse: ChatMessage = {
         id: String(Date.now()),
         sender: 'ai',
@@ -90,7 +93,7 @@ const ChatPage = () => {
         quickReplies: ['Thanks!', 'What else can you do?'],
       };
       setMessages((prev) => [...prev, aiResponse]);
-
+      setPendingDataRequest(null); // Clear any pending data requests
     } catch (error: any) {
       console.error("Error invoking edge function:", error);
       let errorMessage = "An unexpected error occurred while analyzing your request.";
@@ -113,6 +116,7 @@ const ChatPage = () => {
         description: errorMessage,
         variant: "destructive",
       });
+      setPendingDataRequest(null); // Clear any pending data requests on error
     } finally {
       setIsAiTyping(false);
     }
@@ -121,29 +125,82 @@ const ChatPage = () => {
   const handleSendMessage = () => {
     if (messageInput.trim() === '') return;
 
-    const newMessage: ChatMessage = {
+    const userMessage: ChatMessage = {
       id: String(Date.now()),
       sender: 'user',
       text: messageInput,
       timestamp: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, newMessage]);
-    getAiDecision(messageInput);
+    setMessages((prev) => [...prev, userMessage]);
+
+    if (pendingDataRequest) {
+      // If AI is waiting for data, try to parse the input
+      if (pendingDataRequest.field === 'estimated_salary') {
+        const salaryMatch = messageInput.match(/(\d[\d,\.]*)/); // Extract numbers
+        if (salaryMatch && salaryMatch[1]) {
+          const estimatedSalary = parseFloat(salaryMatch[1].replace(/,/g, ''));
+          if (!isNaN(estimatedSalary) && estimatedSalary >= 0) {
+            sendToDecisionEngine(
+              pendingDataRequest.intent_context.intent,
+              pendingDataRequest.intent_context.decision_type,
+              { estimated_salary: estimatedSalary }
+            );
+            setMessageInput('');
+            return;
+          }
+        }
+        // If parsing failed, prompt user again
+        const retryMessage: ChatMessage = {
+          id: String(Date.now()),
+          sender: 'ai',
+          text: "I couldn't understand the salary. Please provide a number for the estimated monthly salary (e.g., '50000').",
+          timestamp: new Date().toISOString(),
+          quickReplies: ['Cancel'],
+        };
+        setMessages((prev) => [...prev, retryMessage]);
+        setIsAiTyping(false); // Stop typing indicator if it was on
+        setMessageInput('');
+        return;
+      }
+      // Handle other pending data requests here if they are added in the future
+    }
+
+    // Initial intent detection
+    const lowerCaseMessage = messageInput.toLowerCase();
+    if (lowerCaseMessage.includes('hire') || lowerCaseMessage.includes('staff') || lowerCaseMessage.includes('employee')) {
+      sendToDecisionEngine('hiring', 'hiring_affordability');
+    } else {
+      const noIntentResponse: ChatMessage = {
+        id: String(Date.now()),
+        sender: 'ai',
+        text: "I'm currently specialized in hiring decisions. Please ask me a question like 'Can I afford to hire a new staff member?'.",
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, noIntentResponse]);
+      setIsAiTyping(false);
+    }
     setMessageInput('');
   };
 
   const handleQuickReply = (reply: string) => {
     if (reply.toLowerCase() === 'add new data') {
       setIsAddDataModalOpen(true);
-    } else {
-      const newMessage: ChatMessage = {
+    } else if (reply.toLowerCase() === 'cancel' && pendingDataRequest) {
+      setPendingDataRequest(null);
+      const cancelMessage: ChatMessage = {
         id: String(Date.now()),
-        sender: 'user',
-        text: reply,
+        sender: 'ai',
+        text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
+        quickReplies: ['Should I hire someone?', 'Add new data'],
       };
-      setMessages((prev) => [...prev, newMessage]);
-      getAiDecision(reply);
+      setMessages((prev) => [...prev, cancelMessage]);
+    } else {
+      // Treat quick reply as a user message
+      setMessageInput(reply);
+      // Directly call handleSendMessage to process it
+      // This will trigger the logic for pendingDataRequest or initial intent
+      setTimeout(() => handleSendMessage(), 0); 
     }
   };
 
@@ -213,7 +270,7 @@ const ChatPage = () => {
         <div className="bg-card border-t border-border p-4 flex items-center flex-shrink-0">
           <Input
             type="text"
-            placeholder="Ask about hiring a new staff member..."
+            placeholder={pendingDataRequest ? pendingDataRequest.prompt : "Ask about hiring a new staff member..."}
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}

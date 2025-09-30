@@ -318,11 +318,12 @@ export const DecisionEngineInputSchema = z.object({
     // 'expansion'
   ]),
   decision_type: z.string(), // e.g., "hiring_affordability"
-  payload: z.record(z.any()).optional(), // For any extra data needed in the future
+  payload: z.object({
+    estimated_salary: z.number().min(0).optional(), // Make estimated_salary optional in payload
+  }).optional(), // Payload itself is optional
 });
 
 // --- Main decision-engine logic ---
-const ESTIMATED_SALARY = 50000; // Hardcoded for now, will be dynamic later
 
 serve(async (req) => {
   const requestId = generateRequestId();
@@ -349,7 +350,7 @@ serve(async (req) => {
     if (!validationResult.success) {
       throw new InputValidationError("Invalid input.", validationResult.error.toString());
     }
-    const { intent } = validationResult.data;
+    const { intent, payload } = validationResult.data;
 
     // 3. Fetch Latest Financial Data
     const { data: financialData, error: dbError } = await supabase
@@ -371,8 +372,34 @@ serve(async (req) => {
 
     // 4. Decision Logic (Vertical Slice for 'hiring')
     let recommendation, reasoning, actionable_steps;
+    let estimatedSalary: number | undefined;
 
     if (intent === 'hiring') {
+      estimatedSalary = payload?.estimated_salary;
+
+      // If estimated_salary is not provided, request it from the user
+      if (estimatedSalary === undefined || estimatedSalary === null) {
+        return new Response(JSON.stringify({
+          success: true,
+          data: {
+            data_needed: {
+              field: "estimated_salary",
+              prompt: "What is the estimated monthly salary for the new hire (in ₦)?",
+              intent_context: { intent, decision_type: validationResult.data.decision_type },
+            }
+          },
+          error: null,
+          meta: {
+            requestId,
+            timestamp: new Date().toISOString(),
+            version: API_VERSION,
+          },
+        }), {
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      }
+
       const { monthly_revenue, monthly_expenses, current_savings } = financialData;
       const net_income = monthly_revenue - monthly_expenses;
       
@@ -394,10 +421,10 @@ serve(async (req) => {
       }
 
       // Rule 3: Affordability
-      if (net_income >= 3 * ESTIMATED_SALARY) {
+      if (net_income >= 3 * estimatedSalary) {
         score += 1;
       } else {
-        reasons.push(`Your net income (₦${net_income.toLocaleString()}) is not at least 3x the estimated salary for a new hire.`); // Modified reasoning
+        reasons.push(`Your net income (₦${net_income.toLocaleString()}) is not at least 3x the estimated salary (₦${(3 * estimatedSalary).toLocaleString()}) for a new hire.`);
       }
 
       // Determine final recommendation
@@ -438,7 +465,7 @@ serve(async (req) => {
         reasoning,
         actionable_steps,
         financial_snapshot: financialData,
-        estimated_salary: ESTIMATED_SALARY, // Add estimated_salary to the payload
+        estimated_salary: estimatedSalary, // Add estimated_salary to the payload
       },
       error: null,
       meta: {
