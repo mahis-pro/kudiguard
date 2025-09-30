@@ -23,8 +23,7 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "shared/*": ["./supabase/functions/_shared/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src", "supabase/functions"],
