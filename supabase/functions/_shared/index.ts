@@ -1,4 +1,4 @@
-// supabase/functions/_shared/mod.ts
+// supabase/functions/_shared/index.ts
 
 // Re-export from constants.ts
 export { API_VERSION, CORS_HEADERS, ERROR_CODES, SEVERITY } from './constants.ts';
