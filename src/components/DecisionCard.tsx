@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank } from 'lucide-react';
 
 interface DecisionCardProps {
   data: {
@@ -71,6 +71,25 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
           <h4 className="font-semibold text-foreground mb-1">Reasoning:</h4>
           <p className="text-sm text-foreground/90">{reasoning}</p>
         </div>
+
+        <div>
+          <h4 className="font-semibold text-foreground mb-2">Financial Snapshot Used:</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+            <div className="flex items-center">
+              <TrendingUp className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
+              <span className="text-muted-foreground">Revenue: <span className="font-medium text-foreground currency">{financial_snapshot.monthly_revenue.toLocaleString()}</span></span>
+            </div>
+            <div className="flex items-center">
+              <DollarSign className="h-4 w-4 text-destructive mr-2 flex-shrink-0" />
+              <span className="text-muted-foreground">Expenses: <span className="font-medium text-foreground currency">{financial_snapshot.monthly_expenses.toLocaleString()}</span></span>
+            </div>
+            <div className="flex items-center">
+              <PiggyBank className="h-4 w-4 text-success mr-2 flex-shrink-0" />
+              <span className="text-muted-foreground">Savings: <span className="font-medium text-foreground currency">{financial_snapshot.current_savings.toLocaleString()}</span></span>
+            </div>
+          </div>
+        </div>
+
         <div>
           <h4 className="font-semibold text-foreground mb-2">Actionable Steps:</h4>
           <ul className="space-y-1">
