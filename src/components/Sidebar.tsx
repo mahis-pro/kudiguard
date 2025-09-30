@@ -1,24 +1,23 @@
-import React from 'react'; // Removed useState
+import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent } from '@/components/ui/sheet'; // Removed SheetTrigger
-import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History } from 'lucide-react'; // Removed Menu
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
-// Removed useIsMobile
 
 interface SidebarProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (isOpen: boolean) => void;
+  onAddDataClick: () => void; // New prop to handle click
 }
 
-const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => { // Added props
+const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { supabase, userDisplayName } = useSession();
   const { toast } = useToast();
-  // Removed isMobile and local isSheetOpen state
 
   const navItems = [
     { path: '/chat', icon: MessageCircle, label: 'Chat' },
@@ -38,8 +37,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => { // Adde
         description: "You have been successfully logged out.",
         variant: "default",
       });
-      setIsSidebarOpen(false); // Close sheet on logout
-      // SessionContextProvider will handle redirection to /login
+      setIsSidebarOpen(false);
     } catch (error: any) {
       console.error('Error logging out:', error.message);
       toast({
@@ -51,12 +49,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => { // Adde
   };
 
   const handleAddData = () => {
-    navigate('/chat');
-    toast({
-      title: "Add Data",
-      description: "This will open a structured input in the chat to add your financial data.",
-      variant: "default",
-    });
+    onAddDataClick(); // Use the passed handler
     setIsSidebarOpen(false); // Close sheet after action
   };
 
@@ -72,7 +65,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => { // Adde
         <span className="text-xl font-bold text-sidebar-primary">KudiGuard</span>
       </div>
 
-      {/* User Info (Optional, can be added later) */}
+      {/* User Info */}
       {userDisplayName && (
         <div className="p-4 text-center border-b border-sidebar-border">
           <p className="font-semibold text-sidebar-foreground">Hello, {userDisplayName.split(' ')[0]}!</p>
@@ -87,7 +80,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => { // Adde
             <Link 
               key={item.path} 
               to={item.path} 
-              onClick={() => setIsSidebarOpen(false)} // Close sheet on navigation
+              onClick={() => setIsSidebarOpen(false)}
             >
               <Button
                 variant="ghost"
@@ -130,10 +123,9 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => { // Adde
 
   return (
     <>
-      {/* Mobile Sheet - controlled by AuthenticatedLayout */}
+      {/* Mobile Sheet */}
       <div className="md:hidden">
         <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-          {/* SheetTrigger is now in MobileHeader */}
           <SheetContent side="left" className="p-0 w-64">
             {sidebarContent}
           </SheetContent>
