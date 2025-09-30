@@ -840,9 +840,9 @@ export function makeEquipmentDecision(
       }
     };
   } else if (hasDiversifiedRevenueStreams === undefined) {
-    // Default to true if not capital intensive and not explicitly set
-    currentPayload.has_diversified_revenue_streams = true;
-    hasDiversifiedRevenueStreams = true;
+    // Default to false if not capital intensive and not explicitly set
+    currentPayload.has_diversified_revenue_streams = false; // Ensure payload is updated
+    hasDiversifiedRevenueStreams = false;
   }
 
   // Conditional prompt for financing_required if estimated_equipment_cost is high relative to savings
@@ -857,7 +857,7 @@ export function makeEquipmentDecision(
     };
   } else if (financingRequired === undefined) {
     // Default to false if not high relative to savings and not explicitly set
-    currentPayload.financing_required = false;
+    currentPayload.financing_required = false; // Ensure payload is updated
     financingRequired = false;
   }
 
