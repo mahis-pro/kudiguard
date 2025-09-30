@@ -80,7 +80,7 @@ const ChatPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1">
       {/* Chat Header */}
       <header className="bg-card shadow-card border-b border-border p-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center">
