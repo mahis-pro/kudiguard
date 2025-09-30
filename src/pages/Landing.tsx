@@ -49,34 +49,33 @@ const Landing = () => {
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center md:justify-between md:text-left text-center">
+        <div className="max-w-4xl mx-auto flex flex-col items-center text-center">
           {/* Text Content */}
-          <div className="md:w-1/2 md:pr-8 mb-8 md:mb-0">
-            <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6 animate-fade-in">
-              Stop Guessing, Start Deciding
-            </h1>
-            
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto md:mx-0 animate-fade-in">
-              With KudiGuard, you get clear answers to everyday questions when to restock, hire, or save so your money works smarter.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start mb-12 animate-fade-in">
-              <Link to="/signup">
-                <Button size="lg" className="bg-gradient-primary hover:shadow-success text-lg px-8 py-4">
-                  Get Started
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/about">
-                <Button size="lg" variant="outline" className="text-lg px-8 py-4">
-                  Learn More
-                </Button>
-              </Link>
-            </div>
+          <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6 animate-fade-in">
+            Stop Guessing, Start Deciding
+          </h1>
+          
+          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-fade-in">
+            With KudiGuard, you get clear answers to everyday questions when to restock, hire, or save so your money works smarter.
+          </p>
+          
+          {/* Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-fade-in">
+            <Link to="/signup">
+              <Button size="lg" className="bg-gradient-primary hover:shadow-success text-lg px-8 py-4">
+                Get Started
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Link to="/about">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-4">
+                Learn More
+              </Button>
+            </Link>
           </div>
 
           {/* Hero Visual */}
-          <div className="md:w-1/2 flex justify-center">
+          <div className="w-full max-w-3xl mt-8 animate-fade-in">
             <HeroVisual />
           </div>
         </div>
