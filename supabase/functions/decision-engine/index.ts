@@ -189,7 +189,7 @@ async function logError(
     requestId,
     vendorId,
     errorCode,
-        severity,
+    severity,
     timestamp,
     stack: stack || (originalError instanceof Error ? originalError.stack : undefined),
     payload: redactSensitiveData(payload),
@@ -905,17 +905,20 @@ export function makeEquipmentDecision(
   const finalExpectedExpenseDecreaseMonthly = expectedExpenseDecreaseMonthly!;
   const finalIsCriticalReplacement = isCriticalReplacement!;
   const finalIsPowerSolution = isPowerSolution!;
-  const finalCurrentEnergyCostMonthly = currentEnergyCostMonthly ?? 0; // Default to 0 if not a power solution
   const finalHasDiversifiedRevenueStreams = hasDiversifiedRevenueStreams!;
   const finalExistingDebtLoadMonthlyRepayments = existingDebtLoadMonthlyRepayments!;
   const finalFinancingRequired = financingRequired!;
-  const finalFinancingInterestRateAnnualPercentage = financingInterestRateAnnualPercentage ?? 0;
-  const finalFinancingTermMonths = financingTermMonths ?? 1; // Default to 1 to avoid division by zero
+  
+  // Ensure optional fields are explicitly null if not provided or not applicable
+  const finalCurrentEnergyCostMonthly = finalIsPowerSolution ? (currentEnergyCostMonthly ?? null) : null;
+  const finalEquipmentLifespanMonths = equipmentLifespanMonths ?? null; // Never prompted, so default to null
+  const finalFinancingInterestRateAnnualPercentage = finalFinancingRequired ? (financingInterestRateAnnualPercentage ?? null) : null;
+  const finalFinancingTermMonths = finalFinancingRequired ? (financingTermMonths ?? null) : null;
 
   const monthly_profit_increase = finalExpectedRevenueIncreaseMonthly + finalExpectedExpenseDecreaseMonthly;
   const payback_months = monthly_profit_increase > 0 ? finalEstimatedEquipmentCost / monthly_profit_increase : Infinity;
   const productivity_gain_percentage = net_income > 0 ? (monthly_profit_increase / net_income) * 100 : 0;
-  const energy_cost_percentage_of_expenses = monthly_expenses > 0 ? (finalCurrentEnergyCostMonthly / monthly_expenses) * 100 : 0;
+  const energy_cost_percentage_of_expenses = monthly_expenses > 0 && finalCurrentEnergyCostMonthly !== null ? (finalCurrentEnergyCostMonthly / monthly_expenses) * 100 : 0;
 
   // --- A. Immediate REJECT Conditions (Highest Priority) ---
   // Rule 3: Capital-Intensive & Undiversified (Refined)
@@ -997,11 +1000,11 @@ export function makeEquipmentDecision(
         reasons.push(`Your existing debt load (₦${finalExistingDebtLoadMonthlyRepayments.toLocaleString()} monthly) is moderate. Adding more debt might strain your cash flow.`);
         actionable_steps.push("Consider reducing existing debts or exploring financing options with more favorable terms.");
       }
-      if (finalFinancingRequired && finalFinancingInterestRateAnnualPercentage > 25) {
+      if (finalFinancingRequired && finalFinancingInterestRateAnnualPercentage !== null && finalFinancingInterestRateAnnualPercentage > 25) {
         reasons.push(`The estimated annual interest rate for financing (${finalFinancingInterestRateAnnualPercentage}%) is quite high, significantly increasing the total cost of the equipment.`);
         actionable_steps.push("Seek alternative financing options with lower interest rates or consider delaying the purchase until better terms are available.");
       }
-      if (finalFinancingRequired && finalFinancingTermMonths > 36) { // Example: long term for small business
+      if (finalFinancingRequired && finalFinancingTermMonths !== null && finalFinancingTermMonths > 36) { // Example: long term for small business
         reasons.push(`A long financing term of ${finalFinancingTermMonths} months could tie up your cash flow for an extended period.`);
         actionable_steps.push("Explore options for a shorter loan term or consider a smaller, more affordable equipment purchase.");
       }
@@ -1024,7 +1027,7 @@ export function makeEquipmentDecision(
     estimated_equipment_cost: finalEstimatedEquipmentCost,
     expected_revenue_increase_monthly: finalExpectedRevenueIncreaseMonthly,
     expected_expense_decrease_monthly: finalExpectedExpenseDecreaseMonthly,
-    equipment_lifespan_months: equipmentLifespanMonths,
+    equipment_lifespan_months: finalEquipmentLifespanMonths,
     is_critical_replacement: finalIsCriticalReplacement,
     is_power_solution: finalIsPowerSolution,
     current_energy_cost_monthly: finalCurrentEnergyCostMonthly,
@@ -1044,7 +1047,7 @@ export function makeEquipmentDecision(
       estimated_equipment_cost: finalEstimatedEquipmentCost,
       expected_revenue_increase_monthly: finalExpectedRevenueIncreaseMonthly,
       expected_expense_decrease_monthly: finalExpectedExpenseDecreaseMonthly,
-      equipment_lifespan_months: equipmentLifespanMonths,
+      equipment_lifespan_months: finalEquipmentLifespanMonths,
       is_critical_replacement: finalIsCriticalReplacement,
       is_power_solution: finalIsPowerSolution,
       current_energy_cost_monthly: finalCurrentEnergyCostMonthly,
@@ -1234,7 +1237,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error(`[${requestId}] Caught error in main handler:`, error);
+    console.error(`[${requestId}] RAW ERROR CAUGHT IN MAIN HANDLER:`, error); // Added this line
     return handleError(error, requestId, user ? user.id : null, supabase, req.body);
   }
 });
