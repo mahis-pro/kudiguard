@@ -1,14 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Clock, Eye } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import DecisionDetailsDialog from '@/components/DecisionDetailsDialog'; // Import the new dialog
 
 const DecisionHistoryPage = () => {
-  const { userDisplayName, isLoading } = useSession();
+  const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedDecision, setSelectedDecision] = useState<any | null>(null); // State to hold the decision for the modal
 
-  if (isLoading) {
+  const userId = session?.user?.id;
+
+  // Fetch decisions from Supabase
+  const { data: decisions, isLoading: decisionsLoading, error: decisionsError } = useQuery({
+    queryKey: ['decisionHistory', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from('decisions')
+        .select('id, question, recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+
+  if (sessionLoading || decisionsLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading decision history...</p>
@@ -16,81 +39,32 @@ const DecisionHistoryPage = () => {
     );
   }
 
+  if (decisionsError) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-4 text-destructive">
+        <p>Error loading data: {decisionsError.message}</p>
+      </div>
+    );
+  }
+
   const firstName = userDisplayName ? userDisplayName.split(' ')[0] : 'User';
 
-  // Placeholder data for demonstration
-  const decisions = [
-    {
-      id: 'd1',
-      date: '2023-10-26',
-      type: 'Expense Approval',
-      description: 'Approved inventory purchase for ₦150,000.',
-      outcome: 'Positive',
-      impact: 'Maintained stock levels, slight impact on cash flow.',
-      status: 'Completed',
-    },
-    {
-      id: 'd2',
-      date: '2023-10-20',
-      type: 'Pricing Adjustment',
-      description: 'Increased price of Product A by 5%.',
-      outcome: 'Neutral',
-      impact: 'Slight increase in profit margin, no significant change in sales volume.',
-      status: 'Completed',
-    },
-    {
-      id: 'd3',
-      date: '2023-10-15',
-      type: 'Marketing Campaign',
-      description: 'Launched social media ad campaign for Product B.',
-      outcome: 'Pending',
-      impact: 'Awaiting sales data for full impact analysis.',
-      status: 'In Progress',
-    },
-    {
-      id: 'd4',
-      date: '2023-10-10',
-      type: 'Loan Application',
-      description: 'Applied for a small business loan of ₦500,000.',
-      outcome: 'Negative',
-      impact: 'Application rejected due to insufficient collateral.',
-      status: 'Completed',
-    },
-    {
-      id: 'd5',
-      date: '2023-10-05',
-      type: 'Staff Hiring',
-      description: 'Hired new sales assistant.',
-      outcome: 'Positive',
-      impact: 'Improved customer service, increased operational costs.',
-      status: 'Completed',
-    },
-  ];
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Completed':
-        return <CheckCircle className="h-4 w-4 text-success" />;
-      case 'In Progress':
-        return <Clock className="h-4 w-4 text-warning" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
-  const getOutcomeBadge = (outcome: string) => {
-    switch (outcome) {
-      case 'Positive':
-        return <Badge variant="default">Positive</Badge>;
-      case 'Negative':
-        return <Badge variant="destructive">Negative</Badge>;
-      case 'Neutral':
-        return <Badge variant="secondary">Neutral</Badge>;
-      case 'Pending':
-        return <Badge variant="outline">Pending</Badge>;
+  const getRecommendationBadge = (recommendation: string) => {
+    switch (recommendation) {
+      case 'APPROVE':
+        return <Badge variant="default" className="bg-success hover:bg-success/90">Approve</Badge>;
+      case 'WAIT':
+        return <Badge variant="secondary" className="bg-warning hover:bg-warning/90">Wait</Badge>;
+      case 'REJECT':
+        return <Badge variant="destructive" className="hover:bg-destructive/90">Reject</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
+  };
+
+  const handleViewDetails = (decision: any) => {
+    setSelectedDecision(decision);
+    setIsDetailsModalOpen(true);
   };
 
   return (
@@ -108,39 +82,49 @@ const DecisionHistoryPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px]">Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Outcome</TableHead>
-                    <TableHead>Impact</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="w-[120px]">Date</TableHead>
+                    <TableHead>Question</TableHead>
+                    <TableHead>Recommendation</TableHead>
+                    <TableHead className="text-center">Details</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {decisions.map((decision) => (
-                    <TableRow key={decision.id}>
-                      <TableCell className="font-medium">{new Date(decision.date).toLocaleDateString()}</TableCell>
-                      <TableCell>{decision.type}</TableCell>
-                      <TableCell>{decision.description}</TableCell>
-                      <TableCell>{getOutcomeBadge(decision.outcome)}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{decision.impact}</TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center">
-                          {getStatusIcon(decision.status)}
-                          <span className="ml-2 text-sm">{decision.status}</span>
-                        </div>
+                  {decisions && decisions.length > 0 ? (
+                    decisions.map((decision) => (
+                      <TableRow key={decision.id}>
+                        <TableCell className="font-medium">{new Date(decision.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{decision.question}</TableCell>
+                        <TableCell>{getRecommendationBadge(decision.recommendation)}</TableCell>
+                        <TableCell className="text-center">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleViewDetails(decision)}
+                            className="flex items-center justify-center mx-auto"
+                          >
+                            <Eye className="h-4 w-4 mr-2" /> View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        No decisions recorded yet. Start a chat to get your first recommendation!
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
-            {decisions.length === 0 && (
-              <p className="text-center text-muted-foreground mt-4">No decisions recorded yet.</p>
-            )}
           </CardContent>
         </Card>
       </div>
+      <DecisionDetailsDialog 
+        isOpen={isDetailsModalOpen} 
+        onClose={() => setIsDetailsModalOpen(false)} 
+        decision={selectedDecision} 
+      />
     </div>
   );
 };
