@@ -769,8 +769,8 @@ export function makeEquipmentDecision(
 
   // --- Data Gathering Sequence for Equipment ---
 
-  // Infer is_power_solution if not explicitly set
-  if (isPowerSolution === undefined || isPowerSolution === null) {
+  // Infer is_power_solution if not explicitly set in payload
+  if (!currentPayload.hasOwnProperty('is_power_solution')) {
     if (question.toLowerCase().includes('generator') || question.toLowerCase().includes('solar') || question.toLowerCase().includes('inverter') || question.toLowerCase().includes('power')) {
       currentPayload.is_power_solution = true;
       isPowerSolution = true;
@@ -792,7 +792,8 @@ export function makeEquipmentDecision(
     };
   }
 
-  if (isCriticalReplacement === undefined || isCriticalReplacement === null) {
+  // Use hasOwnProperty for boolean fields
+  if (!currentPayload.hasOwnProperty('is_critical_replacement')) {
     return {
       decision: null,
       dataNeeded: {
@@ -857,7 +858,7 @@ export function makeEquipmentDecision(
   }
 
   // Conditional prompt for has_diversified_revenue_streams if estimated_equipment_cost is high
-  if (estimatedEquipmentCost > 1000000 && (hasDiversifiedRevenueStreams === undefined || hasDiversifiedRevenueStreams === null)) {
+  if (estimatedEquipmentCost > 1000000 && !currentPayload.hasOwnProperty('has_diversified_revenue_streams')) {
     return {
       decision: null,
       dataNeeded: {
@@ -867,14 +868,13 @@ export function makeEquipmentDecision(
         canBeZeroOrNone: false, // Must be true/false
       }
     };
-  } else if (hasDiversifiedRevenueStreams === undefined) {
-    // Default to false if not capital intensive and not explicitly set
+  } else if (!currentPayload.hasOwnProperty('has_diversified_revenue_streams')) { // Default if not capital intensive and not explicitly set
     currentPayload.has_diversified_revenue_streams = false; // Ensure payload is updated
     hasDiversifiedRevenueStreams = false;
   }
 
   // Conditional prompt for financing_required if estimated_equipment_cost is high relative to savings
-  if (estimatedEquipmentCost > (0.5 * current_savings) && (financingRequired === undefined || financingRequired === null)) {
+  if (estimatedEquipmentCost > (0.5 * current_savings) && !currentPayload.hasOwnProperty('financing_required')) {
     return {
       decision: null,
       dataNeeded: {
@@ -884,8 +884,7 @@ export function makeEquipmentDecision(
         canBeZeroOrNone: false, // Must be true/false
       }
     };
-  } else if (financingRequired === undefined) {
-    // Default to false if not high relative to savings and not explicitly set
+  } else if (!currentPayload.hasOwnProperty('financing_required')) { // Default if not high relative to savings and not explicitly set
     currentPayload.financing_required = false; // Ensure payload is updated
     financingRequired = false;
   }
