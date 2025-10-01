@@ -560,30 +560,30 @@ export function makeInventoryDecision(
     if (supplierCreditTermsDays === undefined || supplierCreditTermsDays === null) {
       return {
         decision: null,
-        dataNeeded: {
-          field: "supplier_credit_terms_days",
-          prompt: "What are your supplier's credit terms in days (how long do you have to pay)?",
-          intent_context: { 
-            intent: "inventory", 
-            decision_type: "inventory_purchase",
-            current_payload: currentPayload 
-          },
-        }
-      };
+      dataNeeded: {
+        field: "supplier_credit_terms_days",
+        prompt: "What are your supplier's credit terms in days (how long do you have to pay)?",
+        intent_context: { 
+          intent: "inventory", 
+          decision_type: "inventory_purchase",
+          current_payload: currentPayload 
+        },
+      }
+    };
     }
     if (averageReceivablesTurnoverDays === undefined || averageReceivablesTurnoverDays === null) {
       return {
         decision: null,
-        dataNeeded: {
-          field: "average_receivables_turnover_days",
-          prompt: "What is your average receivables turnover in days (how long customers take to pay you)?",
-          intent_context: { 
-            intent: "inventory", 
-            decision_type: "inventory_purchase",
-            current_payload: currentPayload 
-          },
-        }
-      };
+      dataNeeded: {
+        field: "average_receivables_turnover_days",
+        prompt: "What is your average receivables turnover in days (how long customers take to pay you)?",
+        intent_context: { 
+          intent: "inventory", 
+          decision_type: "inventory_purchase",
+          current_payload: currentPayload 
+        },
+      }
+    };
     }
   }
 
@@ -592,16 +592,16 @@ export function makeInventoryDecision(
     if (storageCostPercentageOfOrder === undefined || storageCostPercentageOfOrder === null) {
       return {
         decision: null,
-        dataNeeded: {
-          field: "storage_cost_percentage_of_order",
-          prompt: "What is the estimated storage cost for this bulk order as a percentage of the order value (e.g., '5' for 5%)?",
-          intent_context: { 
-            intent: "inventory", 
-            decision_type: "inventory_purchase",
-            current_payload: currentPayload 
-          },
-        }
-      };
+      dataNeeded: {
+        field: "storage_cost_percentage_of_order",
+        prompt: "What is the estimated storage cost for this bulk order as a percentage of the order value (e.g., '5' for 5%)?",
+        intent_context: { 
+          intent: "inventory", 
+          decision_type: "inventory_purchase",
+          current_payload: currentPayload 
+        },
+      }
+    };
     }
   }
   // --- End Data Gathering Sequence ---
@@ -866,22 +866,22 @@ export function makeEquipmentDecision(
     if (financingInterestRateAnnualPercentage === undefined || financingInterestRateAnnualPercentage === null) {
       return {
         decision: null,
-        dataNeeded: {
-          field: "financing_interest_rate_annual_percentage",
-          prompt: "What is the estimated annual interest rate (%) for the financing?",
-          intent_context: { intent: "equipment", decision_type: "equipment_purchase", current_payload: currentPayload },
-        }
-      };
+      dataNeeded: {
+        field: "financing_interest_rate_annual_percentage",
+        prompt: "What is the estimated annual interest rate (%) for the financing?",
+        intent_context: { intent: "equipment", decision_type: "equipment_purchase", current_payload: currentPayload },
+      }
+    };
     }
     if (financingTermMonths === undefined || financingTermMonths === null) {
       return {
         decision: null,
-        dataNeeded: {
-          field: "financing_term_months",
-          prompt: "What is the estimated loan term in months for the financing?",
-          intent_context: { intent: "equipment", decision_type: "equipment_purchase", current_payload: currentPayload },
-        }
-      };
+      dataNeeded: {
+        field: "financing_term_months",
+        prompt: "What is the estimated loan term in months for the financing?",
+        intent_context: { intent: "equipment", decision_type: "equipment_purchase", current_payload: currentPayload },
+      }
+    };
     }
   }
 
@@ -1205,26 +1205,26 @@ serve(async (req) => {
       reasoning: decision.reasoning,
       actionable_steps: decision.actionable_steps,
       financial_snapshot: decision.financial_snapshot,
-      estimated_salary: decision.estimated_salary,
-      estimated_inventory_cost: decision.estimated_inventory_cost,
-      inventory_turnover_days: decision.inventory_turnover_days,
-      supplier_credit_terms_days: decision.supplier_credit_terms_days,
-      average_receivables_turnover_days: decision.average_receivables_turnover_days,
-      outstanding_supplier_debts: decision.outstanding_supplier_debts,
-      supplier_discount_percentage: decision.supplier_discount_percentage,
-      storage_cost_percentage_of_order: decision.storage_cost_percentage_of_order,
-      estimated_equipment_cost: decision.estimated_equipment_cost,
-      expected_revenue_increase_monthly: decision.expected_revenue_increase_monthly,
-      expected_expense_decrease_monthly: decision.expected_expense_decrease_monthly,
-      equipment_lifespan_months: decision.equipment_lifespan_months,
-      is_critical_replacement: decision.is_critical_replacement,
-      is_power_solution: decision.is_power_solution,
-      current_energy_cost_monthly: decision.current_energy_cost_monthly,
-      has_diversified_revenue_streams: decision.has_diversified_revenue_streams,
-      existing_debt_load_monthly_repayments: decision.existing_debt_load_monthly_repayments,
-      financing_required: decision.financing_required,
-      financing_interest_rate_annual_percentage: decision.financing_interest_rate_annual_percentage,
-      financing_term_months: decision.financing_term_months,
+      estimated_salary: decision.estimated_salary ?? null,
+      estimated_inventory_cost: decision.estimated_inventory_cost ?? null,
+      inventory_turnover_days: decision.inventory_turnover_days ?? null,
+      supplier_credit_terms_days: decision.supplier_credit_terms_days ?? null,
+      average_receivables_turnover_days: decision.average_receivables_turnover_days ?? null,
+      outstanding_supplier_debts: decision.outstanding_supplier_debts ?? null,
+      supplier_discount_percentage: decision.supplier_discount_percentage ?? null,
+      storage_cost_percentage_of_order: decision.storage_cost_percentage_of_order ?? null,
+      estimated_equipment_cost: decision.estimated_equipment_cost ?? null,
+      expected_revenue_increase_monthly: decision.expected_revenue_increase_monthly ?? null,
+      expected_expense_decrease_monthly: decision.expected_expense_decrease_monthly ?? null,
+      equipment_lifespan_months: decision.equipment_lifespan_months ?? null,
+      is_critical_replacement: decision.is_critical_replacement ?? null,
+      is_power_solution: decision.is_power_solution ?? null,
+      current_energy_cost_monthly: decision.current_energy_cost_monthly ?? null,
+      has_diversified_revenue_streams: decision.has_diversified_revenue_streams ?? null,
+      existing_debt_load_monthly_repayments: decision.existing_debt_load_monthly_repayments ?? null,
+      financing_required: decision.financing_required ?? null,
+      financing_interest_rate_annual_percentage: decision.financing_interest_rate_annual_percentage ?? null,
+      financing_term_months: decision.financing_term_months ?? null,
     };
     console.log(`[${requestId}] Attempting to save decision:`, decisionToSave);
 
