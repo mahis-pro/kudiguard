@@ -619,13 +619,28 @@ export function makeInventoryDecision(
 
   // --- Final Validation before Rule Evaluation ---
   // After all data collection, ensure critical fields are valid numbers (not 0 if they shouldn't be)
-  if (estimatedInventoryCost <= 0 || inventoryTurnoverDays <= 0 ||
-      (isFmcgVendor && (supplierCreditTermsDays <= 0 || averageReceivablesTurnoverDays <= 0))) {
-    throw new CustomError(
-      ERROR_CODES.MISSING_REQUIRED_FIELD,
-      "Critical inventory data is missing or invalid after collection. Please restart the conversation.",
-      SEVERITY.HIGH,
-      500
+  if (estimatedInventoryCost <= 0) {
+    throw new InputValidationError(
+      "Estimated inventory cost must be a positive number.",
+      "The estimated inventory cost must be greater than 0."
+    );
+  }
+  if (inventoryTurnoverDays <= 0) {
+    throw new InputValidationError(
+      "Inventory turnover days must be a positive number.",
+      "The inventory turnover days must be greater than 0."
+    );
+  }
+  if (isFmcgVendor && supplierCreditTermsDays <= 0) {
+    throw new InputValidationError(
+      "Supplier credit terms must be a positive number for FMCG vendors.",
+      "The supplier credit terms must be greater than 0."
+    );
+  }
+  if (isFmcgVendor && averageReceivablesTurnoverDays <= 0) {
+    throw new InputValidationError(
+      "Average receivables turnover days must be a positive number for FMCG vendors.",
+      "The average receivables turnover days must be greater than 0."
     );
   }
 

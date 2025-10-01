@@ -19,6 +19,7 @@ interface ChatMessage {
     field: string;
     prompt: string;
     intent_context: { intent: string; decision_type: string; current_payload?: Record<string, any>; }; // Added current_payload
+    canBeZeroOrNone?: boolean; // Added canBeZeroOrNone
   };
   // Store the original question for multi-step data collection
   originalQuestion?: string; 
@@ -215,6 +216,21 @@ const ChatPage = () => {
           id: String(Date.now()),
           sender: 'ai',
           text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000' or 'true/false').`,
+          timestamp: new Date().toISOString(),
+          quickReplies: ['Cancel'],
+        };
+        setMessages((prev) => [...prev, retryMessage]);
+        setIsAiTyping(false);
+        setMessageInput('');
+        return;
+      }
+
+      // NEW: Check if 0 is allowed for the current field
+      if (pendingDataRequest.canBeZeroOrNone === false && parsedValue === 0) {
+        const retryMessage: ChatMessage = {
+          id: String(Date.now()),
+          sender: 'ai',
+          text: `The value for ${pendingDataRequest.field.replace(/_/g, ' ')} must be greater than 0. Please provide a valid input.`,
           timestamp: new Date().toISOString(),
           quickReplies: ['Cancel'],
         };
