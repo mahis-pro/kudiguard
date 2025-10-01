@@ -36,6 +36,19 @@ interface DecisionDetailsDialogProps {
     historic_foot_traffic_increase_observed?: boolean | null;
     sales_increase_last_campaign_1?: number | null;
     sales_increase_last_campaign_2?: number | null;
+    revenue_gain_last_campaign?: number | null;
+    marketing_spend_last_campaign?: number | null;
+    customer_acquisition_cost?: number | null;
+    customer_lifetime_value?: number | null;
+    is_festive_or_peak_season?: boolean | null;
+    projected_demand_increase_factor?: number | null;
+    digital_cac?: number | null;
+    offline_cac?: number | null;
+    experimental_channel_spend?: number | null;
+    has_tested_multiple_channels?: boolean | null;
+    low_performing_channel_spend?: number | null;
+    high_performing_channel_roi?: number | null;
+    consecutive_negative_cash_flow_months?: number | null;
     created_at: string;
   } | null;
 }

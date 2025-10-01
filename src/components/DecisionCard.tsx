@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale } from 'lucide-react';
 
 interface DecisionCardProps {
   data: {
@@ -14,7 +14,7 @@ interface DecisionCardProps {
       current_savings: number;
     };
     estimated_salary?: number | null; // Allow null
-    // New fields for inventory management
+    // Fields for inventory management
     estimated_inventory_cost?: number | null; // Allow null
     inventory_turnover_days?: number | null; // Allow null
     supplier_credit_terms_days?: number | null; // Allow null
@@ -22,12 +22,25 @@ interface DecisionCardProps {
     outstanding_supplier_debts?: number | null; // Allow null
     supplier_discount_percentage?: number | null; // Allow null
     storage_cost_percentage_of_order?: number | null; // Allow null
-    // New fields for marketing & customer growth
+    // Fields for marketing & customer growth
     proposed_marketing_budget?: number | null;
     is_localized_promotion?: boolean | null;
     historic_foot_traffic_increase_observed?: boolean | null;
     sales_increase_last_campaign_1?: number | null;
     sales_increase_last_campaign_2?: number | null;
+    revenue_gain_last_campaign?: number | null;
+    marketing_spend_last_campaign?: number | null;
+    customer_acquisition_cost?: number | null;
+    customer_lifetime_value?: number | null;
+    is_festive_or_peak_season?: boolean | null;
+    projected_demand_increase_factor?: number | null;
+    digital_cac?: number | null;
+    offline_cac?: number | null;
+    experimental_channel_spend?: number | null;
+    has_tested_multiple_channels?: boolean | null;
+    low_performing_channel_spend?: number | null;
+    high_performing_channel_roi?: number | null;
+    consecutive_negative_cash_flow_months?: number | null;
   };
 }
 
@@ -51,6 +64,19 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     historic_foot_traffic_increase_observed,
     sales_increase_last_campaign_1,
     sales_increase_last_campaign_2,
+    revenue_gain_last_campaign, // Corrected name
+    marketing_spend_last_campaign, // Corrected name
+    customer_acquisition_cost, // Corrected name
+    customer_lifetime_value, // Corrected name
+    is_festive_or_peak_season,
+    projected_demand_increase_factor,
+    digital_cac,
+    offline_cac,
+    experimental_channel_spend,
+    has_tested_multiple_channels,
+    low_performing_channel_spend,
+    high_performing_channel_roi,
+    consecutive_negative_cash_flow_months,
   } = data;
 
   const getRecommendationDetails = () => {
@@ -105,7 +131,36 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     (is_localized_promotion !== null && is_localized_promotion !== undefined) ||
     (historic_foot_traffic_increase_observed !== null && historic_foot_traffic_increase_observed !== undefined) ||
     (sales_increase_last_campaign_1 !== null && sales_increase_last_campaign_1 !== undefined) ||
-    (sales_increase_last_campaign_2 !== null && sales_increase_last_campaign_2 !== undefined);
+    (sales_increase_last_campaign_2 !== null && sales_increase_last_campaign_2 !== undefined) ||
+    (revenue_gain_last_campaign !== null && revenue_gain_last_campaign !== undefined) ||
+    (marketing_spend_last_campaign !== null && marketing_spend_last_campaign !== undefined) ||
+    (customer_acquisition_cost !== null && customer_acquisition_cost !== undefined) ||
+    (customer_lifetime_value !== null && customer_lifetime_value !== undefined) ||
+    (is_festive_or_peak_season !== null && is_festive_or_peak_season !== undefined) ||
+    (projected_demand_increase_factor !== null && projected_demand_increase_factor !== undefined) ||
+    (digital_cac !== null && digital_cac !== undefined) ||
+    (offline_cac !== null && offline_cac !== undefined) ||
+    (experimental_channel_spend !== null && experimental_channel_spend !== undefined) ||
+    (has_tested_multiple_channels !== null && has_tested_multiple_channels !== undefined) ||
+    (low_performing_channel_spend !== null && low_performing_channel_spend !== undefined) ||
+    (high_performing_channel_roi !== null && high_performing_channel_roi !== undefined) ||
+    (consecutive_negative_cash_flow_months !== null && consecutive_negative_cash_flow_months !== undefined);
+
+  const formatCurrency = (value: number | null | undefined) => 
+    value !== null && value !== undefined ? `₦${value.toLocaleString()}` : 'N/A';
+  const formatPercentage = (value: number | null | undefined) => 
+    value !== null && value !== undefined ? `${value}%` : 'N/A';
+  const formatBoolean = (value: boolean | null | undefined) => 
+    value !== null && value !== undefined ? (value ? 'Yes' : 'No') : 'N/A';
+  const formatFactor = (value: number | null | undefined) =>
+    value !== null && value !== undefined ? `${value}x` : 'N/A';
+
+  const roi = (revenue_gain_last_campaign && marketing_spend_last_campaign && marketing_spend_last_campaign > 0) 
+    ? (revenue_gain_last_campaign / marketing_spend_last_campaign) 
+    : null;
+  const cacLtvRatio = (customer_acquisition_cost && customer_lifetime_value && customer_acquisition_cost > 0)
+    ? (customer_lifetime_value / customer_acquisition_cost)
+    : null;
 
   return (
     <Card className={`shadow-md mt-2 ${cardClasses}`}>
@@ -127,14 +182,14 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
               {estimated_salary !== null && estimated_salary !== undefined && (
                 <div className="flex items-center">
-                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-                  <span className="text-muted-foreground">Estimated New Hire Salary: <span className="font-medium text-foreground currency">{estimated_salary.toLocaleString()}</span>/month</span>
+                  <Users className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Estimated New Hire Salary: <span className="font-medium text-foreground">{formatCurrency(estimated_salary)}/month</span></span>
                 </div>
               )}
               {estimated_inventory_cost !== null && estimated_inventory_cost !== undefined && (
                 <div className="flex items-center">
                   <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-                  <span className="text-muted-foreground">Estimated Inventory Cost: <span className="font-medium text-foreground currency">{estimated_inventory_cost.toLocaleString()}</span></span>
+                  <span className="text-muted-foreground">Estimated Inventory Cost: <span className="font-medium text-foreground">{formatCurrency(estimated_inventory_cost)}</span></span>
                 </div>
               )}
               {inventory_turnover_days !== null && inventory_turnover_days !== undefined && (
@@ -157,51 +212,141 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
               )}
               {outstanding_supplier_debts !== null && outstanding_supplier_debts !== undefined && (
                 <div className="flex items-center">
-                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-                  <span className="text-muted-foreground">Outstanding Debts: <span className="font-medium text-foreground currency">{outstanding_supplier_debts.toLocaleString()}</span></span>
+                  <HandCoins className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Outstanding Debts: <span className="font-medium text-foreground">{formatCurrency(outstanding_supplier_debts)}</span></span>
                 </div>
               )}
               {supplier_discount_percentage !== null && supplier_discount_percentage !== undefined && (
                 <div className="flex items-center">
                   <Percent className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-                  <span className="text-muted-foreground">Supplier Discount: <span className="font-medium text-foreground">{supplier_discount_percentage}%</span></span>
+                  <span className="text-muted-foreground">Supplier Discount: <span className="font-medium text-foreground">{formatPercentage(supplier_discount_percentage)}</span></span>
                 </div>
               )}
               {storage_cost_percentage_of_order !== null && storage_cost_percentage_of_order !== undefined && (
                 <div className="flex items-center">
                   <Percent className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-                  <span className="text-muted-foreground">Storage Cost: <span className="font-medium text-foreground">{storage_cost_percentage_of_order}%</span></span>
+                  <span className="text-muted-foreground">Storage Cost: <span className="font-medium text-foreground">{formatPercentage(storage_cost_percentage_of_order)}</span></span>
                 </div>
               )}
               {/* Marketing Fields */}
               {proposed_marketing_budget !== null && proposed_marketing_budget !== undefined && (
                 <div className="flex items-center">
                   <BarChart className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-                  <span className="text-muted-foreground">Proposed Marketing Budget: <span className="font-medium text-foreground currency">{proposed_marketing_budget.toLocaleString()}</span></span>
+                  <span className="text-muted-foreground">Proposed Marketing Budget: <span className="font-medium text-foreground">{formatCurrency(proposed_marketing_budget)}</span></span>
                 </div>
               )}
               {is_localized_promotion !== null && is_localized_promotion !== undefined && (
                 <div className="flex items-center">
                   <Target className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-                  <span className="text-muted-foreground">Localized Promotion: <span className="font-medium text-foreground">{is_localized_promotion ? 'Yes' : 'No'}</span></span>
+                  <span className="text-muted-foreground">Localized Promotion: <span className="font-medium text-foreground">{formatBoolean(is_localized_promotion)}</span></span>
                 </div>
               )}
               {historic_foot_traffic_increase_observed !== null && historic_foot_traffic_increase_observed !== undefined && (
                 <div className="flex items-center">
                   <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-                  <span className="text-muted-foreground">Historic Foot Traffic Increase: <span className="font-medium text-foreground">{historic_foot_traffic_increase_observed ? 'Yes' : 'No'}</span></span>
+                  <span className="text-muted-foreground">Historic Foot Traffic Increase: <span className="font-medium text-foreground">{formatBoolean(historic_foot_traffic_increase_observed)}</span></span>
                 </div>
               )}
               {sales_increase_last_campaign_1 !== null && sales_increase_last_campaign_1 !== undefined && (
                 <div className="flex items-center">
-                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-                  <span className="text-muted-foreground">Sales Increase (Last Campaign 1): <span className="font-medium text-foreground">{sales_increase_last_campaign_1}%</span></span>
+                  <LineChart className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Sales Increase (Last Campaign 1): <span className="font-medium text-foreground">{formatPercentage(sales_increase_last_campaign_1)}</span></span>
                 </div>
               )}
               {sales_increase_last_campaign_2 !== null && sales_increase_last_campaign_2 !== undefined && (
                 <div className="flex items-center">
+                  <LineChart className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Sales Increase (Last Campaign 2): <span className="font-medium text-foreground">{formatPercentage(sales_increase_last_campaign_2)}</span></span>
+                </div>
+              )}
+              {revenue_gain_last_campaign !== null && revenue_gain_last_campaign !== undefined && (
+                <div className="flex items-center">
                   <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-                  <span className="text-muted-foreground">Sales Increase (Last Campaign 2): <span className="font-medium text-foreground">{sales_increase_last_campaign_2}%</span></span>
+                  <span className="text-muted-foreground">Revenue Gain (Last Campaign): <span className="font-medium text-foreground">{formatCurrency(revenue_gain_last_campaign)}</span></span>
+                </div>
+              )}
+              {marketing_spend_last_campaign !== null && marketing_spend_last_campaign !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Marketing Spend (Last Campaign): <span className="font-medium text-foreground">{formatCurrency(marketing_spend_last_campaign)}</span></span>
+                </div>
+              )}
+              {roi !== null && roi !== undefined && (
+                <div className="flex items-center">
+                  <Scale className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">ROI (Last Campaign): <span className="font-medium text-foreground">{roi.toFixed(1)}x</span></span>
+                </div>
+              )}
+              {customer_acquisition_cost !== null && customer_acquisition_cost !== undefined && (
+                <div className="flex items-center">
+                  <Users className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Customer Acquisition Cost (CAC): <span className="font-medium text-foreground">{formatCurrency(customer_acquisition_cost)}</span></span>
+                </div>
+              )}
+              {customer_lifetime_value !== null && customer_lifetime_value !== undefined && (
+                <div className="flex items-center">
+                  <PiggyBank className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Customer Lifetime Value (LTV): <span className="font-medium text-foreground">{formatCurrency(customer_lifetime_value)}</span></span>
+                </div>
+              )}
+              {cacLtvRatio !== null && cacLtvRatio !== undefined && (
+                <div className="flex items-center">
+                  <Scale className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">LTV/CAC Ratio: <span className="font-medium text-foreground">{cacLtvRatio.toFixed(1)}x</span></span>
+                </div>
+              )}
+              {is_festive_or_peak_season !== null && is_festive_or_peak_season !== undefined && (
+                <div className="flex items-center">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Festive/Peak Season: <span className="font-medium text-foreground">{formatBoolean(is_festive_or_peak_season)}</span></span>
+                </div>
+              )}
+              {projected_demand_increase_factor !== null && projected_demand_increase_factor !== undefined && (
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Projected Demand Increase: <span className="font-medium text-foreground">{formatFactor(projected_demand_increase_factor)}</span></span>
+                </div>
+              )}
+              {digital_cac !== null && digital_cac !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Digital CAC: <span className="font-medium text-foreground">{formatCurrency(digital_cac)}</span></span>
+                </div>
+              )}
+              {offline_cac !== null && offline_cac !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Offline CAC: <span className="font-medium text-foreground">{formatCurrency(offline_cac)}</span></span>
+                </div>
+              )}
+              {experimental_channel_spend !== null && experimental_channel_spend !== undefined && (
+                <div className="flex items-center">
+                  <BarChart className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Experimental Channel Spend: <span className="font-medium text-foreground">{formatCurrency(experimental_channel_spend)}</span></span>
+                </div>
+              )}
+              {has_tested_multiple_channels !== null && has_tested_multiple_channels !== undefined && (
+                <div className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Tested Multiple Channels: <span className="font-medium text-foreground">{formatBoolean(has_tested_multiple_channels)}</span></span>
+                </div>
+              )}
+              {low_performing_channel_spend !== null && low_performing_channel_spend !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Low-Performing Channel Spend: <span className="font-medium text-foreground">{formatCurrency(low_performing_channel_spend)}</span></span>
+                </div>
+              )}
+              {high_performing_channel_roi !== null && high_performing_channel_roi !== undefined && (
+                <div className="flex items-center">
+                  <Scale className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">High-Performing Channel ROI: <span className="font-medium text-foreground">{high_performing_channel_roi.toFixed(1)}x</span></span>
+                </div>
+              )}
+              {consecutive_negative_cash_flow_months !== null && consecutive_negative_cash_flow_months !== undefined && (
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Consecutive Negative Cash Flow Months: <span className="font-medium text-foreground">{consecutive_negative_cash_flow_months}</span></span>
                 </div>
               )}
             </div>
