@@ -30,6 +30,12 @@ interface DecisionDetailsDialogProps {
     outstanding_supplier_debts?: number | null;
     supplier_discount_percentage?: number | null;
     storage_cost_percentage_of_order?: number | null;
+    // New fields for marketing & customer growth
+    proposed_marketing_budget?: number | null;
+    is_localized_promotion?: boolean | null;
+    historic_foot_traffic_increase_observed?: boolean | null;
+    sales_increase_last_campaign_1?: number | null;
+    sales_increase_last_campaign_2?: number | null;
     created_at: string;
   } | null;
 }

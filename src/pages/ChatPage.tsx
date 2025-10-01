@@ -7,6 +7,7 @@ import { useSession } from '@/components/auth/SessionContextProvider';
 import AddDataModal from '@/components/AddDataModal';
 import DecisionCard from '@/components/DecisionCard';
 import { useToast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch'; // Import Switch component
 
 interface ChatMessage {
   id: string;
@@ -18,6 +19,7 @@ interface ChatMessage {
   dataNeeded?: {
     field: string;
     prompt: string;
+    type: 'number' | 'boolean'; // Added type field
     intent_context: { intent: string; decision_type: string; current_payload?: Record<string, any>; }; // Added current_payload
     canBeZeroOrNone?: boolean; // Added canBeZeroOrNone
   };
@@ -60,7 +62,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Hello ${userDisplayName}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
           timestamp: new Date().toISOString(),
-          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Add new data'],
+          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'Add new data'],
         },
       ]);
     }
@@ -180,13 +182,18 @@ const ChatPage = () => {
     }
   };
 
-  const handleSendMessage = () => {
-    if (messageInput.trim() === '') return;
+  const handleSendMessage = (valueToSend?: string | boolean) => {
+    let finalMessageInput = messageInput;
+    if (valueToSend !== undefined) {
+      finalMessageInput = String(valueToSend);
+    }
+
+    if (finalMessageInput.trim() === '') return;
 
     const userMessage: ChatMessage = {
       id: String(Date.now()),
       sender: 'user',
-      text: messageInput,
+      text: finalMessageInput,
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -194,29 +201,25 @@ const ChatPage = () => {
     if (pendingDataRequest && currentIntent && currentQuestion) {
       // If AI is waiting for data, try to parse the input for the specific field
       let parsedValue: number | boolean | undefined;
-      const lowerCaseInput = messageInput.toLowerCase();
+      const lowerCaseInput = String(finalMessageInput).toLowerCase();
 
-      // No boolean fields for current intents, but keep the structure for future expansion
-      // if (pendingDataRequest.field === "is_critical_replacement" || 
-      //     pendingDataRequest.field === "is_power_solution" ||
-      //     pendingDataRequest.field === "has_diversified_revenue_streams" ||
-      //     pendingDataRequest.field === "financing_required") {
-      //   parsedValue = lowerCaseInput === 'true' || lowerCaseInput === 'yes';
-      // } else {
-        const valueMatch = messageInput.match(/(\d[\d,\.]*)/); // Extract numbers
+      if (pendingDataRequest.type === 'boolean') {
+        parsedValue = lowerCaseInput === 'true' || lowerCaseInput === 'yes';
+      } else { // type is 'number'
+        const valueMatch = String(finalMessageInput).match(/(\d[\d,\.]*)/); // Extract numbers
         if (valueMatch && valueMatch[1]) {
           parsedValue = parseFloat(valueMatch[1].replace(/,/g, ''));
           if (isNaN(parsedValue) || parsedValue < 0) {
             parsedValue = undefined; // Invalid number
           }
         }
-      // }
+      }
 
       if (parsedValue === undefined) {
         const retryMessage: ChatMessage = {
           id: String(Date.now()),
           sender: 'ai',
-          text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000').`,
+          text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000' or 'Yes/No').`,
           timestamp: new Date().toISOString(),
           quickReplies: ['Cancel'],
         };
@@ -227,7 +230,7 @@ const ChatPage = () => {
       }
 
       // NEW: Check if 0 is allowed for the current field
-      if (pendingDataRequest.canBeZeroOrNone === false && parsedValue === 0) {
+      if (pendingDataRequest.type === 'number' && pendingDataRequest.canBeZeroOrNone === false && parsedValue === 0) {
         const retryMessage: ChatMessage = {
           id: String(Date.now()),
           sender: 'ai',
@@ -252,7 +255,7 @@ const ChatPage = () => {
     }
 
     // Initial intent detection
-    const lowerCaseMessage = messageInput.toLowerCase();
+    const lowerCaseMessage = finalMessageInput.toLowerCase();
     let intentDetected: string | null = null;
     let initialPayload: Record<string, any> = {};
 
@@ -273,19 +276,20 @@ const ChatPage = () => {
         // For now, we'll just proceed with the inventory intent and let the engine ask for specifics.
         // If a discount is implied but not specified, the engine will ask for it.
       }
-    } 
-    // Removed equipment intent detection
+    } else if (lowerCaseMessage.includes('marketing') || lowerCaseMessage.includes('promote') || lowerCaseMessage.includes('campaign') || lowerCaseMessage.includes('advertise')) {
+      intentDetected = 'marketing';
+    }
 
     if (intentDetected) {
       setCurrentIntent(intentDetected);
-      setCurrentQuestion(messageInput);
+      setCurrentQuestion(finalMessageInput);
       setCurrentPayload(initialPayload); // Set initial payload
-      sendToDecisionEngine(intentDetected, messageInput, initialPayload);
+      sendToDecisionEngine(intentDetected, finalMessageInput, initialPayload);
     } else {
       const noIntentResponse: ChatMessage = {
         id: String(Date.now()),
         sender: 'ai',
-        text: "I'm currently specialized in hiring and inventory decisions. Please ask me a question like 'Can I afford to hire a new staff member?' or 'Should I restock my shop?'.",
+        text: "I'm currently specialized in hiring, inventory, and marketing decisions. Please ask me a question like 'Can I afford to hire a new staff member?', 'Should I restock my shop?', or 'Should I invest in marketing?'.",
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, noIntentResponse]);
@@ -307,14 +311,14 @@ const ChatPage = () => {
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
-        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Add new data'],
+        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'Add new data'],
       };
       setMessages((prev) => [...prev, cancelMessage]);
     } else {
       // Treat quick reply as a user message
       setMessageInput(reply);
       // Directly call handleSendMessage to process it
-      setTimeout(() => handleSendMessage(), 0); 
+      setTimeout(() => handleSendMessage(reply), 0); 
     }
   };
 
@@ -382,16 +386,38 @@ const ChatPage = () => {
         </div>
 
         <div className="bg-card border-t border-border p-4 flex items-center flex-shrink-0">
-          <Input
-            type="text"
-            placeholder={pendingDataRequest ? pendingDataRequest.prompt : "Ask about hiring or restocking..."}
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            className="flex-1 mr-2 h-12"
-            disabled={isAiTyping}
-          />
-          <Button onClick={handleSendMessage} className="bg-gradient-primary h-12" disabled={isAiTyping}>
+          {pendingDataRequest?.type === 'boolean' ? (
+            <div className="flex items-center justify-between w-full">
+              <span className="text-muted-foreground mr-4">{pendingDataRequest.prompt}</span>
+              <div className="flex space-x-2">
+                <Button 
+                  onClick={() => handleSendMessage(true)} 
+                  disabled={isAiTyping}
+                  className="bg-gradient-primary"
+                >
+                  Yes
+                </Button>
+                <Button 
+                  onClick={() => handleSendMessage(false)} 
+                  disabled={isAiTyping}
+                  variant="outline"
+                >
+                  No
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Input
+              type="text"
+              placeholder={pendingDataRequest ? pendingDataRequest.prompt : "Ask about hiring, inventory, or marketing..."}
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              className="flex-1 mr-2 h-12"
+              disabled={isAiTyping}
+            />
+          )}
+          <Button onClick={() => handleSendMessage()} className="bg-gradient-primary h-12 ml-2" disabled={isAiTyping}>
             <Send className="h-5 w-5" />
           </Button>
         </div>

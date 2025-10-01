@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target } from 'lucide-react';
 
 interface DecisionCardProps {
   data: {
@@ -22,6 +22,12 @@ interface DecisionCardProps {
     outstanding_supplier_debts?: number | null; // Allow null
     supplier_discount_percentage?: number | null; // Allow null
     storage_cost_percentage_of_order?: number | null; // Allow null
+    // New fields for marketing & customer growth
+    proposed_marketing_budget?: number | null;
+    is_localized_promotion?: boolean | null;
+    historic_foot_traffic_increase_observed?: boolean | null;
+    sales_increase_last_campaign_1?: number | null;
+    sales_increase_last_campaign_2?: number | null;
   };
 }
 
@@ -39,6 +45,12 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     outstanding_supplier_debts,
     supplier_discount_percentage,
     storage_cost_percentage_of_order,
+    // Marketing fields
+    proposed_marketing_budget,
+    is_localized_promotion,
+    historic_foot_traffic_increase_observed,
+    sales_increase_last_campaign_1,
+    sales_increase_last_campaign_2,
   } = data;
 
   const getRecommendationDetails = () => {
@@ -88,7 +100,12 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     (average_receivables_turnover_days !== null && average_receivables_turnover_days !== undefined) ||
     (outstanding_supplier_debts !== null && outstanding_supplier_debts !== undefined) ||
     (supplier_discount_percentage !== null && supplier_discount_percentage !== undefined) ||
-    (storage_cost_percentage_of_order !== null && storage_cost_percentage_of_order !== undefined);
+    (storage_cost_percentage_of_order !== null && storage_cost_percentage_of_order !== undefined) ||
+    (proposed_marketing_budget !== null && proposed_marketing_budget !== undefined) ||
+    (is_localized_promotion !== null && is_localized_promotion !== undefined) ||
+    (historic_foot_traffic_increase_observed !== null && historic_foot_traffic_increase_observed !== undefined) ||
+    (sales_increase_last_campaign_1 !== null && sales_increase_last_campaign_1 !== undefined) ||
+    (sales_increase_last_campaign_2 !== null && sales_increase_last_campaign_2 !== undefined);
 
   return (
     <Card className={`shadow-md mt-2 ${cardClasses}`}>
@@ -154,6 +171,37 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
                 <div className="flex items-center">
                   <Percent className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
                   <span className="text-muted-foreground">Storage Cost: <span className="font-medium text-foreground">{storage_cost_percentage_of_order}%</span></span>
+                </div>
+              )}
+              {/* Marketing Fields */}
+              {proposed_marketing_budget !== null && proposed_marketing_budget !== undefined && (
+                <div className="flex items-center">
+                  <BarChart className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Proposed Marketing Budget: <span className="font-medium text-foreground currency">{proposed_marketing_budget.toLocaleString()}</span></span>
+                </div>
+              )}
+              {is_localized_promotion !== null && is_localized_promotion !== undefined && (
+                <div className="flex items-center">
+                  <Target className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Localized Promotion: <span className="font-medium text-foreground">{is_localized_promotion ? 'Yes' : 'No'}</span></span>
+                </div>
+              )}
+              {historic_foot_traffic_increase_observed !== null && historic_foot_traffic_increase_observed !== undefined && (
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Historic Foot Traffic Increase: <span className="font-medium text-foreground">{historic_foot_traffic_increase_observed ? 'Yes' : 'No'}</span></span>
+                </div>
+              )}
+              {sales_increase_last_campaign_1 !== null && sales_increase_last_campaign_1 !== undefined && (
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Sales Increase (Last Campaign 1): <span className="font-medium text-foreground">{sales_increase_last_campaign_1}%</span></span>
+                </div>
+              )}
+              {sales_increase_last_campaign_2 !== null && sales_increase_last_campaign_2 !== undefined && (
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Sales Increase (Last Campaign 2): <span className="font-medium text-foreground">{sales_increase_last_campaign_2}%</span></span>
                 </div>
               )}
             </div>
