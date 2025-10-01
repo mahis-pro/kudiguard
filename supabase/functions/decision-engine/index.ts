@@ -547,7 +547,8 @@ export function makeInventoryDecision(
       }
     };
   }
-  if (currentPayload?.outstanding_supplier_debts === undefined || currentPayload?.outstanding_supplier_debts === null) { // Check original payload for undefined/null
+  // Use hasOwnProperty for fields where 0 is a valid input
+  if (!currentPayload.hasOwnProperty('outstanding_supplier_debts')) {
     return {
       decision: null,
       dataNeeded: {
@@ -599,7 +600,8 @@ export function makeInventoryDecision(
 
   // Conditional data requests for Additional Case (Bulk Purchase)
   if (supplierDiscountPercentage > 0) { // Only ask for storage cost if there's a discount
-    if (currentPayload?.storage_cost_percentage_of_order === undefined || currentPayload?.storage_cost_percentage_of_order === null) {
+    // Use hasOwnProperty for fields where 0 is a valid input
+    if (!currentPayload.hasOwnProperty('storage_cost_percentage_of_order')) {
       return {
         decision: null,
       dataNeeded: {
@@ -802,7 +804,8 @@ export function makeEquipmentDecision(
     };
   }
 
-  if (currentPayload.expected_revenue_increase_monthly === undefined || currentPayload.expected_revenue_increase_monthly === null) {
+  // Use hasOwnProperty for fields where 0 is a valid input
+  if (!currentPayload.hasOwnProperty('expected_revenue_increase_monthly')) {
     return {
       decision: null,
       dataNeeded: {
@@ -814,7 +817,8 @@ export function makeEquipmentDecision(
     };
   }
 
-  if (currentPayload.expected_expense_decrease_monthly === undefined || currentPayload.expected_expense_decrease_monthly === null) {
+  // Use hasOwnProperty for fields where 0 is a valid input
+  if (!currentPayload.hasOwnProperty('expected_expense_decrease_monthly')) {
     return {
       decision: null,
       dataNeeded: {
@@ -826,7 +830,8 @@ export function makeEquipmentDecision(
     };
   }
 
-  if (currentPayload.existing_debt_load_monthly_repayments === undefined || currentPayload.existing_debt_load_monthly_repayments === null) {
+  // Use hasOwnProperty for fields where 0 is a valid input
+  if (!currentPayload.hasOwnProperty('existing_debt_load_monthly_repayments')) {
     return {
       decision: null,
       dataNeeded: {
@@ -839,7 +844,7 @@ export function makeEquipmentDecision(
   }
 
   // Conditional prompt for current_energy_cost_monthly if it's a power solution
-  if (isPowerSolution && (currentPayload.current_energy_cost_monthly === undefined || currentPayload.current_energy_cost_monthly === null)) {
+  if (isPowerSolution && !currentPayload.hasOwnProperty('current_energy_cost_monthly')) {
     return {
       decision: null,
       dataNeeded: {
@@ -887,7 +892,8 @@ export function makeEquipmentDecision(
 
   // Conditional prompts for financing details if financing_required is true
   if (financingRequired) {
-    if (currentPayload.financing_interest_rate_annual_percentage === undefined || currentPayload.financing_interest_rate_annual_percentage === null) {
+    // Use hasOwnProperty for fields where 0 is a valid input
+    if (!currentPayload.hasOwnProperty('financing_interest_rate_annual_percentage')) {
       return {
         decision: null,
       dataNeeded: {
