@@ -599,7 +599,7 @@ export function makeInventoryDecision(
 
   // Conditional data requests for Additional Case (Bulk Purchase)
   if (supplierDiscountPercentage > 0) { // Only ask for storage cost if there's a discount
-    if (currentPayload?.storageCostPercentageOfOrder === undefined || currentPayload?.storageCostPercentageOfOrder === null) {
+    if (currentPayload?.storage_cost_percentage_of_order === undefined || currentPayload?.storage_cost_percentage_of_order === null) {
       return {
         decision: null,
       dataNeeded: {
@@ -902,55 +902,53 @@ export function makeEquipmentDecision(
 
   // If not a power solution, energy cost should be null
   if (!isPowerSolution) {
-    currentEnergyCostMonthly = null; // Update local variable too
-  } else if (currentEnergyCostMonthly === 0) {
-    currentEnergyCostMonthly = 0; // Keep 0 if user entered 0
-  } else if (currentEnergyCostMonthly === undefined) {
-    currentEnergyCostMonthly = null; // If power solution but no input, default to null
+    currentEnergyCostMonthly = null;
   }
 
   // If not capital intensive, diversified revenue streams should be null
   if (estimatedEquipmentCost <= 1000000) {
-    hasDiversifiedRevenueStreams = null; // Update local variable too
-  } else if (hasDiversifiedRevenueStreams === false) {
-    hasDiversifiedRevenueStreams = false; // Keep false if user entered false
-  } else if (hasDiversifiedRevenueStreams === undefined) {
-    hasDiversifiedRevenueStreams = null; // If capital intensive but no input, default to null
+    hasDiversifiedRevenueStreams = null;
   }
 
   // If financing is not required, financing details should be null
   if (!financingRequired) {
-    financingInterestRateAnnualPercentage = null; // Update local variable too
-    financingTermMonths = null; // Update local variable too
-  } else if (financingRequired && financingInterestRateAnnualPercentage === 0) {
-    financingInterestRateAnnualPercentage = 0; // Keep 0 if user entered 0
-  } else if (financingRequired && financingTermMonths === 0) {
-    financingTermMonths = 0; // Keep 0 if user entered 0
-  } else if (financingRequired && financingInterestRateAnnualPercentage === undefined) {
-    financingInterestRateAnnualPercentage = null; // If financing required but no input, default to null
-  } else if (financingRequired && financingTermMonths === undefined) {
-    financingTermMonths = null; // If financing required but no input, default to null
+    financingInterestRateAnnualPercentage = null;
+    financingTermMonths = null;
   }
 
-  // equipmentLifespanMonths is never prompted, so ensure it's null if not provided
-  if (equipmentLifespanMonths === undefined || equipmentLifespanMonths === 0) { // Treat 0 as null for storage
-    equipmentLifespanMonths = null; // Update local variable too
+  // equipmentLifespanMonths is never prompted, so ensure it's null if 0 (meaning not provided)
+  if (equipmentLifespanMonths === 0) {
+    equipmentLifespanMonths = null;
   }
   // --- End explicit null setting ---
 
 
   // --- Final Validation before Rule Evaluation ---
-  // Re-check after explicit null setting, as some might still be undefined if logic is flawed
-  if (estimatedEquipmentCost <= 0 || expectedRevenueIncreaseMonthly === undefined || expectedExpenseDecreaseMonthly === undefined ||
-      isCriticalReplacement === undefined || existingDebtLoadMonthlyRepayments === undefined ||
-      (isPowerSolution && currentEnergyCostMonthly === undefined) ||
-      (estimatedEquipmentCost > 1000000 && hasDiversifiedRevenueStreams === undefined) ||
-      (financingRequired && (financingInterestRateAnnualPercentage === undefined || financingTermMonths === undefined))) {
-    throw new CustomError(
-      ERROR_CODES.MISSING_REQUIRED_FIELD,
-      "Critical equipment data is missing after collection. Please restart the conversation.",
-      SEVERITY.HIGH,
-      500
+  // Re-check after explicit null setting, ensuring critical fields have valid values.
+  if (estimatedEquipmentCost <= 0) {
+    throw new InputValidationError(
+      "Estimated equipment cost must be a positive number.",
+      "The estimated equipment cost must be greater than 0."
+    );
+  }
+  if (isCriticalReplacement === undefined || isCriticalReplacement === null) {
+    throw new InputValidationError(
+      "Critical replacement status is required.",
+      "Please specify if this is a critical replacement (true/false)."
+    );
+  }
+  // If capital intensive, diversified revenue streams must be explicitly true/false or null if not applicable
+  if (estimatedEquipmentCost > 1000000 && (hasDiversifiedRevenueStreams === undefined || hasDiversifiedRevenueStreams === null)) {
+    throw new InputValidationError(
+      "Diversified revenue streams status is required for large investments.",
+      "Please specify if your business has diversified revenue streams (true/false)."
+    );
+  }
+  // If financing is required, term must be positive
+  if (financingRequired && (financingTermMonths === null || financingTermMonths <= 0)) {
+    throw new InputValidationError(
+      "Financing term is required and must be a positive number if financing is needed.",
+      "Please provide a valid financing term in months (greater than 0)."
     );
   }
 
