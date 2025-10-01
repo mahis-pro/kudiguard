@@ -885,7 +885,35 @@ export function makeEquipmentDecision(
     }
   }
 
+  // --- Explicitly set conditional optional fields to null if not collected ---
+  // This ensures that the final decision object always has these properties,
+  // with null if they were not applicable or not prompted for.
+  if (!isPowerSolution && currentPayload.current_energy_cost_monthly === undefined) {
+    currentPayload.current_energy_cost_monthly = null;
+    currentEnergyCostMonthly = null;
+  }
+  if (estimatedEquipmentCost <= 1000000 && currentPayload.has_diversified_revenue_streams === undefined) {
+    currentPayload.has_diversified_revenue_streams = null; // Set to null if not capital intensive and not explicitly set
+    hasDiversifiedRevenueStreams = null;
+  }
+  if (!financingRequired && currentPayload.financing_interest_rate_annual_percentage === undefined) {
+    currentPayload.financing_interest_rate_annual_percentage = null;
+    financingInterestRateAnnualPercentage = null;
+  }
+  if (!financingRequired && currentPayload.financing_term_months === undefined) {
+    currentPayload.financing_term_months = null;
+    financingTermMonths = null;
+  }
+  // equipmentLifespanMonths is never prompted, so ensure it's null if not provided
+  if (currentPayload.equipment_lifespan_months === undefined) {
+    currentPayload.equipment_lifespan_months = null;
+    equipmentLifespanMonths = null;
+  }
+  // --- End explicit null setting ---
+
+
   // --- Final Validation before Rule Evaluation ---
+  // Re-check after explicit null setting, as some might still be undefined if logic is flawed
   if (estimatedEquipmentCost === undefined || expectedRevenueIncreaseMonthly === undefined || expectedExpenseDecreaseMonthly === undefined ||
       isCriticalReplacement === undefined || existingDebtLoadMonthlyRepayments === undefined ||
       (isPowerSolution && currentEnergyCostMonthly === undefined) ||
@@ -899,21 +927,21 @@ export function makeEquipmentDecision(
     );
   }
 
-  // Type assertion after validation
+  // Type assertion after validation and explicit null setting
   const finalEstimatedEquipmentCost = estimatedEquipmentCost!;
   const finalExpectedRevenueIncreaseMonthly = expectedRevenueIncreaseMonthly!;
   const finalExpectedExpenseDecreaseMonthly = expectedExpenseDecreaseMonthly!;
   const finalIsCriticalReplacement = isCriticalReplacement!;
   const finalIsPowerSolution = isPowerSolution!;
-  const finalHasDiversifiedRevenueStreams = hasDiversifiedRevenueStreams!;
+  const finalHasDiversifiedRevenueStreams = hasDiversifiedRevenueStreams; // Can be boolean or null
   const finalExistingDebtLoadMonthlyRepayments = existingDebtLoadMonthlyRepayments!;
   const finalFinancingRequired = financingRequired!;
   
   // Ensure optional fields are explicitly null if not provided or not applicable
-  const finalCurrentEnergyCostMonthly = finalIsPowerSolution ? (currentEnergyCostMonthly ?? null) : null;
-  const finalEquipmentLifespanMonths = equipmentLifespanMonths ?? null; // Never prompted, so default to null
-  const finalFinancingInterestRateAnnualPercentage = finalFinancingRequired ? (financingInterestRateAnnualPercentage ?? null) : null;
-  const finalFinancingTermMonths = finalFinancingRequired ? (financingTermMonths ?? null) : null;
+  const finalCurrentEnergyCostMonthly = currentEnergyCostMonthly;
+  const finalEquipmentLifespanMonths = equipmentLifespanMonths;
+  const finalFinancingInterestRateAnnualPercentage = financingInterestRateAnnualPercentage;
+  const finalFinancingTermMonths = financingTermMonths;
 
   const monthly_profit_increase = finalExpectedRevenueIncreaseMonthly + finalExpectedExpenseDecreaseMonthly;
   const payback_months = monthly_profit_increase > 0 ? finalEstimatedEquipmentCost / monthly_profit_increase : Infinity;
@@ -922,7 +950,7 @@ export function makeEquipmentDecision(
 
   // --- A. Immediate REJECT Conditions (Highest Priority) ---
   // Rule 3: Capital-Intensive & Undiversified (Refined)
-  if (finalEstimatedEquipmentCost > 1000000 && !finalHasDiversifiedRevenueStreams && !finalIsCriticalReplacement) {
+  if (finalEstimatedEquipmentCost > 1000000 && finalHasDiversifiedRevenueStreams === false && !finalIsCriticalReplacement) {
     rejectConditionsMet++;
     reasons.push(`Investing over ₦1,000,000 without diversified revenue streams is too risky, as it concentrates your business's financial exposure and could jeopardize stability if one stream falters.`);
     actionable_steps.push("Focus on developing at least one additional significant and stable revenue stream before considering such a large, non-critical investment.");
@@ -1177,26 +1205,26 @@ serve(async (req) => {
       reasoning: decision.reasoning,
       actionable_steps: decision.actionable_steps,
       financial_snapshot: decision.financial_snapshot,
-      estimated_salary: decision.estimated_salary ?? null,
-      estimated_inventory_cost: decision.estimated_inventory_cost ?? null,
-      inventory_turnover_days: decision.inventory_turnover_days ?? null,
-      supplier_credit_terms_days: decision.supplier_credit_terms_days ?? null,
-      average_receivables_turnover_days: decision.average_receivables_turnover_days ?? null,
-      outstanding_supplier_debts: decision.outstanding_supplier_debts ?? null,
-      supplier_discount_percentage: decision.supplier_discount_percentage ?? null,
-      storage_cost_percentage_of_order: decision.storage_cost_percentage_of_order ?? null,
-      estimated_equipment_cost: decision.estimated_equipment_cost ?? null,
-      expected_revenue_increase_monthly: decision.expected_revenue_increase_monthly ?? null,
-      expected_expense_decrease_monthly: decision.expected_expense_decrease_monthly ?? null,
-      equipment_lifespan_months: decision.equipment_lifespan_months ?? null,
-      is_critical_replacement: decision.is_critical_replacement ?? null,
-      is_power_solution: decision.is_power_solution ?? null,
-      current_energy_cost_monthly: decision.current_energy_cost_monthly ?? null,
-      has_diversified_revenue_streams: decision.has_diversified_revenue_streams ?? null,
-      existing_debt_load_monthly_repayments: decision.existing_debt_load_monthly_repayments ?? null,
-      financing_required: decision.financing_required ?? null,
-      financing_interest_rate_annual_percentage: decision.financing_interest_rate_annual_percentage ?? null,
-      financing_term_months: decision.financing_term_months ?? null,
+      estimated_salary: decision.estimated_salary,
+      estimated_inventory_cost: decision.estimated_inventory_cost,
+      inventory_turnover_days: decision.inventory_turnover_days,
+      supplier_credit_terms_days: decision.supplier_credit_terms_days,
+      average_receivables_turnover_days: decision.average_receivables_turnover_days,
+      outstanding_supplier_debts: decision.outstanding_supplier_debts,
+      supplier_discount_percentage: decision.supplier_discount_percentage,
+      storage_cost_percentage_of_order: decision.storage_cost_percentage_of_order,
+      estimated_equipment_cost: decision.estimated_equipment_cost,
+      expected_revenue_increase_monthly: decision.expected_revenue_increase_monthly,
+      expected_expense_decrease_monthly: decision.expected_expense_decrease_monthly,
+      equipment_lifespan_months: decision.equipment_lifespan_months,
+      is_critical_replacement: decision.is_critical_replacement,
+      is_power_solution: decision.is_power_solution,
+      current_energy_cost_monthly: decision.current_energy_cost_monthly,
+      has_diversified_revenue_streams: decision.has_diversified_revenue_streams,
+      existing_debt_load_monthly_repayments: decision.existing_debt_load_monthly_repayments,
+      financing_required: decision.financing_required,
+      financing_interest_rate_annual_percentage: decision.financing_interest_rate_annual_percentage,
+      financing_term_months: decision.financing_term_months,
     };
     console.log(`[${requestId}] Attempting to save decision:`, decisionToSave);
 
