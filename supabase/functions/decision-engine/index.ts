@@ -2,8 +2,8 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { v4 as uuidv4 } from 'https://esm.sh/uuid@9.0.1';
-import { z } from 'https://deno.land/x/zod@v3.23.0/mod.ts';
+import { v4 as uuidv4 } from "https://esm.sh/uuid@9.0.1";
+import { z } from "https://deno.land/x/zod@v3.23.0/mod.ts";
 
 // --- constants.ts content ---
 export const API_VERSION = "v1.0";
@@ -308,6 +308,7 @@ export const DecisionEngineInputSchema = z.object({
   intent: z.enum([
     'hiring', 
     'inventory', 
+    'marketing', // Added new intent
   ]),
   question: z.string(),
   payload: z.object({
@@ -320,6 +321,12 @@ export const DecisionEngineInputSchema = z.object({
     outstanding_supplier_debts: z.number().min(0).optional(),
     supplier_discount_percentage: z.number().min(0).max(100).optional(),
     storage_cost_percentage_of_order: z.number().min(0).max(100).optional(),
+    // Fields for marketing & customer growth
+    proposed_marketing_budget: z.number().min(0).optional(),
+    is_localized_promotion: z.boolean().optional(),
+    historic_foot_traffic_increase_observed: z.boolean().optional(),
+    sales_increase_last_campaign_1: z.number().min(0).optional(),
+    sales_increase_last_campaign_2: z.number().min(0).optional(),
   }).optional(),
 });
 
@@ -348,12 +355,19 @@ export type DecisionResult = {
   outstanding_supplier_debts?: number | null;
   supplier_discount_percentage?: number | null;
   storage_cost_percentage_of_order?: number | null;
+  // New fields for marketing & customer growth
+  proposed_marketing_budget?: number | null;
+  is_localized_promotion?: boolean | null;
+  historic_foot_traffic_increase_observed?: boolean | null;
+  sales_increase_last_campaign_1?: number | null;
+  sales_increase_last_campaign_2?: number | null;
 };
 
 // Define a type for the data needed response
 export type DataNeededResponse = {
   field: string;
   prompt: string;
+  type: 'number' | 'boolean'; // Added type field
   intent_context: { intent: string; decision_type: string; current_payload?: Record<string, any>; };
   canBeZeroOrNone?: boolean; // New field to indicate if '0' or 'none' is a valid input
 };
@@ -366,6 +380,8 @@ export type DecisionFunctionReturn = {
 
 // Helper to safely get a number, treating null/undefined as 0
 const getNumberOrDefault = (value: number | null | undefined): number => value ?? 0;
+const getBooleanOrDefault = (value: boolean | null | undefined): boolean => value ?? false;
+
 
 // --- decisions/hiring.ts content ---
 export function makeHiringDecision(
@@ -384,6 +400,7 @@ export function makeHiringDecision(
       dataNeeded: {
         field: "estimated_salary",
         prompt: "What is the estimated monthly salary for the new hire (in ₦)? (Must be greater than 0)",
+        type: 'number', // Specify type
         intent_context: { 
           intent: "hiring", 
           decision_type: "hiring_affordability",
@@ -499,6 +516,7 @@ export function makeInventoryDecision(
       dataNeeded: {
         field: "estimated_inventory_cost",
         prompt: "What is the estimated cost of the new inventory you want to purchase (in ₦)? (Must be greater than 0)",
+        type: 'number', // Specify type
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
@@ -514,6 +532,7 @@ export function makeInventoryDecision(
       dataNeeded: {
         field: "inventory_turnover_days",
         prompt: "What is your average inventory turnover in days (how long it takes to sell all your stock)? (Must be greater than 0)",
+        type: 'number', // Specify type
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
@@ -529,6 +548,7 @@ export function makeInventoryDecision(
       dataNeeded: {
         field: "outstanding_supplier_debts",
         prompt: "What is your total outstanding debt to suppliers (in ₦)? (Type '0' if none)",
+        type: 'number', // Specify type
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
@@ -547,6 +567,7 @@ export function makeInventoryDecision(
       dataNeeded: {
         field: "supplier_credit_terms_days",
         prompt: "What are your supplier's credit terms in days (how long do you have to pay)? (Must be greater than 0)",
+        type: 'number', // Specify type
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
@@ -562,6 +583,7 @@ export function makeInventoryDecision(
       dataNeeded: {
         field: "average_receivables_turnover_days",
         prompt: "What is your average receivables turnover in days (how long customers take to pay you)? (Must be greater than 0)",
+        type: 'number', // Specify type
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
@@ -581,6 +603,7 @@ export function makeInventoryDecision(
       dataNeeded: {
         field: "storage_cost_percentage_of_order",
         prompt: "What is the estimated storage cost for this bulk order as a percentage of the order value (e.g., '5' for 5%)? (Type '0' or 'none' if no storage cost)",
+        type: 'number', // Specify type
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
@@ -721,6 +744,236 @@ export function makeInventoryDecision(
   };
 }
 
+// --- decisions/marketing.ts content ---
+export function makeMarketingDecision(
+  financialData: FinancialData,
+  currentPayload: Record<string, any>,
+  question: string,
+  requestId: string,
+): DecisionFunctionReturn {
+  console.log(`[${requestId}] makeMarketingDecision: Start. currentPayload:`, currentPayload);
+
+  let proposedMarketingBudget: number | null = currentPayload.hasOwnProperty('proposed_marketing_budget') ? currentPayload.proposed_marketing_budget : null;
+  let salesIncreaseLastCampaign1: number | null = currentPayload.hasOwnProperty('sales_increase_last_campaign_1') ? currentPayload.sales_increase_last_campaign_1 : null;
+  let salesIncreaseLastCampaign2: number | null = currentPayload.hasOwnProperty('sales_increase_last_campaign_2') ? currentPayload.sales_increase_last_campaign_2 : null;
+  let isLocalizedPromotion: boolean | null = currentPayload.hasOwnProperty('is_localized_promotion') ? currentPayload.is_localized_promotion : null;
+  let historicFootTrafficIncreaseObserved: boolean | null = currentPayload.hasOwnProperty('historic_foot_traffic_increase_observed') ? currentPayload.historic_foot_traffic_increase_observed : null;
+
+  const { monthly_revenue, monthly_expenses, current_savings } = financialData;
+  const net_income = monthly_revenue - monthly_expenses;
+  const profit_margin = monthly_revenue > 0 ? (net_income / monthly_revenue) : 0;
+
+  const reasons = [];
+  let recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
+  let reasoning: string;
+  let actionable_steps: string[] = [];
+
+  // --- Data Gathering Sequence for Marketing ---
+  // Numerical data first
+  if (proposedMarketingBudget === null || proposedMarketingBudget < 0) { // Allow 0 for budget
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "proposed_marketing_budget",
+        prompt: "What is your proposed marketing budget for this initiative (in ₦)? (Type '0' if you don't have a specific budget yet)",
+        type: 'number',
+        intent_context: {
+          intent: "marketing",
+          decision_type: "marketing_growth",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+
+  // Check if the question implies scaling or past campaigns
+  const lowerCaseQuestion = question.toLowerCase();
+  const impliesScaling = lowerCaseQuestion.includes('scale') || lowerCaseQuestion.includes('expand campaign') || lowerCaseQuestion.includes('more marketing');
+
+  if (impliesScaling) {
+    if (salesIncreaseLastCampaign1 === null || salesIncreaseLastCampaign1 < 0) { // Allow 0 for sales increase
+      return {
+        decision: null,
+        dataNeeded: {
+          field: "sales_increase_last_campaign_1",
+          prompt: "What was the percentage increase in sales from your last marketing campaign? (e.g., '10' for 10%. Type '0' if no increase or no campaign)",
+          type: 'number',
+          intent_context: {
+            intent: "marketing",
+            decision_type: "marketing_growth",
+            current_payload: currentPayload
+          },
+          canBeZeroOrNone: true,
+        }
+      };
+    }
+    if (salesIncreaseLastCampaign2 === null || salesIncreaseLastCampaign2 < 0) { // Allow 0 for sales increase
+      return {
+        decision: null,
+        dataNeeded: {
+          field: "sales_increase_last_campaign_2",
+          prompt: "What was the percentage increase in sales from your second-to-last marketing campaign? (e.g., '10' for 10%. Type '0' if no increase or no campaign)",
+          type: 'number',
+          intent_context: {
+            intent: "marketing",
+            decision_type: "marketing_growth",
+            current_payload: currentPayload
+          },
+          canBeZeroOrNone: true,
+        }
+      };
+    }
+  }
+
+  // Boolean data next
+  if (isLocalizedPromotion === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "is_localized_promotion",
+        prompt: "Is this marketing initiative for a localized promotion (e.g., market-day event, local flyer distribution)?",
+        type: 'boolean',
+        intent_context: {
+          intent: "marketing",
+          decision_type: "marketing_growth",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false, // Boolean, so not applicable
+      }
+    };
+  }
+
+  if (isLocalizedPromotion) { // Only ask if it's a localized promotion
+    if (historicFootTrafficIncreaseObserved === null) {
+      return {
+        decision: null,
+        dataNeeded: {
+          field: "historic_foot_traffic_increase_observed",
+          prompt: "Have you observed historic foot traffic increases from similar localized promotions?",
+          type: 'boolean',
+          intent_context: {
+            intent: "marketing",
+            decision_type: "marketing_growth",
+            current_payload: currentPayload
+          },
+          canBeZeroOrNone: false, // Boolean, so not applicable
+        }
+      };
+    }
+  }
+  console.log(`[${requestId}] makeMarketingDecision: After Data Gathering. currentPayload:`, currentPayload);
+
+  // --- Final Validation before Rule Evaluation ---
+  const finalProposedMarketingBudget = getNumberOrDefault(proposedMarketingBudget);
+  const finalSalesIncreaseLastCampaign1 = getNumberOrDefault(salesIncreaseLastCampaign1);
+  const finalSalesIncreaseLastCampaign2 = getNumberOrDefault(salesIncreaseLastCampaign2);
+  const finalIsLocalizedPromotion = getBooleanOrDefault(isLocalizedPromotion);
+  const finalHistoricFootTrafficIncreaseObserved = getBooleanOrDefault(historicFootTrafficIncreaseObserved);
+
+  // --- Rule Evaluation ---
+
+  // Rule 3: Block if debt ratio > 0.4 or if cash buffer < 2 months. (Highest priority - REJECT)
+  const debtRatio = monthly_revenue > 0 ? (getNumberOrDefault(currentPayload.outstanding_supplier_debts) / monthly_revenue) : 0;
+  const cashBufferMonths = monthly_expenses > 0 ? (current_savings / monthly_expenses) : 0;
+
+  if (debtRatio > 0.4) {
+    reasons.push(`Your debt ratio (${(debtRatio * 100).toFixed(1)}%) is high (above 40% of monthly revenue).`);
+    recommendation = 'REJECT';
+  } else if (cashBufferMonths < 2) {
+    reasons.push(`Your cash buffer (${cashBufferMonths.toFixed(1)} months) is less than 2 months of expenses.`);
+    recommendation = 'REJECT';
+  }
+
+  if (recommendation === 'REJECT') {
+    reasoning = `Investing in marketing now would be too risky. Key reasons: ${reasons.join(' ')}.`;
+    actionable_steps = [
+      'Prioritize reducing outstanding debts.',
+      'Build your emergency savings to cover at least 2-3 months of expenses.',
+      'Focus on improving core profitability before new investments.'
+    ];
+    return {
+      decision: {
+        recommendation,
+        reasoning,
+        actionable_steps,
+        financial_snapshot: financialData,
+        proposed_marketing_budget: finalProposedMarketingBudget,
+        is_localized_promotion: finalIsLocalizedPromotion,
+        historic_foot_traffic_increase_observed: finalHistoricFootTrafficIncreaseObserved,
+        sales_increase_last_campaign_1: finalSalesIncreaseLastCampaign1,
+        sales_increase_last_campaign_2: finalSalesIncreaseLastCampaign2,
+      }
+    };
+  }
+
+  // If not rejected, proceed with other rules
+  let approveScore = 0;
+  let waitScore = 0;
+
+  // Additional Case: Approve localized promotions
+  if (finalIsLocalizedPromotion && finalProposedMarketingBudget <= (0.05 * monthly_revenue) && finalHistoricFootTrafficIncreaseObserved) {
+    approveScore++;
+    reasons.push(`This is a localized promotion with a budget within 5% of revenue and historic success in increasing foot traffic.`);
+    actionable_steps.push('Monitor foot traffic and sales closely during the promotion.', 'Gather customer feedback to refine future localized efforts.');
+  } else if (finalIsLocalizedPromotion) {
+    if (finalProposedMarketingBudget > (0.05 * monthly_revenue)) reasons.push(`The budget for this localized promotion (₦${finalProposedMarketingBudget.toLocaleString()}) exceeds 5% of your monthly revenue (₦${(0.05 * monthly_revenue).toLocaleString()}).`);
+    if (!finalHistoricFootTrafficIncreaseObserved) reasons.push(`No historic foot traffic increase observed for similar localized promotions.`);
+    waitScore++;
+  }
+
+  // Rule 2: Approve scaling if last 2 campaigns → ≥ 10% increase in sales.
+  if (impliesScaling && finalSalesIncreaseLastCampaign1 >= 10 && finalSalesIncreaseLastCampaign2 >= 10) {
+    approveScore++;
+    reasons.push(`Your last two campaigns showed strong sales growth (Campaign 1: ${finalSalesIncreaseLastCampaign1}%, Campaign 2: ${finalSalesIncreaseLastCampaign2}%).`);
+    actionable_steps.push('Analyze what made the previous campaigns successful and replicate those elements.', 'Consider A/B testing new marketing channels or messages.');
+  } else if (impliesScaling) {
+    if (finalSalesIncreaseLastCampaign1 < 10) reasons.push(`Sales increase from last campaign (${finalSalesIncreaseLastCampaign1}%) was less than 10%.`);
+    if (finalSalesIncreaseLastCampaign2 < 10) reasons.push(`Sales increase from second-to-last campaign (${finalSalesIncreaseLastCampaign2}%) was less than 10%.`);
+    waitScore++;
+  }
+
+  // Rule 1: Allocate ≤ 15% of revenue to marketing unless profit margin > 20%.
+  const marketingBudgetPercentage = monthly_revenue > 0 ? (finalProposedMarketingBudget / monthly_revenue) : 0;
+  if (marketingBudgetPercentage <= 0.15 || profit_margin > 0.20) {
+    approveScore++;
+    reasons.push(`Your proposed marketing budget is within 15% of revenue (${(marketingBudgetPercentage * 100).toFixed(1)}%) or your profit margin is healthy (${(profit_margin * 100).toFixed(1)}%).`);
+  } else {
+    reasons.push(`Your proposed marketing budget (${(marketingBudgetPercentage * 100).toFixed(1)}%) exceeds 15% of revenue and your profit margin (${(profit_margin * 100).toFixed(1)}%) is not yet above 20%.`);
+    waitScore++;
+  }
+
+  // Determine final recommendation based on scores
+  if (approveScore > 0 && waitScore === 0) {
+    recommendation = 'APPROVE';
+    reasoning = `Your business is in a good position to proceed with this marketing initiative. ${reasons.join(' ')}.`;
+    actionable_steps.unshift('Define clear, measurable goals for your marketing campaign.', 'Track the return on investment (ROI) of your marketing spend.');
+  } else {
+    recommendation = 'WAIT';
+    reasoning = `It's advisable to wait or re-evaluate your marketing plan. Key considerations: ${reasons.join(' ')}.`;
+    actionable_steps.unshift('Refine your marketing strategy to target specific customer segments.', 'Explore lower-cost marketing tactics or partnerships.', 'Re-evaluate your budget and ensure it aligns with your current financial capacity.');
+  }
+
+  // Ensure actionable steps are unique and relevant
+  actionable_steps = Array.from(new Set(actionable_steps));
+
+  console.log(`[${requestId}] makeMarketingDecision: Before final decision return. Recommendation: ${recommendation}`);
+
+  return {
+    decision: {
+      recommendation,
+      reasoning,
+      actionable_steps,
+      financial_snapshot: financialData,
+      proposed_marketing_budget: finalProposedMarketingBudget,
+      is_localized_promotion: finalIsLocalizedPromotion,
+      historic_foot_traffic_increase_observed: finalHistoricFootTrafficIncreaseObserved,
+      sales_increase_last_campaign_1: finalSalesIncreaseLastCampaign1,
+      sales_increase_last_campaign_2: finalSalesIncreaseLastCampaign2,
+    }
+  };
+}
+
 // --- Main decision-engine logic ---
 
 serve(async (req) => {
@@ -800,6 +1053,9 @@ serve(async (req) => {
       case 'inventory':
         decisionResult = makeInventoryDecision(financialData, { is_fmcg_vendor: isFmcgVendor }, currentPayload, question, requestId);
         break;
+      case 'marketing': // New marketing decision
+        decisionResult = makeMarketingDecision(financialData, currentPayload, question, requestId);
+        break;
       default:
         throw new InputValidationError("Unsupported Intent", `Intent '${intent}' is not yet supported.`);
     }
@@ -843,6 +1099,12 @@ serve(async (req) => {
       outstanding_supplier_debts: decision.outstanding_supplier_debts ?? null,
       supplier_discount_percentage: decision.supplier_discount_percentage ?? null,
       storage_cost_percentage_of_order: decision.storage_cost_percentage_of_order ?? null,
+      // New marketing fields
+      proposed_marketing_budget: decision.proposed_marketing_budget ?? null,
+      is_localized_promotion: decision.is_localized_promotion ?? null,
+      historic_foot_traffic_increase_observed: decision.historic_foot_traffic_increase_observed ?? null,
+      sales_increase_last_campaign_1: decision.sales_increase_last_campaign_1 ?? null,
+      sales_increase_last_campaign_2: decision.sales_increase_last_campaign_2 ?? null,
     };
     console.log(`[${requestId}] Attempting to save decision:`, decisionToSave);
 
