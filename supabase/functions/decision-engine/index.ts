@@ -885,29 +885,34 @@ export function makeEquipmentDecision(
     }
   }
 
-  // --- Explicitly set conditional optional fields to null if not collected ---
+  // --- Explicitly set conditional optional fields to null if not collected or not applicable ---
   // This ensures that the final decision object always has these properties,
   // with null if they were not applicable or not prompted for.
-  if (!isPowerSolution && currentPayload.current_energy_cost_monthly === undefined) {
+
+  // If not a power solution, energy cost should be null
+  if (!isPowerSolution) {
     currentPayload.current_energy_cost_monthly = null;
-    currentEnergyCostMonthly = null;
+    currentEnergyCostMonthly = null; // Update local variable too
   }
-  if (estimatedEquipmentCost <= 1000000 && currentPayload.has_diversified_revenue_streams === undefined) {
-    currentPayload.has_diversified_revenue_streams = null; // Set to null if not capital intensive and not explicitly set
-    hasDiversifiedRevenueStreams = null;
+
+  // If not capital intensive, diversified revenue streams should be null
+  if (estimatedEquipmentCost <= 1000000) {
+    currentPayload.has_diversified_revenue_streams = null;
+    hasDiversifiedRevenueStreams = null; // Update local variable too
   }
-  if (!financingRequired && currentPayload.financing_interest_rate_annual_percentage === undefined) {
+
+  // If financing is not required, financing details should be null
+  if (!financingRequired) {
     currentPayload.financing_interest_rate_annual_percentage = null;
-    financingInterestRateAnnualPercentage = null;
-  }
-  if (!financingRequired && currentPayload.financing_term_months === undefined) {
+    financingInterestRateAnnualPercentage = null; // Update local variable too
     currentPayload.financing_term_months = null;
-    financingTermMonths = null;
+    financingTermMonths = null; // Update local variable too
   }
+
   // equipmentLifespanMonths is never prompted, so ensure it's null if not provided
   if (currentPayload.equipment_lifespan_months === undefined) {
     currentPayload.equipment_lifespan_months = null;
-    equipmentLifespanMonths = null;
+    equipmentLifespanMonths = null; // Update local variable too
   }
   // --- End explicit null setting ---
 
