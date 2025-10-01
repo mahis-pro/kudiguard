@@ -92,9 +92,12 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
               variant: "default",
             });
           }
-        } else if (location.pathname === '/onboarding' || location.pathname === '/login' || location.pathname === '/signup') {
-          // If profile is complete and user is on auth/onboarding page, redirect to chat
-          navigate('/chat');
+        } else {
+          // If profile is complete and user is on an auth-related or public page, redirect to chat
+          const publicAndAuthRoutes = ['/', '/about', '/tips', '/help', '/login', '/signup', '/reset-password', '/onboarding'];
+          if (publicAndAuthRoutes.includes(location.pathname)) {
+            navigate('/chat');
+          }
         }
       }
     } catch (err: any) {
@@ -122,7 +125,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         setUserDisplayName(null);
         setIsFmcgVendor(null); // Clear new state
         // Redirect to login if signed out and on a protected route
-        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding', '/history']; // Added /history
+        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding', '/history'];
         if (protectedRoutes.includes(location.pathname)) {
           navigate('/login');
         }
@@ -135,7 +138,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         fetchAndSetUserProfile(initialSession);
       } else {
         setIsLoading(false);
-        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding', '/history']; // Added /history
+        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding', '/history'];
         if (protectedRoutes.includes(location.pathname)) {
           navigate('/login');
         }
@@ -153,8 +156,6 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
       return; // Wait for session and profile to load
     }
 
-    const authRoutes = ['/login', '/signup', '/reset-password'];
-    const publicRoutes = ['/', '/about', '/tips', '/help'];
     const protectedRoutes = ['/chat', '/insights', '/settings', '/history']; // Onboarding is handled separately
 
     if (session) {
