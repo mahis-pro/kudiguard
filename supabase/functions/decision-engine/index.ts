@@ -496,13 +496,15 @@ export function makeInventoryDecision(
   question: string,
   requestId: string,
 ): DecisionFunctionReturn {
-  let estimatedInventoryCost = getNumberOrDefault(currentPayload?.estimated_inventory_cost);
-  let inventoryTurnoverDays = getNumberOrDefault(currentPayload?.inventory_turnover_days);
-  let outstandingSupplierDebts = getNumberOrDefault(currentPayload?.outstanding_supplier_debts);
-  let supplierCreditTermsDays = getNumberOrDefault(currentPayload?.supplier_credit_terms_days);
-  let averageReceivablesTurnoverDays = getNumberOrDefault(currentPayload?.average_receivables_turnover_days);
-  let supplierDiscountPercentage = getNumberOrDefault(currentPayload?.supplier_discount_percentage);
-  let storageCostPercentageOfOrder = getNumberOrDefault(currentPayload?.storage_cost_percentage_of_order);
+  console.log(`[${requestId}] makeInventoryDecision: Start. currentPayload:`, currentPayload);
+
+  let estimatedInventoryCost: number | null = currentPayload.hasOwnProperty('estimated_inventory_cost') ? currentPayload.estimated_inventory_cost : null;
+  let inventoryTurnoverDays: number | null = currentPayload.hasOwnProperty('inventory_turnover_days') ? currentPayload.inventory_turnover_days : null;
+  let outstandingSupplierDebts: number | null = currentPayload.hasOwnProperty('outstanding_supplier_debts') ? currentPayload.outstanding_supplier_debts : null;
+  let supplierCreditTermsDays: number | null = currentPayload.hasOwnProperty('supplier_credit_terms_days') ? currentPayload.supplier_credit_terms_days : null;
+  let averageReceivablesTurnoverDays: number | null = currentPayload.hasOwnProperty('average_receivables_turnover_days') ? currentPayload.average_receivables_turnover_days : null;
+  let supplierDiscountPercentage: number | null = currentPayload.hasOwnProperty('supplier_discount_percentage') ? currentPayload.supplier_discount_percentage : null;
+  let storageCostPercentageOfOrder: number | null = currentPayload.hasOwnProperty('storage_cost_percentage_of_order') ? currentPayload.storage_cost_percentage_of_order : null;
 
   const { monthly_revenue, monthly_expenses, current_savings } = financialData;
   const net_income = monthly_revenue - monthly_expenses;
@@ -517,7 +519,7 @@ export function makeInventoryDecision(
   let reasoning: string;
 
   // --- Data Gathering Sequence for Inventory ---
-  if (estimatedInventoryCost <= 0) {
+  if (estimatedInventoryCost === null || estimatedInventoryCost <= 0) {
     return {
       decision: null,
       dataNeeded: {
@@ -532,7 +534,7 @@ export function makeInventoryDecision(
       }
     };
   }
-  if (inventoryTurnoverDays <= 0) {
+  if (inventoryTurnoverDays === null || inventoryTurnoverDays <= 0) {
     return {
       decision: null,
       dataNeeded: {
@@ -547,8 +549,7 @@ export function makeInventoryDecision(
       }
     };
   }
-  // Use hasOwnProperty for fields where 0 is a valid input
-  if (!currentPayload.hasOwnProperty('outstanding_supplier_debts')) {
+  if (outstandingSupplierDebts === null) { // Check against null
     return {
       decision: null,
       dataNeeded: {
@@ -566,7 +567,7 @@ export function makeInventoryDecision(
 
   // Conditional data requests for Rule 2 (FMCG specific)
   if (isFmcgVendor) {
-    if (supplierCreditTermsDays <= 0) {
+    if (supplierCreditTermsDays === null || supplierCreditTermsDays <= 0) {
       return {
         decision: null,
       dataNeeded: {
@@ -581,7 +582,7 @@ export function makeInventoryDecision(
       }
     };
     }
-    if (averageReceivablesTurnoverDays <= 0) {
+    if (averageReceivablesTurnoverDays === null || averageReceivablesTurnoverDays <= 0) {
       return {
         decision: null,
       dataNeeded: {
@@ -599,9 +600,8 @@ export function makeInventoryDecision(
   }
 
   // Conditional data requests for Additional Case (Bulk Purchase)
-  if (supplierDiscountPercentage > 0) { // Only ask for storage cost if there's a discount
-    // Use hasOwnProperty for fields where 0 is a valid input
-    if (!currentPayload.hasOwnProperty('storage_cost_percentage_of_order')) {
+  if (supplierDiscountPercentage !== null && supplierDiscountPercentage > 0) { // Only ask for storage cost if there's a discount
+    if (storageCostPercentageOfOrder === null) {
       return {
         decision: null,
       dataNeeded: {
@@ -617,41 +617,51 @@ export function makeInventoryDecision(
     };
     }
   }
-  // --- End Data Gathering Sequence ---
+  console.log(`[${requestId}] makeInventoryDecision: After Data Gathering. currentPayload:`, currentPayload);
 
   // --- Final Validation before Rule Evaluation ---
   // After all data collection, ensure critical fields are valid numbers (not 0 if they shouldn't be)
-  if (estimatedInventoryCost <= 0) {
+  if (estimatedInventoryCost === null || estimatedInventoryCost <= 0) {
     throw new InputValidationError(
       "Estimated inventory cost must be a positive number.",
       "The estimated inventory cost must be greater than 0."
     );
   }
-  if (inventoryTurnoverDays <= 0) {
+  if (inventoryTurnoverDays === null || inventoryTurnoverDays <= 0) {
     throw new InputValidationError(
       "Inventory turnover days must be a positive number.",
       "The inventory turnover days must be greater than 0."
     );
   }
-  if (isFmcgVendor && supplierCreditTermsDays <= 0) {
+  if (isFmcgVendor && (supplierCreditTermsDays === null || supplierCreditTermsDays <= 0)) {
     throw new InputValidationError(
       "Supplier credit terms must be a positive number for FMCG vendors.",
       "The supplier credit terms must be greater than 0."
     );
   }
-  if (isFmcgVendor && averageReceivablesTurnoverDays <= 0) {
+  if (isFmcgVendor && (averageReceivablesTurnoverDays === null || averageReceivablesTurnoverDays <= 0)) {
     throw new InputValidationError(
       "Average receivables turnover days must be a positive number for FMCG vendors.",
       "The average receivables turnover days must be greater than 0."
     );
   }
+  console.log(`[${requestId}] makeInventoryDecision: After Final Validation.`);
 
   // --- Rule Evaluation ---
+  // Use getNumberOrDefault for calculations where 0 is a valid input
+  const finalEstimatedInventoryCost = estimatedInventoryCost;
+  const finalInventoryTurnoverDays = inventoryTurnoverDays;
+  const finalOutstandingSupplierDebts = getNumberOrDefault(outstandingSupplierDebts);
+  const finalSupplierCreditTermsDays = getNumberOrDefault(supplierCreditTermsDays);
+  const finalAverageReceivablesTurnoverDays = getNumberOrDefault(averageReceivablesTurnoverDays);
+  const finalSupplierDiscountPercentage = getNumberOrDefault(supplierDiscountPercentage);
+  const finalStorageCostPercentageOfOrder = getNumberOrDefault(storageCostPercentageOfOrder);
+
 
   // Rule 3: Reject conditions (highest priority)
-  if (outstandingSupplierDebts > (0.40 * monthly_revenue)) { // Outstanding supplier debts > 40% of monthly revenue
+  if (finalOutstandingSupplierDebts > (0.40 * monthly_revenue)) { // Outstanding supplier debts > 40% of monthly revenue
     rejectScore++;
-    reasons.push(`Your outstanding supplier debts (₦${outstandingSupplierDebts.toLocaleString()}) are more than 40% of your monthly revenue (₦${monthly_revenue.toLocaleString()}).`);
+    reasons.push(`Your outstanding supplier debts (₦${finalOutstandingSupplierDebts.toLocaleString()}) are more than 40% of your monthly revenue (₦${monthly_revenue.toLocaleString()}).`);
   }
   // Simplified: Cash flow shows 2 consecutive negative months -> check if latest net income is negative
   if (net_income < 0) {
@@ -671,36 +681,36 @@ export function makeInventoryDecision(
     // If not rejected, evaluate other rules for APPROVE/WAIT
     
     // Rule 1: Restock if inventory turnover < 30 days AND cash reserves cover 120% of order value.
-    const cashReservesCoverOrder = current_savings >= (1.20 * estimatedInventoryCost);
-    if (inventoryTurnoverDays < 30 && cashReservesCoverOrder) {
+    const cashReservesCoverOrder = current_savings >= (1.20 * finalEstimatedInventoryCost);
+    if (finalInventoryTurnoverDays < 30 && cashReservesCoverOrder) {
       approveScore++;
-      reasons.push(`Your inventory turnover is fast (${inventoryTurnoverDays} days) and your cash reserves (₦${current_savings.toLocaleString()}) comfortably cover 120% of the order value (₦${(1.20 * estimatedInventoryCost).toLocaleString()}).`);
+      reasons.push(`Your inventory turnover is fast (${finalInventoryTurnoverDays} days) and your cash reserves (₦${current_savings.toLocaleString()}) comfortably cover 120% of the order value (₦${(1.20 * finalEstimatedInventoryCost).toLocaleString()}).`);
     } else {
-      if (inventoryTurnoverDays >= 30) reasons.push(`Your inventory turnover is slow (${inventoryTurnoverDays} days).`);
-      if (!cashReservesCoverOrder) reasons.push(`Your cash reserves (₦${current_savings.toLocaleString()}) do not cover 120% of the order value (₦${(1.20 * estimatedInventoryCost).toLocaleString()}).`);
+      if (finalInventoryTurnoverDays >= 30) reasons.push(`Your inventory turnover is slow (${finalInventoryTurnoverDays} days).`);
+      if (!cashReservesCoverOrder) reasons.push(`Your cash reserves (₦${current_savings.toLocaleString()}) do not cover 120% of the order value (₦${(1.20 * finalEstimatedInventoryCost).toLocaleString()}).`);
       waitScore++;
     }
 
     // Rule 2: For FMCG vendors, allow restock on credit if supplier terms ≤ 30 days and average receivables turnover < 25 days.
-    if (isFmcgVendor && supplierCreditTermsDays > 0 && averageReceivablesTurnoverDays > 0) { // Ensure these are valid numbers
-      if (supplierCreditTermsDays <= 30 && averageReceivablesTurnoverDays < 25) {
+    if (isFmcgVendor && finalSupplierCreditTermsDays > 0 && finalAverageReceivablesTurnoverDays > 0) { // Ensure these are valid numbers
+      if (finalSupplierCreditTermsDays <= 30 && finalAverageReceivablesTurnoverDays < 25) {
         approveScore++; // This rule can also contribute to approval
-        reasons.push(`As an FMCG vendor, your supplier credit terms (${supplierCreditTermsDays} days) are favorable and your receivables turnover is efficient (${averageReceivablesTurnoverDays} days).`);
+        reasons.push(`As an FMCG vendor, your supplier credit terms (${finalSupplierCreditTermsDays} days) are favorable and your receivables turnover is efficient (${finalAverageReceivablesTurnoverDays} days).`);
       } else {
-        if (supplierCreditTermsDays > 30) reasons.push(`As an FMCG vendor, your supplier credit terms (${supplierCreditTermsDays} days) are longer than ideal.`);
-        if (averageReceivablesTurnoverDays >= 25) reasons.push(`As an FMCG vendor, your average receivables turnover (${averageReceivablesTurnoverDays} days) is slower than recommended.`);
+        if (finalSupplierCreditTermsDays > 30) reasons.push(`As an FMCG vendor, your supplier credit terms (${finalSupplierCreditTermsDays} days) are longer than ideal.`);
+        if (finalAverageReceivablesTurnoverDays >= 25) reasons.push(`As an FMCG vendor, your average receivables turnover (${finalAverageReceivablesTurnoverDays} days) is slower than recommended.`);
         waitScore++;
       }
     }
 
     // Additional Case: Bulk-purchase recommendation if supplier discount ≥ 15% and storage cost ≤ 5% of order value.
-    if (supplierDiscountPercentage > 0 && storageCostPercentageOfOrder >= 0) { // Ensure these are valid numbers
-      if (supplierDiscountPercentage >= 15 && storageCostPercentageOfOrder <= 5) {
-        reasons.push(`Consider a bulk purchase due to a significant supplier discount (${supplierDiscountPercentage}%) and low storage costs (${storageCostPercentageOfOrder}%).`);
+    if (finalSupplierDiscountPercentage > 0 && finalStorageCostPercentageOfOrder >= 0) { // Ensure these are valid numbers
+      if (finalSupplierDiscountPercentage >= 15 && finalStorageCostPercentageOfOrder <= 5) {
+        reasons.push(`Consider a bulk purchase due to a significant supplier discount (${finalSupplierDiscountPercentage}%) and low storage costs (${finalStorageCostPercentageOfOrder}%).`);
         actionable_steps.push('Explore the possibility of a bulk purchase to maximize savings from the supplier discount.');
       } else {
-        if (supplierDiscountPercentage < 15) reasons.push(`The supplier discount (${supplierDiscountPercentage}%) is not substantial enough for a bulk purchase recommendation.`);
-        if (storageCostPercentageOfOrder > 5) reasons.push(`Storage costs (${storageCostPercentageOfOrder}%) are too high to justify a bulk purchase at this time.`);
+        if (finalSupplierDiscountPercentage < 15) reasons.push(`The supplier discount (${finalSupplierDiscountPercentage}%) is not substantial enough for a bulk purchase recommendation.`);
+        if (finalStorageCostPercentageOfOrder > 5) reasons.push(`Storage costs (${finalStorageCostPercentageOfOrder}%) are too high to justify a bulk purchase at this time.`);
       }
     }
 
@@ -718,19 +728,21 @@ export function makeInventoryDecision(
   // Ensure actionable steps are unique and relevant
   actionable_steps = Array.from(new Set(actionable_steps));
 
+  console.log(`[${requestId}] makeInventoryDecision: Before final decision return. Recommendation: ${recommendation}`);
+
   return {
     decision: {
       recommendation,
       reasoning,
       actionable_steps,
       financial_snapshot: financialData,
-      estimated_inventory_cost: estimatedInventoryCost,
-      inventory_turnover_days: inventoryTurnoverDays,
-      supplier_credit_terms_days: supplierCreditTermsDays > 0 ? supplierCreditTermsDays : null, // Store as null if 0 or not applicable
-      average_receivables_turnover_days: averageReceivablesTurnoverDays > 0 ? averageReceivablesTurnoverDays : null, // Store as null if 0 or not applicable
+      estimated_inventory_cost: finalEstimatedInventoryCost,
+      inventory_turnover_days: finalInventoryTurnoverDays,
+      supplier_credit_terms_days: supplierCreditTermsDays, 
+      average_receivables_turnover_days: averageReceivablesTurnoverDays, 
       outstanding_supplier_debts: outstandingSupplierDebts,
-      supplier_discount_percentage: supplierDiscountPercentage > 0 ? supplierDiscountPercentage : null, // Store as null if 0 or not applicable
-      storage_cost_percentage_of_order: storageCostPercentageOfOrder >= 0 ? storageCostPercentageOfOrder : null, // Store as null if 0 or not applicable
+      supplier_discount_percentage: supplierDiscountPercentage, 
+      storage_cost_percentage_of_order: storageCostPercentageOfOrder, 
     }
   };
 }
@@ -742,23 +754,25 @@ export function makeEquipmentDecision(
   question: string,
   requestId: string,
 ): DecisionFunctionReturn {
+  console.log(`[${requestId}] makeEquipmentDecision: Start. currentPayload:`, currentPayload);
+
   const { monthly_revenue, monthly_expenses, current_savings } = financialData;
   const net_income = monthly_revenue - monthly_expenses;
   const profit_margin = monthly_revenue > 0 ? (net_income / monthly_revenue) * 100 : 0;
   const savings_buffer_months = monthly_expenses > 0 ? current_savings / monthly_expenses : Infinity;
 
-  let estimatedEquipmentCost = getNumberOrDefault(currentPayload.estimated_equipment_cost);
-  let expectedRevenueIncreaseMonthly = getNumberOrDefault(currentPayload.expected_revenue_increase_monthly);
-  let expectedExpenseDecreaseMonthly = getNumberOrDefault(currentPayload.expected_expense_decrease_monthly);
-  let equipmentLifespanMonths = getNumberOrDefault(currentPayload.equipment_lifespan_months);
-  let isCriticalReplacement = currentPayload.is_critical_replacement;
-  let isPowerSolution = currentPayload.is_power_solution; 
-  let currentEnergyCostMonthly = getNumberOrDefault(currentPayload.current_energy_cost_monthly);
-  let hasDiversifiedRevenueStreams = currentPayload.has_diversified_revenue_streams; 
-  let existingDebtLoadMonthlyRepayments = getNumberOrDefault(currentPayload.existing_debt_load_monthly_repayments);
-  let financingRequired = currentPayload.financing_required;
-  let financingInterestRateAnnualPercentage = getNumberOrDefault(currentPayload.financing_interest_rate_annual_percentage);
-  let financingTermMonths = getNumberOrDefault(currentPayload.financing_term_months);
+  let estimatedEquipmentCost: number | null = currentPayload.hasOwnProperty('estimated_equipment_cost') ? currentPayload.estimated_equipment_cost : null;
+  let expectedRevenueIncreaseMonthly: number | null = currentPayload.hasOwnProperty('expected_revenue_increase_monthly') ? currentPayload.expected_revenue_increase_monthly : null;
+  let expectedExpenseDecreaseMonthly: number | null = currentPayload.hasOwnProperty('expected_expense_decrease_monthly') ? currentPayload.expected_expense_decrease_monthly : null;
+  let equipmentLifespanMonths: number | null = currentPayload.hasOwnProperty('equipment_lifespan_months') ? currentPayload.equipment_lifespan_months : null;
+  let isCriticalReplacement: boolean | null = currentPayload.hasOwnProperty('is_critical_replacement') ? currentPayload.is_critical_replacement : null;
+  let isPowerSolution: boolean | null = currentPayload.hasOwnProperty('is_power_solution') ? currentPayload.is_power_solution : null;
+  let currentEnergyCostMonthly: number | null = currentPayload.hasOwnProperty('current_energy_cost_monthly') ? currentPayload.current_energy_cost_monthly : null;
+  let hasDiversifiedRevenueStreams: boolean | null = currentPayload.hasOwnProperty('has_diversified_revenue_streams') ? currentPayload.has_diversified_revenue_streams : null;
+  let existingDebtLoadMonthlyRepayments: number | null = currentPayload.hasOwnProperty('existing_debt_load_monthly_repayments') ? currentPayload.existing_debt_load_monthly_repayments : null;
+  let financingRequired: boolean | null = currentPayload.hasOwnProperty('financing_required') ? currentPayload.financing_required : null;
+  let financingInterestRateAnnualPercentage: number | null = currentPayload.hasOwnProperty('financing_interest_rate_annual_percentage') ? currentPayload.financing_interest_rate_annual_percentage : null;
+  let financingTermMonths: number | null = currentPayload.hasOwnProperty('financing_term_months') ? currentPayload.financing_term_months : null;
 
   let recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
   let reasoning: string;
@@ -769,8 +783,8 @@ export function makeEquipmentDecision(
 
   // --- Data Gathering Sequence for Equipment ---
 
-  // Infer is_power_solution if not explicitly set in payload
-  if (!currentPayload.hasOwnProperty('is_power_solution')) {
+  // Infer is_power_solution if not explicitly set in payload (i.e., still null)
+  if (isPowerSolution === null) {
     if (question.toLowerCase().includes('generator') || question.toLowerCase().includes('solar') || question.toLowerCase().includes('inverter') || question.toLowerCase().includes('power')) {
       currentPayload.is_power_solution = true;
       isPowerSolution = true;
@@ -779,8 +793,10 @@ export function makeEquipmentDecision(
       isPowerSolution = false;
     }
   }
+  console.log(`[${requestId}] makeEquipmentDecision: After isPowerSolution inference. isPowerSolution: ${isPowerSolution}, currentPayload:`, currentPayload);
 
-  if (estimatedEquipmentCost <= 0) {
+
+  if (estimatedEquipmentCost === null || estimatedEquipmentCost <= 0) {
     return {
       decision: null,
       dataNeeded: {
@@ -792,8 +808,7 @@ export function makeEquipmentDecision(
     };
   }
 
-  // Use hasOwnProperty for boolean fields
-  if (!currentPayload.hasOwnProperty('is_critical_replacement')) {
+  if (isCriticalReplacement === null) {
     return {
       decision: null,
       dataNeeded: {
@@ -805,8 +820,7 @@ export function makeEquipmentDecision(
     };
   }
 
-  // Use hasOwnProperty for fields where 0 is a valid input
-  if (!currentPayload.hasOwnProperty('expected_revenue_increase_monthly')) {
+  if (expectedRevenueIncreaseMonthly === null) {
     return {
       decision: null,
       dataNeeded: {
@@ -818,8 +832,7 @@ export function makeEquipmentDecision(
     };
   }
 
-  // Use hasOwnProperty for fields where 0 is a valid input
-  if (!currentPayload.hasOwnProperty('expected_expense_decrease_monthly')) {
+  if (expectedExpenseDecreaseMonthly === null) {
     return {
       decision: null,
       dataNeeded: {
@@ -831,8 +844,7 @@ export function makeEquipmentDecision(
     };
   }
 
-  // Use hasOwnProperty for fields where 0 is a valid input
-  if (!currentPayload.hasOwnProperty('existing_debt_load_monthly_repayments')) {
+  if (existingDebtLoadMonthlyRepayments === null) {
     return {
       decision: null,
       dataNeeded: {
@@ -845,7 +857,7 @@ export function makeEquipmentDecision(
   }
 
   // Conditional prompt for current_energy_cost_monthly if it's a power solution
-  if (isPowerSolution && !currentPayload.hasOwnProperty('current_energy_cost_monthly')) {
+  if (isPowerSolution && currentEnergyCostMonthly === null) {
     return {
       decision: null,
       dataNeeded: {
@@ -858,7 +870,7 @@ export function makeEquipmentDecision(
   }
 
   // Conditional prompt for has_diversified_revenue_streams if estimated_equipment_cost is high
-  if (estimatedEquipmentCost > 1000000 && !currentPayload.hasOwnProperty('has_diversified_revenue_streams')) {
+  if (estimatedEquipmentCost > 1000000 && hasDiversifiedRevenueStreams === null) {
     return {
       decision: null,
       dataNeeded: {
@@ -868,13 +880,15 @@ export function makeEquipmentDecision(
         canBeZeroOrNone: false, // Must be true/false
       }
     };
-  } else if (!currentPayload.hasOwnProperty('has_diversified_revenue_streams')) { // Default if not capital intensive and not explicitly set
+  } else if (hasDiversifiedRevenueStreams === null) { // Default if not capital intensive and not explicitly set
     currentPayload.has_diversified_revenue_streams = false; // Ensure payload is updated
     hasDiversifiedRevenueStreams = false;
   }
+  console.log(`[${requestId}] makeEquipmentDecision: After hasDiversifiedRevenueStreams check. hasDiversifiedRevenueStreams: ${hasDiversifiedRevenueStreams}, currentPayload:`, currentPayload);
+
 
   // Conditional prompt for financing_required if estimated_equipment_cost is high relative to savings
-  if (estimatedEquipmentCost > (0.5 * current_savings) && !currentPayload.hasOwnProperty('financing_required')) {
+  if (estimatedEquipmentCost > (0.5 * current_savings) && financingRequired === null) {
     return {
       decision: null,
       dataNeeded: {
@@ -884,15 +898,16 @@ export function makeEquipmentDecision(
         canBeZeroOrNone: false, // Must be true/false
       }
     };
-  } else if (!currentPayload.hasOwnProperty('financing_required')) { // Default if not high relative to savings and not explicitly set
+  } else if (financingRequired === null) { // Default if not high relative to savings and not explicitly set
     currentPayload.financing_required = false; // Ensure payload is updated
     financingRequired = false;
   }
+  console.log(`[${requestId}] makeEquipmentDecision: After financingRequired check. financingRequired: ${financingRequired}, currentPayload:`, currentPayload);
+
 
   // Conditional prompts for financing details if financing_required is true
   if (financingRequired) {
-    // Use hasOwnProperty for fields where 0 is a valid input
-    if (!currentPayload.hasOwnProperty('financing_interest_rate_annual_percentage')) {
+    if (financingInterestRateAnnualPercentage === null) {
       return {
         decision: null,
       dataNeeded: {
@@ -903,7 +918,7 @@ export function makeEquipmentDecision(
       }
     };
     }
-    if (financingTermMonths <= 0) {
+    if (financingTermMonths === null || financingTermMonths <= 0) {
       return {
         decision: null,
       dataNeeded: {
@@ -915,6 +930,8 @@ export function makeEquipmentDecision(
     };
     }
   }
+  console.log(`[${requestId}] makeEquipmentDecision: After Data Gathering Sequence. currentPayload:`, currentPayload);
+
 
   // --- Explicitly set conditional optional fields to null if not collected or not applicable ---
   // This ensures that the final decision object always has these properties,
@@ -937,28 +954,28 @@ export function makeEquipmentDecision(
   }
 
   // equipmentLifespanMonths is never prompted, so ensure it's null if 0 (meaning not provided)
-  if (equipmentLifespanMonths === 0) {
+  if (equipmentLifespanMonths === 0) { // If it was initialized to 0 by getNumberOrDefault and not prompted
     equipmentLifespanMonths = null;
   }
-  // --- End explicit null setting ---
+  console.log(`[${requestId}] makeEquipmentDecision: After Explicit Null Setting. currentPayload:`, currentPayload);
 
 
   // --- Final Validation before Rule Evaluation ---
   // Re-check after explicit null setting, ensuring critical fields have valid values.
-  if (estimatedEquipmentCost <= 0) {
+  if (estimatedEquipmentCost === null || estimatedEquipmentCost <= 0) {
     throw new InputValidationError(
       "Estimated equipment cost must be a positive number.",
       "The estimated equipment cost must be greater than 0."
     );
   }
-  if (isCriticalReplacement === undefined || isCriticalReplacement === null) {
+  if (isCriticalReplacement === null) {
     throw new InputValidationError(
       "Critical replacement status is required.",
       "Please specify if this is a critical replacement (true/false)."
     );
   }
   // If capital intensive, diversified revenue streams must be explicitly true/false or null if not applicable
-  if (estimatedEquipmentCost > 1000000 && (hasDiversifiedRevenueStreams === undefined || hasDiversifiedRevenueStreams === null)) {
+  if (estimatedEquipmentCost > 1000000 && hasDiversifiedRevenueStreams === null) {
     throw new InputValidationError(
       "Diversified revenue streams status is required for large investments.",
       "Please specify if your business has diversified revenue streams (true/false)."
@@ -971,16 +988,18 @@ export function makeEquipmentDecision(
       "Please provide a valid financing term in months (greater than 0)."
     );
   }
+  console.log(`[${requestId}] makeEquipmentDecision: After Final Validation.`);
+
 
   // Type assertion after validation and explicit null setting
-  const finalEstimatedEquipmentCost = estimatedEquipmentCost!;
-  const finalExpectedRevenueIncreaseMonthly = expectedRevenueIncreaseMonthly!;
-  const finalExpectedExpenseDecreaseMonthly = expectedExpenseDecreaseMonthly!;
-  const finalIsCriticalReplacement = isCriticalReplacement!;
-  const finalIsPowerSolution = isPowerSolution!;
+  const finalEstimatedEquipmentCost = estimatedEquipmentCost;
+  const finalExpectedRevenueIncreaseMonthly = getNumberOrDefault(expectedRevenueIncreaseMonthly);
+  const finalExpectedExpenseDecreaseMonthly = getNumberOrDefault(expectedExpenseDecreaseMonthly);
+  const finalIsCriticalReplacement = isCriticalReplacement;
+  const finalIsPowerSolution = isPowerSolution;
   const finalHasDiversifiedRevenueStreams = hasDiversifiedRevenueStreams; // Can be boolean or null
-  const finalExistingDebtLoadMonthlyRepayments = existingDebtLoadMonthlyRepayments!;
-  const finalFinancingRequired = financingRequired!;
+  const finalExistingDebtLoadMonthlyRepayments = getNumberOrDefault(existingDebtLoadMonthlyRepayments);
+  const finalFinancingRequired = financingRequired;
   
   // Ensure optional fields are explicitly null if not provided or not applicable
   const finalCurrentEnergyCostMonthly = currentEnergyCostMonthly;
@@ -1091,25 +1110,7 @@ export function makeEquipmentDecision(
   // Ensure actionable steps are unique and relevant
   actionable_steps = Array.from(new Set(actionable_steps));
 
-  // Log the final decision before returning
-  console.log(`[${requestId}] Final Equipment Decision:`, {
-    recommendation,
-    reasoning,
-    actionable_steps,
-    financial_snapshot: financialData,
-    estimated_equipment_cost: finalEstimatedEquipmentCost,
-    expected_revenue_increase_monthly: finalExpectedRevenueIncreaseMonthly,
-    expected_expense_decrease_monthly: finalExpectedExpenseDecreaseMonthly,
-    equipment_lifespan_months: finalEquipmentLifespanMonths,
-    is_critical_replacement: finalIsCriticalReplacement,
-    is_power_solution: finalIsPowerSolution,
-    current_energy_cost_monthly: finalCurrentEnergyCostMonthly,
-    has_diversified_revenue_streams: finalHasDiversifiedRevenueStreams,
-    existing_debt_load_monthly_repayments: finalExistingDebtLoadMonthlyRepayments,
-    financing_required: finalFinancingRequired,
-    financing_interest_rate_annual_percentage: finalFinancingInterestRateAnnualPercentage,
-    financing_term_months: finalFinancingTermMonths,
-  });
+  console.log(`[${requestId}] makeEquipmentDecision: Before final decision return. Recommendation: ${recommendation}`);
 
   return {
     decision: {
