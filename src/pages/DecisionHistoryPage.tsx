@@ -23,7 +23,7 @@ const DecisionHistoryPage = () => {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('decisions')
-        .select('id, question, recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary, estimated_inventory_cost, inventory_turnover_days, supplier_credit_terms_days, average_receivables_turnover_days, outstanding_supplier_debts, supplier_discount_percentage, storage_cost_percentage_of_order, created_at') // Include new fields
+        .select('id, question, recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary, estimated_inventory_cost, inventory_turnover_days, supplier_credit_terms_days, average_receivables_turnover_days, outstanding_supplier_debts, supplier_discount_percentage, storage_cost_percentage_of_order, created_at') // Removed equipment-related fields
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
       if (error) throw error;

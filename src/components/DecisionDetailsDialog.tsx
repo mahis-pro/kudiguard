@@ -23,6 +23,13 @@ interface DecisionDetailsDialogProps {
       current_savings: number;
     };
     estimated_salary?: number;
+    estimated_inventory_cost?: number | null;
+    inventory_turnover_days?: number | null;
+    supplier_credit_terms_days?: number | null;
+    average_receivables_turnover_days?: number | null;
+    outstanding_supplier_debts?: number | null;
+    supplier_discount_percentage?: number | null;
+    storage_cost_percentage_of_order?: number | null;
     created_at: string;
   } | null;
 }
