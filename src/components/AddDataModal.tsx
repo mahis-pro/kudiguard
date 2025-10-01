@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { DollarSign, TrendingUp, PiggyBank } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
 
 const formSchema = z.object({
   monthly_revenue: z.coerce.number().min(0, 'Revenue must be a positive number.'),
@@ -31,6 +32,7 @@ interface AddDataModalProps {
 const AddDataModal = ({ isOpen, onClose }: AddDataModalProps) => {
   const { supabase, session } = useSession();
   const { toast } = useToast();
+  const queryClient = useQueryClient(); // Initialize useQueryClient
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -62,6 +64,7 @@ const AddDataModal = ({ isOpen, onClose }: AddDataModalProps) => {
         description: 'Your financial data has been saved.',
       });
       form.reset();
+      queryClient.invalidateQueries({ queryKey: ['latestFinancialEntry', session.user.id] }); // Invalidate the query
       onClose();
     } catch (error: any) {
       toast({
