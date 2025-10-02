@@ -308,7 +308,8 @@ export const DecisionEngineInputSchema = z.object({
   intent: z.enum([
     'hiring', 
     'inventory', 
-    'marketing', // Added new intent
+    'marketing',
+    'savings', // Added new intent
   ]),
   question: z.string(),
   payload: z.object({
@@ -327,6 +328,14 @@ export const DecisionEngineInputSchema = z.object({
     historic_foot_traffic_increase_observed: z.boolean().optional(),
     sales_increase_last_campaign_1: z.number().min(0).optional(),
     sales_increase_last_campaign_2: z.number().min(0).optional(),
+    // Fields for savings management
+    is_volatile_industry: z.boolean().optional(),
+    is_growth_stage: z.boolean().optional(),
+    is_seasonal_windfall_month: z.boolean().optional(),
+    debt_apr: z.number().min(0).optional(), // Annual Percentage Rate for debt
+    consecutive_negative_cash_flow_months: z.number().min(0).optional(),
+    current_reserve_allocation_percentage_emergency: z.number().min(0).max(100).optional(), // For Rule 4.1, 5.1
+    current_reserve_allocation_percentage_growth: z.number().min(0).max(100).optional(), // For Rule 5.1
   }).optional(),
 });
 
@@ -339,6 +348,7 @@ export type FinancialData = {
 
 export type ProfileData = {
   is_fmcg_vendor: boolean;
+  business_type: string; // Added business_type for sector-specific adjustments
 };
 
 // Define a type for the decision result
@@ -361,6 +371,16 @@ export type DecisionResult = {
   historic_foot_traffic_increase_observed?: boolean | null;
   sales_increase_last_campaign_1?: number | null;
   sales_increase_last_campaign_2?: number | null;
+  // New fields for savings management
+  is_volatile_industry?: boolean | null;
+  is_growth_stage?: boolean | null;
+  is_seasonal_windfall_month?: boolean | null;
+  debt_apr?: number | null;
+  consecutive_negative_cash_flow_months?: number | null;
+  current_reserve_allocation_percentage_emergency?: number | null;
+  current_reserve_allocation_percentage_growth?: number | null;
+  fixed_operating_expenses?: number | null; // Derived from monthly_expenses for savings rules
+  net_profit?: number | null; // Derived for savings rules
 };
 
 // Define a type for the data needed response
@@ -848,18 +868,18 @@ export function makeMarketingDecision(
     if (historicFootTrafficIncreaseObserved === null) {
       return {
         decision: null,
-        dataNeeded: {
-          field: "historic_foot_traffic_increase_observed",
-          prompt: "Have you observed historic foot traffic increases from similar localized promotions?",
-          type: 'boolean',
-          intent_context: {
-            intent: "marketing",
-            decision_type: "marketing_growth",
-            current_payload: currentPayload
-          },
-          canBeZeroOrNone: false, // Boolean, so not applicable
-        }
-      };
+      dataNeeded: {
+        field: "historic_foot_traffic_increase_observed",
+        prompt: "Have you observed historic foot traffic increases from similar localized promotions?",
+        type: 'boolean',
+        intent_context: {
+          intent: "marketing",
+          decision_type: "marketing_growth",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false, // Boolean, so not applicable
+      }
+    };
     }
   }
   console.log(`[${requestId}] makeMarketingDecision: After Data Gathering. currentPayload:`, currentPayload);
@@ -974,6 +994,292 @@ export function makeMarketingDecision(
   };
 }
 
+// --- decisions/savings.ts content ---
+export function makeSavingsDecision(
+  financialData: FinancialData,
+  profileData: ProfileData,
+  currentPayload: Record<string, any>,
+  question: string,
+  requestId: string,
+): DecisionFunctionReturn {
+  console.log(`[${requestId}] makeSavingsDecision: Start. currentPayload:`, currentPayload);
+
+  let isVolatileIndustry: boolean | null = currentPayload.hasOwnProperty('is_volatile_industry') ? currentPayload.is_volatile_industry : null;
+  let isGrowthStage: boolean | null = currentPayload.hasOwnProperty('is_growth_stage') ? currentPayload.is_growth_stage : null;
+  let isSeasonalWindfallMonth: boolean | null = currentPayload.hasOwnProperty('is_seasonal_windfall_month') ? currentPayload.is_seasonal_windfall_month : null;
+  let debtApr: number | null = currentPayload.hasOwnProperty('debt_apr') ? currentPayload.debt_apr : null;
+  let outstandingSupplierDebts: number | null = currentPayload.hasOwnProperty('outstanding_supplier_debts') ? currentPayload.outstanding_supplier_debts : null; // Re-using this from inventory context
+  let consecutiveNegativeCashFlowMonths: number | null = currentPayload.hasOwnProperty('consecutive_negative_cash_flow_months') ? currentPayload.consecutive_negative_cash_flow_months : null;
+  let currentReserveAllocationPercentageEmergency: number | null = currentPayload.hasOwnProperty('current_reserve_allocation_percentage_emergency') ? currentPayload.current_reserve_allocation_percentage_emergency : null;
+  let currentReserveAllocationPercentageGrowth: number | null = currentPayload.hasOwnProperty('current_reserve_allocation_percentage_growth') ? currentPayload.current_reserve_allocation_percentage_growth : null;
+
+  const { monthly_revenue, monthly_expenses, current_savings } = financialData;
+  const net_profit = monthly_revenue - monthly_expenses;
+  const profit_margin = monthly_revenue > 0 ? (net_profit / monthly_revenue) * 100 : 0;
+  const fixed_operating_expenses = monthly_expenses; // Assuming all monthly_expenses are fixed for simplicity in this context
+
+  const reasons = [];
+  let recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
+  let actionable_steps: string[] = [];
+  let score = 0; // Higher score means more favorable for savings/growth
+
+  // --- Data Gathering Sequence for Savings ---
+  if (isVolatileIndustry === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "is_volatile_industry",
+        prompt: "Is your business in a volatile industry (e.g., agriculture, imports, event businesses)?",
+        type: 'boolean',
+        intent_context: {
+          intent: "savings",
+          decision_type: "savings_strategy",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (isGrowthStage === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "is_growth_stage",
+        prompt: "Is your business currently in a growth stage (e.g., actively expanding, increasing market share)?",
+        type: 'boolean',
+        intent_context: {
+          intent: "savings",
+          decision_type: "savings_strategy",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (isSeasonalWindfallMonth === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "is_seasonal_windfall_month",
+        prompt: "Is this month a seasonal windfall period for your business (e.g., festive sales, harvest period)?",
+        type: 'boolean',
+        intent_context: {
+          intent: "savings",
+          decision_type: "savings_strategy",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (debtApr === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "debt_apr",
+        prompt: "What is the Annual Percentage Rate (APR) of your highest interest debt (e.g., '20' for 20%)? (Type '0' if no debt)",
+        type: 'number',
+        intent_context: {
+          intent: "savings",
+          decision_type: "savings_strategy",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+  if (outstandingSupplierDebts === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "outstanding_supplier_debts",
+        prompt: "What is your total outstanding debt to suppliers (in ₦)? (Type '0' if none)",
+        type: 'number',
+        intent_context: {
+          intent: "savings",
+          decision_type: "savings_strategy",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+  if (consecutiveNegativeCashFlowMonths === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "consecutive_negative_cash_flow_months",
+        prompt: "How many consecutive months have you had negative cash flow? (Type '0' if none)",
+        type: 'number',
+        intent_context: {
+          intent: "savings",
+          decision_type: "savings_strategy",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+  // For Rule 4.1 and 5.1, we need to know current allocation if the user is asking about *re-allocating* or *using* reserves.
+  // For now, let's assume the question is about *general savings strategy* and we'll derive ideal allocations.
+  // If the question specifically asks "Should I use my emergency fund for X?", then we'd need to ask for current allocation.
+  // For this initial implementation, we'll focus on the *rules for allocation* rather than *current allocation*.
+
+  console.log(`[${requestId}] makeSavingsDecision: After Data Gathering. currentPayload:`, currentPayload);
+
+  // --- Final Validation and Defaulting ---
+  const finalIsVolatileIndustry = getBooleanOrDefault(isVolatileIndustry);
+  const finalIsGrowthStage = getBooleanOrDefault(isGrowthStage);
+  const finalIsSeasonalWindfallMonth = getBooleanOrDefault(isSeasonalWindfallMonth);
+  const finalDebtApr = getNumberOrDefault(debtApr);
+  const finalOutstandingSupplierDebts = getNumberOrDefault(outstandingSupplierDebts);
+  const finalConsecutiveNegativeCashFlowMonths = getNumberOrDefault(consecutiveNegativeCashFlowMonths);
+
+  // Calculate debt ratio for Rule 3
+  const debt_ratio = monthly_revenue > 0 ? (finalOutstandingSupplierDebts / monthly_revenue) : 0;
+
+  // --- Rule Evaluation ---
+
+  // Recommendation starts as APPROVE, then downgraded based on rules
+  recommendation = 'APPROVE';
+  reasoning = 'Your business is in a good position to maintain and grow its savings.';
+  actionable_steps = [];
+
+  // Rule 6.1: Suspend extra savings allocations if 2 consecutive months of negative cash flow. (Highest priority for "WAIT")
+  if (finalConsecutiveNegativeCashFlowMonths >= 2) {
+    recommendation = 'WAIT';
+    reasons.push(`You've had negative cash flow for ${finalConsecutiveNegativeCashFlowMonths} consecutive months. Prioritize stabilizing cash flow before increasing savings.`);
+    actionable_steps.push('Focus on increasing revenue and reducing non-essential expenses immediately.', 'Review all outgoing payments and negotiate terms if possible.', 'Avoid new investments until cash flow is positive for at least one month.');
+  }
+
+  // Rule 1.3: Critical alert if reserves fall below 1 month of expenses. (Highest priority for "REJECT")
+  if (current_savings < fixed_operating_expenses) {
+    recommendation = 'REJECT';
+    reasons.push(`Your current savings (₦${current_savings.toLocaleString()}) are below 1 month of fixed operating expenses (₦${fixed_operating_expenses.toLocaleString()}). This is a critical alert.`);
+    actionable_steps.push('Immediately cut non-essential expenses.', 'Explore short-term revenue generation strategies.', 'Prioritize building your emergency fund to at least 1 month of expenses.');
+  }
+
+  // If not REJECTED by critical alert or WAIT by negative cash flow, proceed with other rules
+  if (recommendation !== 'REJECT' && recommendation !== 'WAIT') {
+    // Rule 1.1 & 1.2: Minimum Reserve Thresholds
+    let requiredReserveMonths = 2;
+    if (finalIsVolatileIndustry) {
+      requiredReserveMonths = 4;
+      reasons.push(`As your business is in a volatile industry, a higher reserve buffer is recommended.`);
+    }
+    const requiredReserveAmount = requiredReserveMonths * fixed_operating_expenses;
+
+    if (current_savings < requiredReserveAmount) {
+      recommendation = 'WAIT';
+      reasons.push(`Your current savings (₦${current_savings.toLocaleString()}) are below the recommended minimum of ${requiredReserveMonths} months of fixed operating expenses (₦${requiredReserveAmount.toLocaleString()}).`);
+      actionable_steps.push(`Prioritize building your savings to at least ₦${requiredReserveAmount.toLocaleString()}.`);
+    } else {
+      score++; // Met minimum reserve
+    }
+
+    // Rule 3.1 & 3.2 & 3.3: Debt vs. Savings Balance
+    if (finalDebtApr > 15 && debt_ratio > 0.3) { // If high interest debt and high debt ratio
+      recommendation = 'WAIT';
+      reasons.push(`Your debt APR (${finalDebtApr}%) is high and your debt ratio (${(debt_ratio * 100).toFixed(1)}%) is above 30%. Prioritize debt repayment.`);
+      actionable_steps.push('Focus on aggressively paying down high-interest debt.', 'Maintain a minimum 10% of net profit allocation to savings even while servicing debt to preserve liquidity.');
+    } else if (finalDebtApr > 0 && debt_ratio > 0.3) { // Debt exists and ratio is high, but APR not critical
+      reasons.push(`Your debt ratio (${(debt_ratio * 100).toFixed(1)}%) is above 30%. Consider prioritizing debt repayment.`);
+      actionable_steps.push('Review debt repayment strategies.', 'Maintain a minimum 10% of net profit allocation to savings.');
+    } else if (debt_ratio < 0.3) {
+      score++; // Sustainable debt ratio
+    }
+
+    // Rule 2: Monthly Allocation
+    let targetAllocationPercentage = 0.10; // Default 10-20%
+    if (finalIsGrowthStage && profit_margin >= 20) {
+      targetAllocationPercentage = 0.15; // 15-25%
+      reasons.push(`Your business is in a growth stage with a healthy profit margin (${profit_margin.toFixed(1)}%).`);
+    }
+    if (finalIsSeasonalWindfallMonth) {
+      targetAllocationPercentage = Math.max(targetAllocationPercentage, 0.30); // At least 30%
+      reasons.push(`This is a seasonal windfall month. Allocate a higher percentage of profit to savings.`);
+    }
+
+    const recommendedMonthlySavings = net_profit * targetAllocationPercentage;
+    if (net_profit > 0) {
+      actionable_steps.push(`Allocate at least ₦${recommendedMonthlySavings.toLocaleString()} (${(targetAllocationPercentage * 100).toFixed(0)}% of net profit) to savings this month.`);
+      score++; // Can allocate to savings
+    } else {
+      reasons.push(`Your business currently has a negative net profit (₦${net_profit.toLocaleString()}), making monthly savings allocation difficult.`);
+      if (recommendation === 'APPROVE') recommendation = 'WAIT'; // Downgrade if no other issues
+    }
+
+    // Rule 4.1: Emergency Fund Strategy
+    const dedicatedEmergencyFundTarget = current_savings * 0.30; // 30-40%
+    actionable_steps.push(`Carve out ₦${dedicatedEmergencyFundTarget.toLocaleString()} (30% of current savings) as a dedicated emergency fund.`);
+    actionable_steps.push('Keep emergency reserves in liquid or low-risk instruments (bank deposits, treasury bills).');
+    score++; // Encouraging emergency fund
+
+    // Rule 5.1: Growth & Investment Reserves
+    if (current_savings >= requiredReserveAmount) { // Only if minimum buffer is met
+      const growthFundAllocation = current_savings * 0.40; // 40% for growth
+      actionable_steps.push(`Consider allocating ₦${growthFundAllocation.toLocaleString()} (40% of current savings) to a dedicated Growth/Expansion Fund.`);
+      score++; // Can consider growth fund
+    }
+
+    // Rule 5.2 & 5.3: Growth reserves usage conditions
+    if (current_savings >= requiredReserveAmount && profit_margin >= 15) {
+      actionable_steps.push('Growth reserves can be used for expansion if your profit margin remains above 15% and your overall financial health is strong.');
+    } else {
+      reasons.push('Growth reserves should not be used for expansion if your profit margin is below 15% or if it would deplete your emergency buffer.');
+    }
+
+    // Rule 7: Sector-Specific Adjustments
+    switch (profileData.business_type) {
+      case 'Retail (e.g., shop, stall)':
+      case 'Food & Beverage (e.g., restaurant, street food)':
+        actionable_steps.push('Consider implementing frequent micro-savings (daily/weekly) due to the cash-heavy nature of your business.');
+        break;
+      case 'Agriculture':
+        actionable_steps.push('Increase your pre-harvest saving rate to prepare for lean months.');
+        break;
+      case 'Service (e.g., barber, tailor)':
+        actionable_steps.push('Maintain higher liquidity (aim for ≥ 3 months of expenses in savings) due to potentially irregular client payments.');
+        break;
+    }
+  }
+
+  // Final recommendation based on accumulated reasons and score
+  if (recommendation === 'APPROVE' && reasons.length > 0) {
+    // If initially approve but some "wait" reasons accumulated, downgrade to WAIT
+    recommendation = 'WAIT';
+    reasoning = `Your business has potential for savings, but some areas need attention: ${reasons.join(' ')}.`;
+  } else if (recommendation === 'APPROVE' && reasons.length === 0) {
+    reasoning = 'Your business is in excellent financial health and is well-positioned to optimize its savings strategy.';
+  } else if (recommendation === 'WAIT' && reasons.length === 0) {
+    reasoning = 'It is advisable to wait and address underlying financial issues before significantly increasing savings or using reserves.';
+  } else if (recommendation === 'REJECT' && reasons.length === 0) {
+    reasoning = 'Your business is facing critical financial challenges that require immediate attention before any savings strategy can be effectively implemented.';
+  }
+
+  // Ensure actionable steps are unique
+  actionable_steps = Array.from(new Set(actionable_steps));
+
+  console.log(`[${requestId}] makeSavingsDecision: Before final decision return. Recommendation: ${recommendation}`);
+
+  return {
+    decision: {
+      recommendation,
+      reasoning,
+      actionable_steps,
+      financial_snapshot: financialData,
+      is_volatile_industry: finalIsVolatileIndustry,
+      is_growth_stage: finalIsGrowthStage,
+      is_seasonal_windfall_month: finalIsSeasonalWindfallMonth,
+      debt_apr: finalDebtApr,
+      outstanding_supplier_debts: finalOutstandingSupplierDebts,
+      consecutive_negative_cash_flow_months: finalConsecutiveNegativeCashFlowMonths,
+      fixed_operating_expenses: fixed_operating_expenses,
+      net_profit: net_profit,
+    }
+  };
+}
+
 // --- Main decision-engine logic ---
 
 serve(async (req) => {
@@ -1028,7 +1334,7 @@ serve(async (req) => {
 
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('is_fmcg_vendor')
+      .select('is_fmcg_vendor, business_type') // Include business_type
       .eq('id', user.id)
       .single();
 
@@ -1041,7 +1347,8 @@ serve(async (req) => {
       );
     }
     const isFmcgVendor = profileData.is_fmcg_vendor === true; // Ensure it's a boolean
-    console.log(`[${requestId}] Fetched profile data - isFmcgVendor: ${isFmcgVendor}`);
+    const businessType = profileData.business_type || 'Other'; // Default if not set
+    console.log(`[${requestId}] Fetched profile data - isFmcgVendor: ${isFmcgVendor}, businessType: ${businessType}`);
 
     // 4. Call appropriate Decision Logic
     let decisionResult: DecisionFunctionReturn;
@@ -1051,10 +1358,13 @@ serve(async (req) => {
         decisionResult = makeHiringDecision(financialData, currentPayload, question, requestId);
         break;
       case 'inventory':
-        decisionResult = makeInventoryDecision(financialData, { is_fmcg_vendor: isFmcgVendor }, currentPayload, question, requestId);
+        decisionResult = makeInventoryDecision(financialData, { is_fmcg_vendor: isFmcgVendor, business_type: businessType }, currentPayload, question, requestId);
         break;
       case 'marketing': // New marketing decision
         decisionResult = makeMarketingDecision(financialData, currentPayload, question, requestId);
+        break;
+      case 'savings': // New savings decision
+        decisionResult = makeSavingsDecision(financialData, { is_fmcg_vendor: isFmcgVendor, business_type: businessType }, currentPayload, question, requestId);
         break;
       default:
         throw new InputValidationError("Unsupported Intent", `Intent '${intent}' is not yet supported.`);
@@ -1105,6 +1415,16 @@ serve(async (req) => {
       historic_foot_traffic_increase_observed: decision.historic_foot_traffic_increase_observed ?? null,
       sales_increase_last_campaign_1: decision.sales_increase_last_campaign_1 ?? null,
       sales_increase_last_campaign_2: decision.sales_increase_last_campaign_2 ?? null,
+      // New savings fields
+      is_volatile_industry: decision.is_volatile_industry ?? null,
+      is_growth_stage: decision.is_growth_stage ?? null,
+      is_seasonal_windfall_month: decision.is_seasonal_windfall_month ?? null,
+      debt_apr: decision.debt_apr ?? null,
+      consecutive_negative_cash_flow_months: decision.consecutive_negative_cash_flow_months ?? null,
+      current_reserve_allocation_percentage_emergency: decision.current_reserve_allocation_percentage_emergency ?? null,
+      current_reserve_allocation_percentage_growth: decision.current_reserve_allocation_percentage_growth ?? null,
+      fixed_operating_expenses: decision.fixed_operating_expenses ?? null,
+      net_profit: decision.net_profit ?? null,
     };
     console.log(`[${requestId}] Attempting to save decision:`, decisionToSave);
 
