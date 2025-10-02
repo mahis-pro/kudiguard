@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet } from 'lucide-react';
 
 interface DecisionCardProps {
   data: {
@@ -40,7 +40,16 @@ interface DecisionCardProps {
     has_tested_multiple_channels?: boolean | null;
     low_performing_channel_spend?: number | null;
     high_performing_channel_roi?: number | null;
+    // Fields for savings management
+    is_volatile_industry?: boolean | null;
+    is_growth_stage?: boolean | null;
+    is_seasonal_windfall_month?: boolean | null;
+    debt_apr?: number | null;
     consecutive_negative_cash_flow_months?: number | null;
+    current_reserve_allocation_percentage_emergency?: number | null;
+    current_reserve_allocation_percentage_growth?: number | null;
+    fixed_operating_expenses?: number | null;
+    net_profit?: number | null;
   };
 }
 
@@ -64,10 +73,10 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     historic_foot_traffic_increase_observed,
     sales_increase_last_campaign_1,
     sales_increase_last_campaign_2,
-    revenue_gain_last_campaign, // Corrected name
-    marketing_spend_last_campaign, // Corrected name
-    customer_acquisition_cost, // Corrected name
-    customer_lifetime_value, // Corrected name
+    revenue_gain_last_campaign,
+    marketing_spend_last_campaign,
+    customer_acquisition_cost,
+    customer_lifetime_value,
     is_festive_or_peak_season,
     projected_demand_increase_factor,
     digital_cac,
@@ -76,7 +85,16 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     has_tested_multiple_channels,
     low_performing_channel_spend,
     high_performing_channel_roi,
+    // Savings fields
+    is_volatile_industry,
+    is_growth_stage,
+    is_seasonal_windfall_month,
+    debt_apr,
     consecutive_negative_cash_flow_months,
+    current_reserve_allocation_percentage_emergency,
+    current_reserve_allocation_percentage_growth,
+    fixed_operating_expenses,
+    net_profit,
   } = data;
 
   const getRecommendationDetails = () => {
@@ -144,7 +162,15 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     (has_tested_multiple_channels !== null && has_tested_multiple_channels !== undefined) ||
     (low_performing_channel_spend !== null && low_performing_channel_spend !== undefined) ||
     (high_performing_channel_roi !== null && high_performing_channel_roi !== undefined) ||
-    (consecutive_negative_cash_flow_months !== null && consecutive_negative_cash_flow_months !== undefined);
+    (is_volatile_industry !== null && is_volatile_industry !== undefined) ||
+    (is_growth_stage !== null && is_growth_stage !== undefined) ||
+    (is_seasonal_windfall_month !== null && is_seasonal_windfall_month !== undefined) ||
+    (debt_apr !== null && debt_apr !== undefined) ||
+    (consecutive_negative_cash_flow_months !== null && consecutive_negative_cash_flow_months !== undefined) ||
+    (current_reserve_allocation_percentage_emergency !== null && current_reserve_allocation_percentage_emergency !== undefined) ||
+    (current_reserve_allocation_percentage_growth !== null && current_reserve_allocation_percentage_growth !== undefined) ||
+    (fixed_operating_expenses !== null && fixed_operating_expenses !== undefined) ||
+    (net_profit !== null && net_profit !== undefined);
 
   const formatCurrency = (value: number | null | undefined) => 
     value !== null && value !== undefined ? `₦${value.toLocaleString()}` : 'N/A';
@@ -343,10 +369,59 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
                   <span className="text-muted-foreground">High-Performing Channel ROI: <span className="font-medium text-foreground">{high_performing_channel_roi.toFixed(1)}x</span></span>
                 </div>
               )}
+              {/* Savings Fields */}
+              {is_volatile_industry !== null && is_volatile_industry !== undefined && (
+                <div className="flex items-center">
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Volatile Industry: <span className="font-medium text-foreground">{formatBoolean(is_volatile_industry)}</span></span>
+                </div>
+              )}
+              {is_growth_stage !== null && is_growth_stage !== undefined && (
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Growth Stage: <span className="font-medium text-foreground">{formatBoolean(is_growth_stage)}</span></span>
+                </div>
+              )}
+              {is_seasonal_windfall_month !== null && is_seasonal_windfall_month !== undefined && (
+                <div className="flex items-center">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Seasonal Windfall Month: <span className="font-medium text-foreground">{formatBoolean(is_seasonal_windfall_month)}</span></span>
+                </div>
+              )}
+              {debt_apr !== null && debt_apr !== undefined && (
+                <div className="flex items-center">
+                  <Percent className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Highest Debt APR: <span className="font-medium text-foreground">{formatPercentage(debt_apr)}</span></span>
+                </div>
+              )}
               {consecutive_negative_cash_flow_months !== null && consecutive_negative_cash_flow_months !== undefined && (
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
                   <span className="text-muted-foreground">Consecutive Negative Cash Flow Months: <span className="font-medium text-foreground">{consecutive_negative_cash_flow_months}</span></span>
+                </div>
+              )}
+              {current_reserve_allocation_percentage_emergency !== null && current_reserve_allocation_percentage_emergency !== undefined && (
+                <div className="flex items-center">
+                  <Wallet className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Emergency Reserve Allocation: <span className="font-medium text-foreground">{formatPercentage(current_reserve_allocation_percentage_emergency)}</span></span>
+                </div>
+              )}
+              {current_reserve_allocation_percentage_growth !== null && current_reserve_allocation_percentage_growth !== undefined && (
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Growth Reserve Allocation: <span className="font-medium text-foreground">{formatPercentage(current_reserve_allocation_percentage_growth)}</span></span>
+                </div>
+              )}
+              {fixed_operating_expenses !== null && fixed_operating_expenses !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Fixed Operating Expenses: <span className="font-medium text-foreground">{formatCurrency(fixed_operating_expenses)}</span></span>
+                </div>
+              )}
+              {net_profit !== null && net_profit !== undefined && (
+                <div className="flex items-center">
+                  <PiggyBank className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Net Profit: <span className="font-medium text-foreground">{formatCurrency(net_profit)}</span></span>
                 </div>
               )}
             </div>

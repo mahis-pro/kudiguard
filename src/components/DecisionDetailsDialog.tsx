@@ -48,7 +48,16 @@ interface DecisionDetailsDialogProps {
     has_tested_multiple_channels?: boolean | null;
     low_performing_channel_spend?: number | null;
     high_performing_channel_roi?: number | null;
+    // New fields for savings management
+    is_volatile_industry?: boolean | null;
+    is_growth_stage?: boolean | null;
+    is_seasonal_windfall_month?: boolean | null;
+    debt_apr?: number | null;
     consecutive_negative_cash_flow_months?: number | null;
+    current_reserve_allocation_percentage_emergency?: number | null;
+    current_reserve_allocation_percentage_growth?: number | null;
+    fixed_operating_expenses?: number | null;
+    net_profit?: number | null;
     created_at: string;
   } | null;
 }

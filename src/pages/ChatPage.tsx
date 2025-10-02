@@ -62,7 +62,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Hello ${userDisplayName}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
           timestamp: new Date().toISOString(),
-          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'Add new data'],
+          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Add new data'],
         },
       ]);
     }
@@ -209,7 +209,7 @@ const ChatPage = () => {
         const valueMatch = String(finalMessageInput).match(/(\d[\d,\.]*)/); // Extract numbers
         if (valueMatch && valueMatch[1]) {
           parsedValue = parseFloat(valueMatch[1].replace(/,/g, ''));
-          if (isNaN(parsedValue) || parsedValue < 0) {
+          if (isNaN(parsedValue) || (parsedValue < 0 && pendingDataRequest.canBeZeroOrNone === false)) {
             parsedValue = undefined; // Invalid number
           }
         }
@@ -278,6 +278,8 @@ const ChatPage = () => {
       }
     } else if (lowerCaseMessage.includes('marketing') || lowerCaseMessage.includes('promote') || lowerCaseMessage.includes('campaign') || lowerCaseMessage.includes('advertise')) {
       intentDetected = 'marketing';
+    } else if (lowerCaseMessage.includes('savings') || lowerCaseMessage.includes('save') || lowerCaseMessage.includes('emergency fund') || lowerCaseMessage.includes('growth fund') || lowerCaseMessage.includes('allocate')) {
+      intentDetected = 'savings';
     }
 
     if (intentDetected) {
@@ -289,7 +291,7 @@ const ChatPage = () => {
       const noIntentResponse: ChatMessage = {
         id: String(Date.now()),
         sender: 'ai',
-        text: "I'm currently specialized in hiring, inventory, and marketing decisions. Please ask me a question like 'Can I afford to hire a new staff member?', 'Should I restock my shop?', or 'Should I invest in marketing?'.",
+        text: "I'm currently specialized in hiring, inventory, marketing, and savings decisions. Please ask me a question like 'Can I afford to hire a new staff member?', 'Should I restock my shop?', 'Should I invest in marketing?', or 'How can I improve my savings?'.",
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, noIntentResponse]);
@@ -311,7 +313,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
-        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'Add new data'],
+        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Add new data'],
       };
       setMessages((prev) => [...prev, cancelMessage]);
     } else {
@@ -409,7 +411,7 @@ const ChatPage = () => {
           ) : (
             <Input
               type="text"
-              placeholder={pendingDataRequest ? pendingDataRequest.prompt : "Ask about hiring, inventory, or marketing..."}
+              placeholder={pendingDataRequest ? pendingDataRequest.prompt : "Ask about hiring, inventory, marketing, or savings..."}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
