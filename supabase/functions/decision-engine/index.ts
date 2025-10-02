@@ -2,7 +2,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { v4 as uuidv4 } from "https://esm.sh/uuid@9.0.1";
+import { v4 as uuidv4 } from "https://esm.land/uuid@9.0.1";
 import { z } from "https://deno.land/x/zod@v3.23.0/mod.ts";
 
 // --- constants.ts content ---
@@ -17,7 +17,7 @@ export const ERROR_CODES = {
   CALC_RULE_NOT_FOUND: "CALC_RULE_NOT_FOUND",
   DECISION_NOT_FOUND: "DECISION_NOT_FOUND",
   RECOMMENDATION_INSERT_FAILED: "RECOMMENDATION_INSERT_FAILED",
-  DECISION_UPDATE_FAILED: "DECISION_UPDATE_FAILED",
+  DECISION_UPDATE: "DECISION_UPDATE",
   FEEDBACK_UPSERT_FAILED: "FEEDBACK_UPSERT_FAILED",
   PROFILE_FETCH_FAILED: "PROFILE_FETCH_FAILED",
   PROFILE_UPDATE_FAILED: "PROFILE_UPDATE_FAILED",
@@ -1018,10 +1018,14 @@ export function makeSavingsDecision(
   const profit_margin = monthly_revenue > 0 ? (net_profit / monthly_revenue) * 100 : 0;
   const fixed_operating_expenses = monthly_expenses; // Assuming all monthly_expenses are fixed for simplicity in this context
 
+  console.log(`[${requestId}] makeSavingsDecision: Initial financial and profile data:`, { financialData, profileData });
+  console.log(`[${requestId}] makeSavingsDecision: Derived financial metrics:`, { net_profit, profit_margin, fixed_operating_expenses });
+
   const reasons = [];
   let recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
+  let reasoning: string = ''; // Initialize reasoning here
   let actionable_steps: string[] = [];
-  let score = 0; // Higher score means more favorable for savings/growth
+  let score = 0;
 
   // --- Data Gathering Sequence for Savings ---
   if (isVolatileIndustry === null) {
@@ -1135,8 +1139,23 @@ export function makeSavingsDecision(
   const finalOutstandingSupplierDebts = getNumberOrDefault(outstandingSupplierDebts);
   const finalConsecutiveNegativeCashFlowMonths = getNumberOrDefault(consecutiveNegativeCashFlowMonths);
 
+  console.log(`[${requestId}] makeSavingsDecision: Final defaulted payload values:`, {
+    finalIsVolatileIndustry,
+    finalIsGrowthStage,
+    finalIsSeasonalWindfallMonth,
+    finalDebtApr,
+    finalOutstandingSupplierDebts,
+    finalConsecutiveNegativeCashFlowMonths,
+    currentReserveAllocationPercentageEmergency,
+    currentReserveAllocationPercentageGrowth,
+    fixed_operating_expenses,
+    net_profit,
+    profit_margin
+  });
+
   // Calculate debt ratio for Rule 3
   const debt_ratio = monthly_revenue > 0 ? (finalOutstandingSupplierDebts / monthly_revenue) : 0;
+  console.log(`[${requestId}] makeSavingsDecision: Calculated debt_ratio: ${debt_ratio}`);
 
   // --- Rule Evaluation ---
 
@@ -1145,11 +1164,14 @@ export function makeSavingsDecision(
   reasoning = 'Your business is in a good position to maintain and grow its savings.';
   actionable_steps = [];
 
+  console.log(`[${requestId}] makeSavingsDecision: Starting rule evaluation. Initial recommendation: ${recommendation}`);
+
   // Rule 6.1: Suspend extra savings allocations if 2 consecutive months of negative cash flow. (Highest priority for "WAIT")
   if (finalConsecutiveNegativeCashFlowMonths >= 2) {
     recommendation = 'WAIT';
     reasons.push(`You've had negative cash flow for ${finalConsecutiveNegativeCashFlowMonths} consecutive months. Prioritize stabilizing cash flow before increasing savings.`);
     actionable_steps.push('Focus on increasing revenue and reducing non-essential expenses immediately.', 'Review all outgoing payments and negotiate terms if possible.', 'Avoid new investments until cash flow is positive for at least one month.');
+    console.log(`[${requestId}] Rule 6.1 triggered. Recommendation: ${recommendation}`);
   }
 
   // Rule 1.3: Critical alert if reserves fall below 1 month of expenses. (Highest priority for "REJECT")
@@ -1157,10 +1179,12 @@ export function makeSavingsDecision(
     recommendation = 'REJECT';
     reasons.push(`Your current savings (₦${current_savings.toLocaleString()}) are below 1 month of fixed operating expenses (₦${fixed_operating_expenses.toLocaleString()}). This is a critical alert.`);
     actionable_steps.push('Immediately cut non-essential expenses.', 'Explore short-term revenue generation strategies.', 'Prioritize building your emergency fund to at least 1 month of expenses.');
+    console.log(`[${requestId}] Rule 1.3 triggered. Recommendation: ${recommendation}`);
   }
 
   // If not REJECTED by critical alert or WAIT by negative cash flow, proceed with other rules
   if (recommendation !== 'REJECT' && recommendation !== 'WAIT') {
+    console.log(`[${requestId}] Proceeding with non-critical rules. Current recommendation: ${recommendation}`);
     // Rule 1.1 & 1.2: Minimum Reserve Thresholds
     let requiredReserveMonths = 2;
     if (finalIsVolatileIndustry) {
@@ -1173,53 +1197,62 @@ export function makeSavingsDecision(
       recommendation = 'WAIT';
       reasons.push(`Your current savings (₦${current_savings.toLocaleString()}) are below the recommended minimum of ${requiredReserveMonths} months of fixed operating expenses (₦${requiredReserveAmount.toLocaleString()}).`);
       actionable_steps.push(`Prioritize building your savings to at least ₦${requiredReserveAmount.toLocaleString()}.`);
+      console.log(`[${requestId}] Rule 1.1/1.2 triggered. Recommendation: ${recommendation}`);
     } else {
-      score++; // Met minimum reserve
+      score++;
+      console.log(`[${requestId}] Rule 1.1/1.2 passed. Score: ${score}`);
     }
 
     // Rule 3.1 & 3.2 & 3.3: Debt vs. Savings Balance
-    if (finalDebtApr > 15 && debt_ratio > 0.3) { // If high interest debt and high debt ratio
+    if (finalDebtApr > 15 && debt_ratio > 0.3) {
       recommendation = 'WAIT';
       reasons.push(`Your debt APR (${finalDebtApr}%) is high and your debt ratio (${(debt_ratio * 100).toFixed(1)}%) is above 30%. Prioritize debt repayment.`);
       actionable_steps.push('Focus on aggressively paying down high-interest debt.', 'Maintain a minimum 10% of net profit allocation to savings even while servicing debt to preserve liquidity.');
-    } else if (finalDebtApr > 0 && debt_ratio > 0.3) { // Debt exists and ratio is high, but APR not critical
+      console.log(`[${requestId}] Rule 3.1/3.2 triggered. Recommendation: ${recommendation}`);
+    } else if (finalDebtApr > 0 && debt_ratio > 0.3) {
       reasons.push(`Your debt ratio (${(debt_ratio * 100).toFixed(1)}%) is above 30%. Consider prioritizing debt repayment.`);
       actionable_steps.push('Review debt repayment strategies.', 'Maintain a minimum 10% of net profit allocation to savings.');
+      console.log(`[${requestId}] Rule 3.2 triggered (non-critical). Recommendation: ${recommendation}`);
     } else if (debt_ratio < 0.3) {
-      score++; // Sustainable debt ratio
+      score++;
+      console.log(`[${requestId}] Rule 3.2 passed. Score: ${score}`);
     }
 
     // Rule 2: Monthly Allocation
-    let targetAllocationPercentage = 0.10; // Default 10-20%
+    let targetAllocationPercentage = 0.10;
     if (finalIsGrowthStage && profit_margin >= 20) {
-      targetAllocationPercentage = 0.15; // 15-25%
+      targetAllocationPercentage = 0.15;
       reasons.push(`Your business is in a growth stage with a healthy profit margin (${profit_margin.toFixed(1)}%).`);
     }
     if (finalIsSeasonalWindfallMonth) {
-      targetAllocationPercentage = Math.max(targetAllocationPercentage, 0.30); // At least 30%
+      targetAllocationPercentage = Math.max(targetAllocationPercentage, 0.30);
       reasons.push(`This is a seasonal windfall month. Allocate a higher percentage of profit to savings.`);
     }
 
     const recommendedMonthlySavings = net_profit * targetAllocationPercentage;
     if (net_profit > 0) {
       actionable_steps.push(`Allocate at least ₦${recommendedMonthlySavings.toLocaleString()} (${(targetAllocationPercentage * 100).toFixed(0)}% of net profit) to savings this month.`);
-      score++; // Can allocate to savings
+      score++;
+      console.log(`[${requestId}] Rule 2 passed. Score: ${score}`);
     } else {
       reasons.push(`Your business currently has a negative net profit (₦${net_profit.toLocaleString()}), making monthly savings allocation difficult.`);
-      if (recommendation === 'APPROVE') recommendation = 'WAIT'; // Downgrade if no other issues
+      if (recommendation === 'APPROVE') recommendation = 'WAIT';
+      console.log(`[${requestId}] Rule 2 triggered (negative profit). Recommendation: ${recommendation}`);
     }
 
     // Rule 4.1: Emergency Fund Strategy
-    const dedicatedEmergencyFundTarget = current_savings * 0.30; // 30-40%
+    const dedicatedEmergencyFundTarget = current_savings * 0.30;
     actionable_steps.push(`Carve out ₦${dedicatedEmergencyFundTarget.toLocaleString()} (30% of current savings) as a dedicated emergency fund.`);
     actionable_steps.push('Keep emergency reserves in liquid or low-risk instruments (bank deposits, treasury bills).');
-    score++; // Encouraging emergency fund
+    score++;
+    console.log(`[${requestId}] Rule 4.1 triggered. Score: ${score}`);
 
     // Rule 5.1: Growth & Investment Reserves
-    if (current_savings >= requiredReserveAmount) { // Only if minimum buffer is met
-      const growthFundAllocation = current_savings * 0.40; // 40% for growth
+    if (current_savings >= requiredReserveAmount) {
+      const growthFundAllocation = current_savings * 0.40;
       actionable_steps.push(`Consider allocating ₦${growthFundAllocation.toLocaleString()} (40% of current savings) to a dedicated Growth/Expansion Fund.`);
-      score++; // Can consider growth fund
+      score++;
+      console.log(`[${requestId}] Rule 5.1 triggered. Score: ${score}`);
     }
 
     // Rule 5.2 & 5.3: Growth reserves usage conditions
@@ -1227,6 +1260,7 @@ export function makeSavingsDecision(
       actionable_steps.push('Growth reserves can be used for expansion if your profit margin remains above 15% and your overall financial health is strong.');
     } else {
       reasons.push('Growth reserves should not be used for expansion if your profit margin is below 15% or if it would deplete your emergency buffer.');
+      console.log(`[${requestId}] Rule 5.2/5.3 triggered (conditions not met).`);
     }
 
     // Rule 7: Sector-Specific Adjustments
@@ -1242,11 +1276,11 @@ export function makeSavingsDecision(
         actionable_steps.push('Maintain higher liquidity (aim for ≥ 3 months of expenses in savings) due to potentially irregular client payments.');
         break;
     }
+    console.log(`[${requestId}] Sector-specific adjustments applied.`);
   }
 
   // Final recommendation based on accumulated reasons and score
   if (recommendation === 'APPROVE' && reasons.length > 0) {
-    // If initially approve but some "wait" reasons accumulated, downgrade to WAIT
     recommendation = 'WAIT';
     reasoning = `Your business has potential for savings, but some areas need attention: ${reasons.join(' ')}.`;
   } else if (recommendation === 'APPROVE' && reasons.length === 0) {
@@ -1256,9 +1290,10 @@ export function makeSavingsDecision(
   } else if (recommendation === 'REJECT' && reasons.length === 0) {
     reasoning = 'Your business is facing critical financial challenges that require immediate attention before any savings strategy can be effectively implemented.';
   }
+  console.log(`[${requestId}] Final recommendation determined: ${recommendation}. Reasoning: ${reasoning}`);
 
-  // Ensure actionable steps are unique
   actionable_steps = Array.from(new Set(actionable_steps));
+  console.log(`[${requestId}] Final actionable steps:`, actionable_steps);
 
   console.log(`[${requestId}] makeSavingsDecision: Before final decision return. Recommendation: ${recommendation}`);
 
@@ -1465,7 +1500,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error(`[${requestId}] RAW ERROR CAUGHT IN MAIN HANDLER:`, error); // Added this line
+    console.error(`[${requestId}] RAW ERROR CAUGHT IN MAIN HANDLER:`, error);
     return handleError(error, requestId, user ? user.id : null, supabase, req.body);
   }
 });
