@@ -48,23 +48,29 @@ const ChatPage = () => {
   const [currentIntent, setCurrentIntent] = useState<string | null>(null); // To keep track of the main intent
   const [currentQuestion, setCurrentQuestion] = useState<string | null>(null); // To keep track of the original question
   const [currentPayload, setCurrentPayload] = useState<Record<string, any>>({}); // To accumulate payload data
+
+  // New states to store the last query for "Try again" functionality
+  const [lastUserQueryText, setLastUserQueryText] = useState<string | null>(null);
+  const [lastUserQueryIntent, setLastUserQueryIntent] = useState<string | null>(null);
+  const [lastUserQueryPayload, setLastUserQueryPayload] = useState<Record<string, any> | null>(null);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isAiTyping]);
 
+  const initialGreeting = (name: string): ChatMessage => ({ // Explicitly type the return
+    id: '1',
+    sender: 'ai', // Explicitly 'ai'
+    text: `Hello ${name}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
+    timestamp: new Date().toISOString(),
+    quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Add new data', 'What else can you do?'],
+  });
+
   useEffect(() => {
     if (!sessionLoading && userDisplayName) {
-      setMessages([
-        {
-          id: '1',
-          sender: 'ai',
-          text: `Hello ${userDisplayName}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
-          timestamp: new Date().toISOString(),
-          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Add new data'],
-        },
-      ]);
+      setMessages([initialGreeting(userDisplayName)]);
     }
   }, [sessionLoading, userDisplayName]);
 
@@ -80,7 +86,6 @@ const ChatPage = () => {
       }
 
       if (!edgeFunctionResult || !edgeFunctionResult.success) {
-        // Handle specific error codes from the Edge Function
         let errorMessage = "An unknown error occurred from the AI.";
         let quickReplies: string[] = ['Add new data', 'Try again'];
 
@@ -106,22 +111,22 @@ const ChatPage = () => {
           description: errorMessage,
           variant: "destructive",
         });
-        setPendingDataRequest(null); // Clear any pending data requests on error
+        setPendingDataRequest(null);
         setCurrentIntent(null);
         setCurrentQuestion(null);
         setCurrentPayload({});
-        return; // Exit early after handling the error
+        return;
       }
 
       if (edgeFunctionResult.data?.data_needed) {
-        // AI needs more data, update pending request and current payload
         setPendingDataRequest(edgeFunctionResult.data.data_needed);
-        setCurrentIntent(intent); // Keep track of the original intent
-        setCurrentQuestion(question); // Keep track of the original question
-        // IMPORTANT: Update currentPayload with the payload sent back by the Edge Function
-        // This ensures all previously collected data is preserved.
-        setCurrentPayload(edgeFunctionResult.data.data_needed.intent_context.current_payload || {}); 
+        setCurrentIntent(intent);
+        setCurrentQuestion(question);
+        setCurrentPayload(edgeFunctionResult.data.data_needed.intent_context.current_payload || {});
         
+        // Update lastUserQueryPayload to reflect accumulated data for potential retry
+        setLastUserQueryPayload(edgeFunctionResult.data.data_needed.intent_context.current_payload || {});
+
         const dataNeededMessage: ChatMessage = {
           id: String(Date.now()),
           sender: 'ai',
@@ -130,14 +135,12 @@ const ChatPage = () => {
           dataNeeded: edgeFunctionResult.data.data_needed,
           quickReplies: ['Cancel'],
           originalQuestion: question,
-          // The collectedPayload in ChatMessage should reflect the full payload for the next step
           collectedPayload: edgeFunctionResult.data.data_needed.intent_context.current_payload || {}, 
         };
         setMessages((prev) => [...prev, dataNeededMessage]);
         return;
       }
 
-      // Regular decision response
       const aiResponse: ChatMessage = {
         id: String(Date.now()),
         sender: 'ai',
@@ -147,10 +150,15 @@ const ChatPage = () => {
         quickReplies: ['Thanks!', 'What else can you do?'],
       };
       setMessages((prev) => [...prev, aiResponse]);
-      setPendingDataRequest(null); // Clear any pending data requests
+      setPendingDataRequest(null);
       setCurrentIntent(null);
       setCurrentQuestion(null);
       setCurrentPayload({});
+      // Clear last query states as the decision is complete
+      setLastUserQueryText(null);
+      setLastUserQueryIntent(null);
+      setLastUserQueryPayload(null);
+
     } catch (error: any) {
       console.error("Error invoking edge function:", error);
       let errorMessage = "An unexpected error occurred while analyzing your request.";
@@ -168,12 +176,7 @@ const ChatPage = () => {
         quickReplies: ['Add new data', 'Try again'],
       };
       setMessages((prev) => [...prev, errorResponse]);
-      toast({
-        title: "Analysis Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      setPendingDataRequest(null); // Clear any pending data requests on error
+      setPendingDataRequest(null);
       setCurrentIntent(null);
       setCurrentQuestion(null);
       setCurrentPayload({});
@@ -190,6 +193,28 @@ const ChatPage = () => {
 
     if (finalMessageInput.trim() === '') return;
 
+    const lowerCaseInput = finalMessageInput.toLowerCase(); // Define lowerCaseInput here
+
+    // Handle "Thank you" / "Thanks!"
+    if (['thank you', 'thanks', 'thank you!', 'thanks!'].includes(lowerCaseInput)) {
+        const userThankYou: ChatMessage = {
+            id: String(Date.now()),
+            sender: 'user',
+            text: finalMessageInput,
+            timestamp: new Date().toISOString(),
+        };
+        const aiReply: ChatMessage = {
+            id: String(Date.now() + 1),
+            sender: 'ai',
+            text: "You're most welcome! I'm here to help your business thrive. Is there anything else I can assist you with?",
+            timestamp: new Date().toISOString(),
+            quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Add new data', 'What else can you do?'],
+        };
+        setMessages((prev) => [...prev, userThankYou, aiReply]);
+        setMessageInput('');
+        return;
+    }
+
     const userMessage: ChatMessage = {
       id: String(Date.now()),
       sender: 'user',
@@ -199,18 +224,16 @@ const ChatPage = () => {
     setMessages((prev) => [...prev, userMessage]);
 
     if (pendingDataRequest && currentIntent && currentQuestion) {
-      // If AI is waiting for data, try to parse the input for the specific field
       let parsedValue: number | boolean | undefined;
-      const lowerCaseInput = String(finalMessageInput).toLowerCase();
-
+      
       if (pendingDataRequest.type === 'boolean') {
         parsedValue = lowerCaseInput === 'true' || lowerCaseInput === 'yes';
       } else { // type is 'number'
-        const valueMatch = String(finalMessageInput).match(/(\d[\d,\.]*)/); // Extract numbers
+        const valueMatch = String(finalMessageInput).match(/(\d[\d,\.]*)/);
         if (valueMatch && valueMatch[1]) {
           parsedValue = parseFloat(valueMatch[1].replace(/,/g, ''));
           if (isNaN(parsedValue) || (parsedValue < 0 && pendingDataRequest.canBeZeroOrNone === false)) {
-            parsedValue = undefined; // Invalid number
+            parsedValue = undefined;
           }
         }
       }
@@ -229,7 +252,6 @@ const ChatPage = () => {
         return;
       }
 
-      // NEW: Check if 0 is allowed for the current field
       if (pendingDataRequest.type === 'number' && pendingDataRequest.canBeZeroOrNone === false && parsedValue === 0) {
         const retryMessage: ChatMessage = {
           id: String(Date.now()),
@@ -244,48 +266,43 @@ const ChatPage = () => {
         return;
       }
 
-      // Accumulate the new data into the current payload
       const updatedPayload = { ...currentPayload, [pendingDataRequest.field]: parsedValue };
       setCurrentPayload(updatedPayload);
-
-      // Re-send to decision engine with accumulated payload
       sendToDecisionEngine(currentIntent, currentQuestion, updatedPayload);
       setMessageInput('');
       return;
     }
 
-    // Initial intent detection
-    const lowerCaseMessage = finalMessageInput.toLowerCase();
     let intentDetected: string | null = null;
     let initialPayload: Record<string, any> = {};
 
-    if (lowerCaseMessage.includes('hire') || lowerCaseMessage.includes('staff') || lowerCaseMessage.includes('employee')) {
+    if (lowerCaseInput.includes('hire') || lowerCaseInput.includes('staff') || lowerCaseInput.includes('employee')) {
       intentDetected = 'hiring';
-    } else if (lowerCaseMessage.includes('inventory') || lowerCaseMessage.includes('stock') || lowerCaseMessage.includes('restock') || lowerCaseMessage.includes('buy more')) {
+    } else if (lowerCaseInput.includes('inventory') || lowerCaseInput.includes('stock') || lowerCaseInput.includes('restock') || lowerCaseInput.includes('buy more')) {
       intentDetected = 'inventory';
-
-      // Check for bulk/discount related keywords and extract percentage
-      const discountMatch = lowerCaseMessage.match(/(\d+(\.\d+)?)% discount/);
+      const discountMatch = lowerCaseInput.match(/(\d+(\.\d+)?)% discount/);
       if (discountMatch && discountMatch[1]) {
         const discount = parseFloat(discountMatch[1]);
         if (!isNaN(discount) && discount >= 0 && discount <= 100) {
           initialPayload.supplier_discount_percentage = discount;
         }
-      } else if (lowerCaseMessage.includes('bulk') || lowerCaseMessage.includes('wholesale') || lowerCaseMessage.includes('large quantity')) {
-        // If bulk is mentioned but no discount, we can still flag it for potential discount/storage cost questions later
-        // For now, we'll just proceed with the inventory intent and let the engine ask for specifics.
-        // If a discount is implied but not specified, the engine will ask for it.
       }
-    } else if (lowerCaseMessage.includes('marketing') || lowerCaseMessage.includes('promote') || lowerCaseMessage.includes('campaign') || lowerCaseMessage.includes('advertise')) {
+    } else if (lowerCaseInput.includes('marketing') || lowerCaseInput.includes('promote') || lowerCaseInput.includes('campaign') || lowerCaseInput.includes('advertise')) {
       intentDetected = 'marketing';
-    } else if (lowerCaseMessage.includes('savings') || lowerCaseMessage.includes('save') || lowerCaseMessage.includes('emergency fund') || lowerCaseMessage.includes('growth fund') || lowerCaseMessage.includes('allocate')) {
+    } else if (lowerCaseInput.includes('savings') || lowerCaseInput.includes('save') || lowerCaseInput.includes('emergency fund') || lowerCaseInput.includes('growth fund') || lowerCaseInput.includes('allocate')) {
       intentDetected = 'savings';
     }
 
     if (intentDetected) {
       setCurrentIntent(intentDetected);
       setCurrentQuestion(finalMessageInput);
-      setCurrentPayload(initialPayload); // Set initial payload
+      setCurrentPayload(initialPayload);
+
+      // Store this as the last successful query that initiated a flow
+      setLastUserQueryText(finalMessageInput);
+      setLastUserQueryIntent(intentDetected);
+      setLastUserQueryPayload(initialPayload);
+
       sendToDecisionEngine(intentDetected, finalMessageInput, initialPayload);
     } else {
       const noIntentResponse: ChatMessage = {
@@ -301,9 +318,20 @@ const ChatPage = () => {
   };
 
   const handleQuickReply = (reply: string) => {
-    if (reply.toLowerCase() === 'add new data') {
+    // Add user's quick reply as a message
+    const userQuickReplyMessage: ChatMessage = {
+        id: String(Date.now()),
+        sender: 'user',
+        text: reply,
+        timestamp: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, userQuickReplyMessage]);
+
+    const lowerCaseReply = reply.toLowerCase();
+
+    if (lowerCaseReply === 'add new data') {
       setIsAddDataModalOpen(true);
-    } else if (reply.toLowerCase() === 'cancel' && pendingDataRequest) {
+    } else if (lowerCaseReply === 'cancel' && pendingDataRequest) {
       setPendingDataRequest(null);
       setCurrentIntent(null);
       setCurrentQuestion(null);
@@ -313,14 +341,40 @@ const ChatPage = () => {
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
-        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Add new data'],
+        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Add new data', 'What else can you do?'],
       };
       setMessages((prev) => [...prev, cancelMessage]);
+    } else if (lowerCaseReply === 'try again') {
+        if (lastUserQueryIntent && lastUserQueryText) {
+            setPendingDataRequest(null); // Clear any pending request before retrying
+            setCurrentIntent(lastUserQueryIntent);
+            setCurrentQuestion(lastUserQueryText);
+            setCurrentPayload(lastUserQueryPayload || {}); // Use the last accumulated payload
+            sendToDecisionEngine(lastUserQueryIntent, lastUserQueryText, lastUserQueryPayload || {});
+        } else {
+            const noRetryMessage: ChatMessage = {
+                id: String(Date.now()),
+                sender: 'ai',
+                text: "I don't have a previous query to retry. Please ask me a new question.",
+                timestamp: new Date().toISOString(),
+                quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Add new data', 'What else can you do?'],
+            };
+            setMessages((prev) => [...prev, noRetryMessage]);
+        }
+    } else if (lowerCaseReply === 'what else can you do?') {
+        // Reset chat to initial state
+        setMessages([initialGreeting(userDisplayName || 'User')]); // Use initialGreeting
+        setPendingDataRequest(null);
+        setCurrentIntent(null);
+        setCurrentQuestion(null);
+        setCurrentPayload({});
+        setLastUserQueryText(null);
+        setLastUserQueryIntent(null);
+        setLastUserQueryPayload(null);
     } else {
-      // Treat quick reply as a user message
-      setMessageInput(reply);
-      // Directly call handleSendMessage to process it
-      setTimeout(() => handleSendMessage(reply), 0); 
+        // For other quick replies, treat as a regular message input
+        setMessageInput(reply);
+        setTimeout(() => handleSendMessage(reply), 0); 
     }
   };
 
