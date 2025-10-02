@@ -18,7 +18,7 @@ declare module "https://esm.sh/@supabase/supabase-js@2.45.0" {
   export function createClient(supabaseUrl: string, supabaseKey: string, options?: any): SupabaseClient;
 }
 
-declare module "https://esm.land/uuid@9.0.1" {
+declare module "https://esm.sh/uuid@9.0.1" {
   export { v4 } from 'uuid';
 }
 
