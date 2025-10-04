@@ -372,7 +372,7 @@ const Onboarding = () => {
             <img 
               src={kudiGuardLogo} 
               alt="KudiGuard" 
-              className="h-16 w-16"
+              className="h-16 w-auto"
             />
           </div>
           <h1 className="text-3xl font-bold text-primary">Welcome to KudiGuard!</h1>

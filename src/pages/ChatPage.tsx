@@ -8,6 +8,7 @@ import AddDataModal from '@/components/AddDataModal';
 import DecisionCard from '@/components/DecisionCard';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch'; // Import Switch component
+import kudiGuardLogo from '@/assets/kudiguard-logo.png'; // Import the logo
 
 interface ChatMessage {
   id: string;
@@ -389,9 +390,13 @@ const ChatPage = () => {
   return (
     <>
       <div className="flex flex-col flex-1">
-        <header className="bg-card shadow-card border-b border-border p-4 flex items-center justify-between flex-shrink-0">
+        <header className="bg-card shadow-card border-b border-border p-4 flex items-center flex-shrink-0">
           <div className="flex items-center">
-            <MessageCircle className="h-6 w-6 text-primary mr-3" />
+            <img 
+              src={kudiGuardLogo} 
+              alt="KudiGuard" 
+              className="h-8 w-auto mr-3"
+            />
             <h1 className="text-xl font-bold text-primary">KudiGuard Analyst</h1>
           </div>
         </header>

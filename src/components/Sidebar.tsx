@@ -60,7 +60,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick }: SidebarPro
         <img 
           src={kudiGuardLogo} 
           alt="KudiGuard" 
-          className="h-10 w-10 mr-2"
+          className="h-10 w-auto mr-2"
         />
         <span className="text-xl font-bold text-sidebar-primary">KudiGuard</span>
       </div>

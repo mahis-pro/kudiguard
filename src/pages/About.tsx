@@ -13,6 +13,7 @@ import {
   PiggyBank,
   Target
 } from 'lucide-react';
+import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 
 const About = () => {
   const features = [

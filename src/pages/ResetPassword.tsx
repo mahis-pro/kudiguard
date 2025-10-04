@@ -86,7 +86,7 @@ const ResetPassword = () => {
             <img 
               src={kudiGuardLogo} 
               alt="KudiGuard" 
-              className="h-16 w-16"
+              className="h-16 w-auto"
             />
           </div>
           <h1 className="text-3xl font-bold text-primary">Reset Your Password</h1>

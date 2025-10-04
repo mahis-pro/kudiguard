@@ -17,7 +17,7 @@ const MobileHeader = ({ onMenuClick }: MobileHeaderProps) => {
         <img 
           src={kudiGuardLogo} 
           alt="KudiGuard" 
-          className="h-8 w-8 mr-2"
+          className="h-8 w-auto mr-2"
         />
         <span className="text-lg font-bold text-primary">KudiGuard</span>
       </div>

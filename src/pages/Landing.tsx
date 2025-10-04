@@ -139,7 +139,7 @@ const Landing = () => {
             <img 
               src={kudiGuardLogo} 
               alt="KudiGuard" 
-              className="h-8 w-8"
+              className="h-8 w-auto"
             />
           </div>
           <p className="text-muted-foreground">

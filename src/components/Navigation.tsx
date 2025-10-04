@@ -40,7 +40,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
             <img 
               src={kudiGuardLogo} 
               alt="KudiGuard" 
-              className="h-8 w-8 mr-3"
+              className="h-8 w-auto"
             />
           </div>
         </div>
@@ -55,7 +55,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
           <img 
             src={kudiGuardLogo} 
             alt="KudiGuard" 
-            className="h-10 w-10 md:h-12 md:w-12"
+            className="h-10 w-auto md:h-12"
           />
         </Link>
         
