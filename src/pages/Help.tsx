@@ -15,8 +15,14 @@ import {
   Phone,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Facebook, // Added for social media
+  Twitter,  // Added for social media
+  Instagram // Added for social media
 } from 'lucide-react';
+import kudiGuardLogo from '@/assets/kudiguard-logo.png'; // Import logo for footer
+import { Link } from 'react-router-dom'; // Import Link for footer
+import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll'; // Import the new hook
 
 interface FAQ {
   id: string;
@@ -109,185 +115,281 @@ const Help = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Navigation />
-      <div className="max-w-4xl mx-auto p-4 pt-16"> {/* Added pt-16 */}
+      <div className="pt-16"> {/* Added pt-16 to account for fixed header */}
         
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="bg-gradient-primary p-3 rounded-full">
-              <HelpCircle className="h-8 w-8 text-primary-foreground" />
+        {/* Hero Section */}
+        <section className="container mx-auto px-4 py-16 bg-hero-gradient text-center">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-center mb-6 animate-fade-in">
+              <div className="bg-primary-foreground p-4 rounded-full shadow-lg">
+                <HelpCircle className="h-12 w-12 text-primary" />
+              </div>
             </div>
+            <h1 className="text-5xl md:text-6xl font-extrabold text-primary-foreground mb-4 leading-tight animate-fade-in">
+              How Can We Help You?
+            </h1>
+            <p className="text-xl md:text-2xl text-primary-foreground/90 mb-8 max-w-3xl mx-auto animate-fade-in">
+              Find answers to your questions, get support, and learn more about KudiGuard.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold text-primary mb-2">Help & Support</h1>
-          <p className="text-muted-foreground">Find answers to common questions or get in touch</p>
-        </div>
+        </section>
 
         {/* Quick Help Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="shadow-card">
-            <CardContent className="p-6 text-center">
-              <MessageCircle className="h-8 w-8 text-primary mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">Chat Support</h3>
-              <p className="text-sm text-muted-foreground mb-3">Get instant help with your questions</p>
-              <Button variant="outline" size="sm">Start Chat</Button>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-card">
-            <CardContent className="p-6 text-center">
-              <Mail className="h-8 w-8 text-primary mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">Email Support</h3>
-              <p className="text-sm text-muted-foreground mb-3">Send detailed questions via email</p>
-              <Button variant="outline" size="sm">Send Email</Button>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-card">
-            <CardContent className="p-6 text-center">
-              <Phone className="h-8 w-8 text-primary mx-auto mb-3" />
-              <h3 className="font-semibold mb-2">Phone Support</h3>
-              <p className="text-sm text-muted-foreground mb-3">Speak directly with our team</p>
-              <Button variant="outline" size="sm">Call Now</Button>
-            </CardContent>
-          </Card>
-        </div>
+        <section className="container mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-primary mb-4">
+              Quick Help Options
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Choose how you'd like to get support.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              { icon: MessageCircle, title: "Chat Support", description: "Get instant help with your questions", buttonText: "Start Chat" },
+              { icon: Mail, title: "Email Support", description: "Send detailed questions via email", buttonText: "Send Email" },
+              { icon: Phone, title: "Phone Support", description: "Speak directly with our team", buttonText: "Call Now" }
+            ].map((item, index) => {
+              const { ref, isVisible } = useAnimateOnScroll({ delay: index * 100 });
+              return (
+                <div 
+                  key={index} 
+                  ref={ref}
+                  className={`
+                    ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}
+                  `}
+                >
+                  <Card className="shadow-card hover:shadow-lg transition-all duration-300 h-full">
+                    <CardContent className="p-6 text-center flex flex-col items-center justify-center">
+                      <item.icon className="h-8 w-8 text-primary mx-auto mb-3" />
+                      <h3 className="font-semibold mb-2 text-xl text-primary">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-4 flex-grow">{item.description}</p>
+                      <Button variant="outline" size="sm" className="mt-auto">{item.buttonText}</Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         {/* Support Hours */}
-        <Card className="shadow-card mb-8 bg-success-light border-success/20">
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <Clock className="h-5 w-5 text-success mr-3" />
-              <div>
-                <p className="font-medium text-success">Support Hours</p>
-                <p className="text-sm text-success/80">Monday - Friday: 8:00 AM - 6:00 PM (WAT) | Saturday: 10:00 AM - 4:00 PM</p>
+        <section className="container mx-auto px-4 pb-16">
+          <Card className="shadow-card mb-8 bg-success-light border-success/20 max-w-5xl mx-auto">
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <Clock className="h-5 w-5 text-success mr-3" />
+                <div>
+                  <p className="font-medium text-success">Support Hours</p>
+                  <p className="text-sm text-success/80">Monday - Friday: 8:00 AM - 6:00 PM (WAT) | Saturday: 10:00 AM - 4:00 PM</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* FAQ Section */}
-        <Card className="shadow-card mb-8">
-          <CardHeader>
-            <CardTitle className="text-2xl">Frequently Asked Questions</CardTitle>
-            <div className="flex flex-wrap gap-2 mt-4">
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                  className={selectedCategory === category ? "bg-gradient-primary" : ""}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {filteredFAQs.map((faq) => (
-                <Collapsible
-                  key={faq.id}
-                  open={openFAQ === faq.id}
-                  onOpenChange={() => setOpenFAQ(openFAQ === faq.id ? null : faq.id)}
-                >
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full text-left justify-between p-4 h-auto font-medium hover:bg-accent"
+        <section className="container mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-primary mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Find quick answers to the most common questions about KudiGuard.
+            </p>
+          </div>
+          <Card className="shadow-card mb-8 max-w-5xl mx-auto">
+            <CardHeader>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category)}
+                    className={selectedCategory === category ? "bg-gradient-primary" : ""}
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {filteredFAQs.map((faq, index) => {
+                  const { ref, isVisible } = useAnimateOnScroll({ delay: index * 50 });
+                  return (
+                    <div 
+                      key={faq.id} 
+                      ref={ref}
+                      className={`
+                        ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}
+                      `}
                     >
-                      <span>{faq.question}</span>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${
-                        openFAQ === faq.id ? 'rotate-180' : ''
-                      }`} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="px-4 pb-4">
-                    <div className="bg-accent rounded p-4">
-                      <p className="text-muted-foreground">{faq.answer}</p>
+                      <Collapsible
+                        open={openFAQ === faq.id}
+                        onOpenChange={() => setOpenFAQ(openFAQ === faq.id ? null : faq.id)}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="w-full text-left justify-between p-4 h-auto font-medium hover:bg-accent"
+                          >
+                            <span>{faq.question}</span>
+                            <ChevronDown className={`h-4 w-4 transition-transform ${
+                              openFAQ === faq.id ? 'rotate-180' : ''
+                            }`} />
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="px-4 pb-4">
+                          <div className="bg-accent rounded p-4">
+                            <p className="text-muted-foreground">{faq.answer}</p>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
                     </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Contact Form */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="text-2xl">Still Need Help?</CardTitle>
-            <p className="text-muted-foreground">Send us a message and we'll get back to you soon</p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleContactSubmit} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+        <section className="container mx-auto px-4 py-16">
+          <Card className="shadow-card max-w-5xl mx-auto">
+            <CardHeader>
+              <CardTitle className="text-2xl text-primary">Still Need Help?</CardTitle>
+              <p className="text-muted-foreground">Send us a message and we'll get back to you soon</p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleContactSubmit} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      value={contactForm.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={contactForm.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="subject">Subject</Label>
                   <Input
-                    id="name"
-                    value={contactForm.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    id="subject"
+                    value={contactForm.subject}
+                    onChange={(e) => handleInputChange('subject', e.target.value)}
                     required
                   />
                 </div>
+                
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={contactForm.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
+                  <Label htmlFor="message">Message</Label>
+                  <Textarea
+                    id="message"
+                    rows={5}
+                    value={contactForm.message}
+                    onChange={(e) => handleInputChange('message', e.target.value)}
                     required
                   />
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  value={contactForm.subject}
-                  onChange={(e) => handleInputChange('subject', e.target.value)}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="message">Message</Label>
-                <Textarea
-                  id="message"
-                  rows={5}
-                  value={contactForm.message}
-                  onChange={(e) => handleInputChange('message', e.target.value)}
-                  required
-                />
-              </div>
-              
-              <Button 
-                type="submit"
-                className="w-full bg-gradient-primary hover:shadow-success"
-              >
-                Send Message
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                
+                <Button 
+                  type="submit"
+                  className="w-full bg-gradient-primary hover:shadow-success"
+                >
+                  Send Message
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Emergency Contact */}
-        <Card className="shadow-card mt-6 border-warning/20 bg-warning-light">
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-warning mr-3" />
-              <div>
-                <p className="font-medium text-warning">Emergency Support</p>
-                <p className="text-sm text-warning/80">
-                  For urgent business decisions that can't wait, call +234-800-KUDI-GUARD
+        <section className="container mx-auto px-4 pb-16">
+          <Card className="shadow-card mt-6 border-warning/20 bg-warning-light max-w-5xl mx-auto">
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-warning mr-3" />
+                <div>
+                  <p className="font-medium text-warning">Emergency Support</p>
+                  <p className="text-sm text-warning/80">
+                    For urgent business decisions that can't wait, call +234-800-KUDI-GUARD
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Footer */}
+        <footer className="bg-card border-t py-12">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center md:text-left">
+              {/* Column 1: Logo and Tagline */}
+              <div className="space-y-4">
+                <Link to="/" className="flex items-center justify-center md:justify-start">
+                  <img src={kudiGuardLogo} alt="KudiGuard" className="h-10 w-auto" />
+                </Link>
+                <p className="text-sm text-muted-foreground">
+                  Empowering Nigerian vendors with smart financial decisions.
                 </p>
               </div>
+
+              {/* Column 2: Company Links */}
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-4">Company</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
+                  <li><Link to="/help" className="hover:text-primary transition-colors">Contact Us</Link></li>
+                </ul>
+              </div>
+
+              {/* Column 3: Resources */}
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-4">Resources</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li><Link to="/tips" className="hover:text-primary transition-colors">Financial Tips</Link></li>
+                  <li><Link to="/chat" className="hover:text-primary transition-colors">Start Chat</Link></li>
+                </ul>
+              </div>
+
+              {/* Column 4: Social Media */}
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-4">Connect</h3>
+                <div className="flex justify-center md:justify-start space-x-4">
+                  <a href="https://facebook.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Facebook className="h-6 w-6" />
+                  </a>
+                  <a href="https://twitter.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Twitter className="h-6 w-6" />
+                  </a>
+                  <a href="https://instagram.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Instagram className="h-6 w-6" />
+                  </a>
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Copyright */}
+            <div className="border-t border-border mt-12 pt-8 text-center text-sm text-muted-foreground">
+              &copy; {new Date().getFullYear()} KudiGuard. All rights reserved.
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );
