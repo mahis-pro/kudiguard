@@ -8,71 +8,65 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* --- Core Backgrounds & Text --- */
+    --background: 0 0% 100%; /* Pure White */
+    --foreground: 240 69% 49%; /* Deep Charcoal */
 
-    --card: 0 0% 100% / 0.3; /* Changed to semi-transparent white */
-    --card-foreground: 222.2 84% 4.9%;
+    /* --- Primary Brand Colors (Action & Emphasis) --- */
+    --primary: 274 54% 39%; /* Primary Purple */
+    --primary-foreground: 0 0% 100%; /* Pure White */
+    --primary-light: 274 54% 55%;
+    --primary-dark: 274 54% 25%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* --- Secondary & Muted Colors (Structure & Support) --- */
+    --secondary: 0 0% 92%; /* Light Gray */
+    --secondary-foreground: 240 69% 49%; /* Deep Charcoal */
+    --muted: 0 0% 92%; /* Light Gray */
+    --muted-foreground: 0 0% 50%; /* Medium Gray */
+    --accent: 0 0% 92%; /* Light Gray */
+    --accent-foreground: 240 69% 49%; /* Deep Charcoal */
 
-    /* KudiGuard Teal/Mint Green System */
-    --primary: 158 64% 52%;
-    --primary-foreground: 0 0% 100%;
-    --primary-light: 170 60% 65%;
-    --primary-dark: 158 64% 35%;
+    /* --- Card & Popover (Content Containers) --- */
+    --card: 0 0% 100% / 0.9; /* Pure White with 90% opacity for subtle gradient blend */
+    --card-foreground: 240 69% 49%; /* Deep Charcoal */
+    --popover: 0 0% 100%; /* Pure White */
+    --popover-foreground: 240 69% 49%; /* Deep Charcoal */
 
-    --secondary: 170 45% 90%;
-    --secondary-foreground: 158 64% 25%;
+    /* --- Borders, Inputs, Rings (Interactive Elements) --- */
+    --border: 0 0% 80%; /* Slightly darker Light Gray */
+    --input: 0 0% 92%; /* Light Gray */
+    --ring: 274 54% 39%; /* Primary Purple */
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* --- Feedback Colors (Status & Alerts) --- */
+    --success: 110 97% 30%; /* Success Green */
+    --success-foreground: 0 0% 100%; /* Pure White */
+    --success-light: 110 97% 85%;
+    --warning: 40 100% 50%; /* Warning Yellow */
+    --warning-foreground: 0 0% 100%; /* Pure White */
+    --warning-light: 40 100% 85%;
+    --destructive: 4 90% 58%; /* Error Red */
+    --destructive-foreground: 0 0% 100%; /* Pure White */
 
-    --accent: 170 45% 90%;
-    --accent-foreground: 158 64% 25%;
-
-    --success: 158 64% 52%;
-    --success-foreground: 0 0% 100%;
-    --success-light: 170 45% 90%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --warning-light: 38 45% 92%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 158 64% 52%;
-
-    /* Custom gradients */
+    /* --- Custom Gradients --- */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-dark)));
-    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(var(--primary-light)));
-    --gradient-subtle: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--secondary)));
+    --gradient-subtle: linear-gradient(135deg, hsl(270 40% 98%), hsl(270 40% 95%)); /* Light Purple Gradient */
+    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(var(--success-light)));
 
-    /* Shadows */
+    /* --- Shadows --- */
     --shadow-success: 0 4px 20px -2px hsl(var(--primary) / 0.3);
-    --shadow-card: 0 2px 10px -2px hsl(220 13% 91% / 0.5);
+    --shadow-card: 0 2px 10px -2px hsl(0 0% 50% / 0.1); /* Medium Gray with low opacity */
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* --- Sidebar (Light Theme) --- */
+    --sidebar-background: 0 0% 100%; /* Pure White */
+    --sidebar-foreground: 240 69% 49%; /* Deep Charcoal */
+    --sidebar-primary: 274 54% 39%; /* Primary Purple */
+    --sidebar-primary-foreground: 0 0% 100%; /* Pure White */
+    --sidebar-accent: 0 0% 92%; /* Light Gray */
+    --sidebar-accent-foreground: 240 69% 49%; /* Deep Charcoal */
+    --sidebar-border: 0 0% 80%; /* Slightly darker Light Gray */
+    --sidebar-ring: 274 54% 39%; /* Primary Purple */
   }
 
   .dark {
@@ -111,16 +105,6 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
   }
 }
 
