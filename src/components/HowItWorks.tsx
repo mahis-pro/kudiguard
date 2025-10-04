@@ -38,38 +38,38 @@ const HowItWorks = () => {
       </div>
       
       <div className="relative max-w-3xl mx-auto">
-        {/* Vertical line for timeline */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-border hidden md:block"></div>
+        {/* Central Vertical Line */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-border"></div>
 
         <div className="space-y-12">
           {steps.map((step, index) => {
             const { ref, isVisible } = useAnimateOnScroll({ delay: index * 150 }); // Staggered delay
-            const isEven = index % 2 === 0;
+            const isEven = index % 2 === 0; // Used for alternating left/right on desktop
 
             return (
               <div 
                 key={index} 
                 ref={ref}
                 className={`
-                  flex items-center md:items-start relative 
-                  ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} 
+                  relative flex items-center
                   ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}
                 `}
                 style={{ animationDelay: `${index * 150}ms` }}
               >
-                {/* Timeline Circle (Desktop) */}
-                <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 z-10 bg-background border-2 border-primary rounded-full p-2">
+                {/* Timeline Circle */}
+                <div className="absolute left-1/2 transform -translate-x-1/2 z-10 bg-background border-2 border-primary rounded-full p-2">
                   <step.icon className="h-6 w-6 text-primary" />
                 </div>
 
                 {/* Content Block */}
                 <div className={`
-                  w-full md:w-1/2 p-4 md:p-0 
-                  ${isEven ? 'md:pr-12 text-center md:text-right' : 'md:pl-12 text-center md:text-left'}
+                  w-full p-4
+                  // Mobile: always to the right of the line, left-aligned
+                  pl-12 text-left 
+                  // Desktop: alternate left/right, half width, text aligned to center line
+                  md:w-1/2 
+                  ${isEven ? 'md:pr-12 md:text-right md:ml-auto' : 'md:pl-12 md:text-left md:mr-auto'}
                 `}>
-                  <div className="md:hidden bg-gradient-primary w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <step.icon className="h-8 w-8 text-primary-foreground" />
-                  </div>
                   <h3 className="text-xl font-semibold text-primary mb-2">
                     {step.title}
                   </h3>
