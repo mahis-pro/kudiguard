@@ -10,7 +10,10 @@ import {
   CheckCircle,
   ArrowRight,
   Lightbulb,
-  MessageCircle
+  MessageCircle,
+  Facebook, // Added for social media
+  Twitter,  // Added for social media
+  Instagram // Added for social media
 } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import HeroVisual from '@/components/HeroVisual';
@@ -147,18 +150,58 @@ const Landing = () => {
         </section>
 
         {/* Footer */}
-        <footer className="bg-card border-t py-8">
-          <div className="container mx-auto px-4 text-center">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              <img 
-                src={kudiGuardLogo} 
-                alt="KudiGuard" 
-                className="h-8 w-auto"
-              />
+        <footer className="bg-card border-t py-12">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center md:text-left">
+              {/* Column 1: Logo and Tagline */}
+              <div className="space-y-4">
+                <Link to="/" className="flex items-center justify-center md:justify-start">
+                  <img src={kudiGuardLogo} alt="KudiGuard" className="h-10 w-auto" />
+                </Link>
+                <p className="text-sm text-muted-foreground">
+                  Empowering Nigerian vendors with smart financial decisions.
+                </p>
+              </div>
+
+              {/* Column 2: Company Links */}
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-4">Company</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
+                  <li><Link to="/help" className="hover:text-primary transition-colors">Contact Us</Link></li>
+                </ul>
+              </div>
+
+              {/* Column 3: Resources */}
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-4">Resources</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li><Link to="/tips" className="hover:text-primary transition-colors">Financial Tips</Link></li>
+                  <li><Link to="/chat" className="hover:text-primary transition-colors">Start Chat</Link></li>
+                </ul>
+              </div>
+
+              {/* Column 4: Social Media */}
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-4">Connect</h3>
+                <div className="flex justify-center md:justify-start space-x-4">
+                  <a href="https://facebook.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Facebook className="h-6 w-6" />
+                  </a>
+                  <a href="https://twitter.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Twitter className="h-6 w-6" />
+                  </a>
+                  <a href="https://instagram.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Instagram className="h-6 w-6" />
+                  </a>
+                </div>
+              </div>
             </div>
-            <p className="text-muted-foreground">
-              Empowering Nigerian vendors with smart financial decisions
-            </p>
+
+            {/* Copyright */}
+            <div className="border-t border-border mt-12 pt-8 text-center text-sm text-muted-foreground">
+              &copy; {new Date().getFullYear()} KudiGuard. All rights reserved.
+            </div>
           </div>
         </footer>
       </div>
