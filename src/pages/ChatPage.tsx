@@ -390,16 +390,7 @@ const ChatPage = () => {
   return (
     <>
       <div className="flex flex-col flex-1">
-        <header className="bg-card shadow-card border-b border-border p-4 flex items-center flex-shrink-0">
-          <div className="flex items-center">
-            <img 
-              src={kudiGuardLogo} 
-              alt="KudiGuard" 
-              className="h-8 w-auto mr-3"
-            />
-            {/* Removed the KudiGuard Analyst text */}
-          </div>
-        </header>
+        {/* Removed the header section with the KudiGuard logo */}
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((msg) => (
