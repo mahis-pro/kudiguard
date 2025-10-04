@@ -9,10 +9,10 @@ import {
   ArrowLeft,
   Menu,
   X,
-  ArrowRight, // Added ArrowRight import
+  ArrowRight,
 } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'; // Import Sheet components
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface NavigationProps {
   showBackButton?: boolean;
@@ -23,9 +23,8 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // These items are for public pages or desktop view of authenticated pages
   const navItems = [
-    { path: '/about', icon: HelpCircle, label: 'About' }, // Example public nav item
+    { path: '/about', icon: HelpCircle, label: 'About' },
     { path: '/tips', icon: BookOpen, label: 'Tips' },
     { path: '/help', icon: HelpCircle, label: 'Help' }
   ];
@@ -91,11 +90,11 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild className="md:hidden">
             <Button
-              variant="ghost"
-              size="icon" // Changed size to icon for a square button
-              className="text-foreground h-10 w-10" // Increased size
+              variant="outline" // Changed to outline variant
+              size="icon"
+              className="text-foreground h-11 w-11" // Slightly increased size
             >
-              <Menu className="h-6 w-6" /> {/* Larger icon */}
+              <Menu className="h-6 w-6" />
               <span className="sr-only">Toggle mobile menu</span>
             </Button>
           </SheetTrigger>
