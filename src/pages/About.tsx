@@ -11,158 +11,209 @@ import {
   CheckCircle, 
   MessageCircle,
   PiggyBank,
-  Target
+  Target,
+  ArrowRight,
+  Lightbulb,
+  AlertTriangle, // Added missing import
+  Facebook, 
+  Twitter,  
+  Instagram 
 } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
+import HowItWorks from '@/components/HowItWorks'; 
+import Testimonials from '@/components/Testimonials'; 
+import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll'; 
 
 const About = () => {
-  const features = [
+  const benefits = [
     {
-      icon: MessageCircle,
-      title: "Ask Questions",
-      description: "Get instant answers to your business financial questions in plain language"
+      icon: CheckCircle,
+      title: "Confident Decisions",
+      description: "Make financial choices with clarity and certainty, backed by data."
+    },
+    {
+      icon: AlertTriangle, 
+      title: "Avoid Costly Mistakes",
+      description: "Identify and steer clear of financial pitfalls that can harm your business."
+    },
+    {
+      icon: TrendingUp,
+      title: "Sustainable Growth",
+      description: "Implement strategies that foster long-term stability and expansion."
+    }, 
+    {
+      icon: PiggyBank,
+      title: "Smart Savings",
+      description: "Optimize your savings strategy for emergencies and future investments."
+    },
+    {
+      icon: Users,
+      title: "Effective Staffing",
+      description: "Receive guidance on when and how to expand your team responsibly."
     },
     {
       icon: Calculator,
-      title: "Smart Analysis",
-      description: "Our AI analyzes your revenue, expenses, and savings to give personalized advice"
-    },
-    {
-      icon: CheckCircle,
-      title: "Clear Recommendations",
-      description: "Receive clear 'Do it' or 'Wait' decisions with detailed explanations"
-    },
-    {
-      icon: Target,
-      title: "Action Steps",
-      description: "Get specific next steps to implement our recommendations safely"
+      title: "Optimized Inventory",
+      description: "Manage your stock efficiently to maximize sales and minimize waste."
     }
-  ];
-
-  const benefits = [
-    "Make confident financial decisions",
-    "Avoid costly business mistakes",
-    "Grow your business sustainably", 
-    "Build emergency funds properly",
-    "Plan staff hiring effectively",
-    "Manage inventory smartly"
   ];
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Navigation />
-      <div className="max-w-4xl mx-auto p-4 pt-16"> {/* Added pt-16 */}
+      <div className="pt-16"> 
         
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center mb-6">
-            <div className="bg-gradient-primary p-4 rounded-full">
-              <Shield className="h-12 w-12 text-primary-foreground" />
+        <section className="container mx-auto px-4 py-16 bg-hero-gradient text-center">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-center mb-6 animate-fade-in">
+              <div className="bg-primary-foreground p-4 rounded-full shadow-lg">
+                <Shield className="h-12 w-12 text-primary" />
+              </div>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-extrabold text-primary-foreground mb-4 leading-tight animate-fade-in">
+              Empowering Nigerian Vendors
+            </h1>
+            <p className="text-xl md:text-2xl text-primary-foreground/90 mb-8 max-w-3xl mx-auto animate-fade-in">
+              KudiGuard is your dedicated AI financial advisor, built to help small business owners in Nigeria make smarter, data-driven decisions for sustainable growth.
+            </p>
+            <div className="animate-fade-in">
+              <Link to="/signup">
+                <Button size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 text-lg px-8 py-4 shadow-lg hover:shadow-xl transition-all">
+                  Get Started Today
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-primary mb-4">
-            About Us
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Your trusted financial advisor for smart business decisions. 
-            Built specifically for Nigerian small vendors.
-          </p>
-        </div>
+        </section>
 
         {/* Mission Statement */}
-        <Card className="shadow-card mb-8">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center text-primary">Our Mission</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-lg text-foreground leading-relaxed">
-              We believe every small business owner deserves access to smart financial advice. 
-              KudiGuard combines your business data with proven financial principles to help 
-              you make confident decisions that grow your business safely.
+        <section className="container mx-auto px-4 py-16">
+          <Card className="shadow-card bg-card/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-3xl text-center text-primary font-bold">Our Mission</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-lg text-foreground leading-relaxed max-w-3xl mx-auto">
+                We are committed to democratizing financial intelligence for small businesses across Nigeria. By providing accessible, personalized, and actionable advice, KudiGuard aims to transform uncertainty into confidence, fostering economic resilience and growth within local communities.
+              </p>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* How It Works Section - Reusing the component */}
+        <HowItWorks />
+
+        {/* Why Choose KudiGuard / Benefits Section */}
+        <section className="container mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-primary mb-4">
+              Why KudiGuard is Your Best Partner
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              We provide the tools and insights you need to thrive in Nigeria's dynamic market.
             </p>
-          </CardContent>
-        </Card>
-
-        {/* How It Works */}
-        <Card className="shadow-card mb-8">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center text-primary">How KudiGuard Works</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
-              {features.map((feature, index) => (
-                <div key={index} className="flex items-start space-x-4">
-                  <div className="bg-success-light p-3 rounded-full">
-                    <feature.icon className="h-6 w-6 text-success" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Benefits */}
-        <Card className="shadow-card mb-8">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center text-primary">Why Choose KudiGuard?</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
-              {benefits.map((benefit, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-success flex-shrink-0" />
-                  <span className="text-foreground">{benefit}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="shadow-card text-center">
-            <CardContent className="p-6">
-              <TrendingUp className="h-8 w-8 text-success mx-auto mb-3" />
-              <h3 className="text-2xl font-bold text-primary">100%</h3>
-              <p className="text-muted-foreground">Focus on Nigerian vendors</p>
-            </CardContent>
-          </Card>
+          </div>
           
-          <Card className="shadow-card text-center">
-            <CardContent className="p-6">
-              <Users className="h-8 w-8 text-success mx-auto mb-3" />
-              <h3 className="text-2xl font-bold text-primary">Smart</h3>
-              <p className="text-muted-foreground">AI-powered recommendations</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-card text-center">
-            <CardContent className="p-6">
-              <PiggyBank className="h-8 w-8 text-success mx-auto mb-3" />
-              <h3 className="text-2xl font-bold text-primary">Safe</h3>
-              <p className="text-muted-foreground">Conservative financial advice</p>
-            </CardContent>
-          </Card>
-        </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {benefits.map((benefit, index) => {
+              const { ref, isVisible } = useAnimateOnScroll({ delay: index * 100 });
+              return (
+                <Card 
+                  key={index} 
+                  ref={ref}
+                  className={`shadow-card hover:shadow-lg transition-all duration-300 ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}
+                >
+                  <CardContent className="p-6 text-center">
+                    <div className="bg-gradient-primary w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <benefit.icon className="h-7 w-7 text-primary-foreground" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-primary mb-2">{benefit.title}</h3>
+                    <p className="text-muted-foreground text-sm">{benefit.description}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
 
-        {/* CTA */}
-        <Card className="shadow-card bg-gradient-primary text-primary-foreground">
-          <CardContent className="p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">Ready to Make Smart Decisions?</h2>
-            <p className="mb-6 text-primary-foreground/90">
-              Join thousands of vendors who trust KudiGuard for their financial decisions
+        {/* Testimonials Section - Reusing the component */}
+        <Testimonials />
+
+        {/* CTA Section */}
+        <section className="bg-gradient-primary py-16">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold text-primary-foreground mb-4">
+              Ready to Make Smarter Financial Moves?
+            </h2>
+            <p className="text-primary-foreground/90 mb-8 max-w-2xl mx-auto">
+              Join thousands of Nigerian vendors who are already transforming their businesses with KudiGuard.
             </p>
             <Link to="/signup">
-              <Button variant="secondary" size="lg" className="bg-white text-primary hover:bg-white/90">
-                Start Using KudiGuard
+              <Button size="lg" variant="secondary" className="text-lg px-8 py-4 hover:shadow-success">
+                Start Your Journey
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="bg-card border-t py-12">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center md:text-left">
+              {/* Column 1: Logo and Tagline */}
+              <div className="space-y-4">
+                <Link to="/" className="flex items-center justify-center md:justify-start">
+                  <img src={kudiGuardLogo} alt="KudiGuard" className="h-10 w-auto" />
+                </Link>
+                <p className="text-sm text-muted-foreground">
+                  Empowering Nigerian vendors with smart financial decisions.
+                </p>
+              </div>
+
+              {/* Column 2: Company Links */}
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-4">Company</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
+                  <li><Link to="/help" className="hover:text-primary transition-colors">Contact Us</Link></li>
+                </ul>
+              </div>
+
+              {/* Column 3: Resources */}
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-4">Resources</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li><Link to="/tips" className="hover:text-primary transition-colors">Financial Tips</Link></li>
+                  <li><Link to="/chat" className="hover:text-primary transition-colors">Start Chat</Link></li>
+                </ul>
+              </div>
+
+              {/* Column 4: Social Media */}
+              <div>
+                <h3 className="text-lg font-semibold text-primary mb-4">Connect</h3>
+                <div className="flex justify-center md:justify-start space-x-4">
+                  <a href="https://facebook.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Facebook className="h-6 w-6" />
+                  </a>
+                  <a href="https://twitter.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Twitter className="h-6 w-6" />
+                  </a>
+                  <a href="https://instagram.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Instagram className="h-6 w-6" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Copyright */}
+            <div className="border-t border-border mt-12 pt-8 text-center text-sm text-muted-foreground">
+              &copy; {new Date().getFullYear()} KudiGuard. All rights reserved.
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );
