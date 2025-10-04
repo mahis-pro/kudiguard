@@ -60,19 +60,16 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
         </Link>
         
         {/* Desktop Navigation for public pages */}
-        <nav className="hidden md:flex space-x-1">
+        <nav className="hidden md:flex items-center space-x-4"> {/* Added items-center and adjusted space-x */}
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
-              <Link key={item.path} to={item.path}>
-                <Button
-                  variant={isActive ? "default" : "ghost"}
-                  size="sm"
-                  className={isActive ? "bg-gradient-primary" : "text-foreground hover:bg-accent"}
-                >
-                  <item.icon className="h-4 w-4 mr-2" />
-                  {item.label}
-                </Button>
+              <Link 
+                key={item.path} 
+                to={item.path} 
+                className={`text-muted-foreground hover:text-primary px-3 py-2 rounded-md text-sm font-medium ${isActive ? 'text-primary font-semibold' : ''}`}
+              >
+                {item.label}
               </Link>
             );
           })}
@@ -113,9 +110,9 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <Button
-                    variant={isActive ? "default" : "ghost"}
+                    variant="ghost"
                     size="sm"
-                    className={`w-full justify-start ${isActive ? "bg-gradient-primary" : "text-foreground hover:bg-accent"}`}
+                    className={`w-full justify-start ${isActive ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-accent"}`}
                   >
                     <item.icon className="h-4 w-4 mr-3" />
                     {item.label}

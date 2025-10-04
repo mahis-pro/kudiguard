@@ -53,24 +53,24 @@ const Landing = () => {
         <section className="container mx-auto px-4 py-16 bg-hero-gradient"> {/* Applied new gradient class */}
           <div className="max-w-4xl mx-auto flex flex-col items-center text-center">
             {/* Text Content */}
-            <h1 className="text-5xl md:text-7xl font-extrabold text-primary-foreground mb-6 leading-tight animate-fade-in"> {/* Changed text color for contrast */}
+            <h1 className="text-5xl md:text-7xl font-extrabold text-foreground mb-6 leading-tight animate-fade-in"> {/* Changed text color for contrast */}
               Stop Guessing, Start Deciding
             </h1>
             
-            <p className="text-xl md:text-2xl text-primary-foreground/90 mb-8 max-w-3xl mx-auto animate-fade-in"> {/* Changed text color for contrast */}
+            <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-fade-in"> {/* Changed text color for contrast */}
               With KudiGuard, you get clear answers to everyday questions when to restock, hire, or save so your money works smarter.
             </p>
             
             {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-fade-in">
               <Link to="/signup">
-                <Button size="lg" className="bg-white text-primary hover:bg-white/90 hover:shadow-success text-lg px-8 py-4"> {/* Adjusted button style for contrast */}
+                <Button size="lg" className="bg-gradient-primary hover:shadow-success text-lg px-8 py-4"> {/* Adjusted button style for contrast */}
                   Get Started
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link to="/about">
-                <Button size="lg" variant="outline" className="text-lg px-8 py-4 border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10"> {/* Adjusted button style for contrast */}
+                <Button size="lg" variant="outline" className="text-lg px-8 py-4 border-primary text-primary hover:bg-primary/10"> {/* Adjusted button style for contrast */}
                   Learn More
                 </Button>
               </Link>
