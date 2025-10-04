@@ -136,4 +136,17 @@ All colors MUST be HSL.
   .currency::before {
     content: "₦";
   }
+
+  /* New animation for hero section background */
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .bg-hero-gradient {
+    background: linear-gradient(270deg, hsl(var(--primary-light)), hsl(var(--primary-dark)), hsl(var(--primary)));
+    background-size: 200% 200%;
+    animation: gradient-shift 15s ease infinite;
+  }
 }
