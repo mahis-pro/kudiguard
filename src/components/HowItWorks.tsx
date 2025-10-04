@@ -65,8 +65,8 @@ const HowItWorks = () => {
                 <div className="w-full p-4 md:p-0">
                   {/* Mobile Layout: Icon on left, text left-aligned */}
                   <div className="flex items-start space-x-4 text-left md:hidden">
-                    <div className="bg-gradient-primary w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0">
-                      <step.icon className="h-6 w-6 text-primary-foreground" />
+                    <div className="bg-background border-2 border-primary rounded-full p-2 flex items-center justify-center flex-shrink-0">
+                      <step.icon className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold text-primary mb-2">
