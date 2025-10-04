@@ -99,7 +99,7 @@ const Landing = () => {
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
             {features.map((feature, index) => (
-              <Card key={index} className="bg-card border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover-scale"> {/* Modified card styling */}
+              <Card key={index} className="bg-card border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover-scale animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}> {/* Modified card styling and added animation */}
                 <CardContent className="p-6 text-center">
                   <div className="bg-gradient-primary w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <feature.icon className="h-8 w-8 text-primary-foreground" />
@@ -126,7 +126,7 @@ const Landing = () => {
               Join hundreds of Nigerian vendors who are already making smarter financial decisions with KudiGuard.
             </p>
             <Link to="/signup">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-4">
+              <Button size="lg" variant="secondary" className="text-lg px-8 py-4 hover:shadow-success"> {/* Added hover:shadow-success */}
                 Get Started Today
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
