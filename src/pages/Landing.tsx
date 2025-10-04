@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card'; // Keep Card import for CTA section if needed
 import { 
   Shield, 
   TrendingUp, 
@@ -16,6 +16,7 @@ import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import HeroVisual from '@/components/HeroVisual';
 import HowItWorks from '@/components/HowItWorks';
 import Navigation from '@/components/Navigation'; // Import Navigation for public pages
+import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll'; // Import the new hook
 
 
 const Landing = () => {
@@ -98,9 +99,19 @@ const Landing = () => {
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-            {features.map((feature, index) => (
-              <Card key={index} className="bg-card border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover-scale animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}> {/* Modified card styling and added animation */}
-                <CardContent className="p-6 text-center">
+            {features.map((feature, index) => {
+              const { ref, isVisible } = useAnimateOnScroll({ delay: index * 100 }); // Staggered delay
+              return (
+                <div 
+                  key={index} 
+                  ref={ref}
+                  className={`
+                    bg-card border border-border rounded-lg shadow-sm p-6 text-center 
+                    hover:shadow-lg transition-all duration-300 hover-scale
+                    ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}
+                  `}
+                  style={{ animationDelay: `${index * 100}ms` }} // Apply delay for staggered effect
+                >
                   <div className="bg-gradient-primary w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                     <feature.icon className="h-8 w-8 text-primary-foreground" />
                   </div>
@@ -110,9 +121,9 @@ const Landing = () => {
                   <p className="text-muted-foreground">
                     {feature.description}
                   </p>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </section>
 
