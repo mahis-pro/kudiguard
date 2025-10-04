@@ -98,29 +98,30 @@ const Landing = () => {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          <div className="max-w-3xl mx-auto space-y-8">
             {features.map((feature, index) => {
-              const { ref, isVisible } = useAnimateOnScroll({ delay: index * 100 }); // Staggered delay
+              const { ref, isVisible } = useAnimateOnScroll({ delay: index * 150 }); // Staggered delay
               return (
                 <div 
                   key={index} 
                   ref={ref}
                   className={`
-                    bg-card border border-border rounded-lg shadow-sm p-6 text-center 
-                    hover:shadow-lg transition-all duration-300 hover-scale
+                    flex items-start p-4 border-b border-border last:border-b-0 
                     ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}
                   `}
-                  style={{ animationDelay: `${index * 100}ms` }} // Apply delay for staggered effect
+                  style={{ animationDelay: `${index * 150}ms` }}
                 >
-                  <div className="bg-gradient-primary w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <feature.icon className="h-8 w-8 text-primary-foreground" />
+                  <div className="bg-gradient-primary w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 mr-4">
+                    <feature.icon className="h-6 w-6 text-primary-foreground" />
                   </div>
-                  <h3 className="text-xl font-semibold text-primary mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {feature.description}
-                  </p>
+                  <div>
+                    <h3 className="text-xl font-semibold text-primary mb-1">
+                      {feature.title}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {feature.description}
+                    </p>
+                  </div>
                 </div>
               );
             })}

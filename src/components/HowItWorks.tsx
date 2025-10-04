@@ -1,6 +1,6 @@
 import React from 'react';
 import { MessageCircle, Calculator, CheckCircle, History } from 'lucide-react';
-import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll'; // Import the new hook
+import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll';
 
 const HowItWorks = () => {
   const steps = [
@@ -37,32 +37,50 @@ const HowItWorks = () => {
         </p>
       </div>
       
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-        {steps.map((step, index) => {
-          const { ref, isVisible } = useAnimateOnScroll({ delay: index * 100 }); // Staggered delay
-          return (
-            <div 
-              key={index} 
-              ref={ref}
-              className={`
-                bg-background border border-border rounded-lg shadow-card p-6 text-center 
-                hover:shadow-success transition-all duration-300 hover-scale
-                ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}
-              `}
-              style={{ animationDelay: `${index * 100}ms` }} // Apply delay for staggered effect
-            >
-              <div className="bg-gradient-primary w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <step.icon className="h-8 w-8 text-primary-foreground" />
+      <div className="relative max-w-3xl mx-auto">
+        {/* Vertical line for timeline */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-border hidden md:block"></div>
+
+        <div className="space-y-12">
+          {steps.map((step, index) => {
+            const { ref, isVisible } = useAnimateOnScroll({ delay: index * 150 }); // Staggered delay
+            const isEven = index % 2 === 0;
+
+            return (
+              <div 
+                key={index} 
+                ref={ref}
+                className={`
+                  flex items-center md:items-start relative 
+                  ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} 
+                  ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}
+                `}
+                style={{ animationDelay: `${index * 150}ms` }}
+              >
+                {/* Timeline Circle (Desktop) */}
+                <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 z-10 bg-background border-2 border-primary rounded-full p-2">
+                  <step.icon className="h-6 w-6 text-primary" />
+                </div>
+
+                {/* Content Block */}
+                <div className={`
+                  w-full md:w-1/2 p-4 md:p-0 
+                  ${isEven ? 'md:pr-12 text-center md:text-right' : 'md:pl-12 text-center md:text-left'}
+                `}>
+                  <div className="md:hidden bg-gradient-primary w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <step.icon className="h-8 w-8 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-primary mb-2">
+                    {step.title}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {step.description}
+                  </p>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-primary mb-3">
-                {step.title}
-              </h3>
-              <p className="text-muted-foreground">
-                {step.description}
-              </p>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </section>
   );
