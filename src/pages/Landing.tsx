@@ -53,11 +53,11 @@ const Landing = () => {
         <section className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto flex flex-col items-center text-center">
             {/* Text Content */}
-            <h1 className="text-5xl md:text-6xl font-bold text-primary mb-6 animate-fade-in">
+            <h1 className="text-5xl md:text-7xl font-extrabold text-primary mb-6 leading-tight animate-fade-in">
               Stop Guessing, Start Deciding
             </h1>
             
-            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-fade-in">
+            <p className="text-xl md:text-2xl text-foreground/90 mb-8 max-w-3xl mx-auto animate-fade-in">
               With KudiGuard, you get clear answers to everyday questions when to restock, hire, or save so your money works smarter.
             </p>
             

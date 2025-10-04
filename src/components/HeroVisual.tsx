@@ -34,16 +34,6 @@ const HeroVisual = () => {
               </p>
             </div>
           </div>
-
-          {/* Call to Action within visual */}
-          <div className="pt-4 text-center">
-            <p className="text-xs sm:text-sm text-muted-foreground">Get personalized advice for your business.</p>
-            <div className="flex justify-center mt-2">
-              <a href="/login" className="inline-flex items-center text-primary hover:underline text-sm sm:text-base font-medium">
-                Try KudiGuard Now <ArrowRight className="ml-1 h-4 w-4" />
-              </a>
-            </div>
-          </div>
         </div>
       </div>
     </div>
