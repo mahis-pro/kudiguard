@@ -9,9 +9,10 @@ import {
   ArrowLeft,
   Menu,
   X,
+  ArrowRight, // Added ArrowRight import
 } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
-// Removed useSession and useToast imports as logout is moved
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'; // Import Sheet components
 
 interface NavigationProps {
   showBackButton?: boolean;
@@ -60,7 +61,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
         </Link>
         
         {/* Desktop Navigation for public pages */}
-        <nav className="hidden md:flex items-center space-x-4"> {/* Added items-center and adjusted space-x */}
+        <nav className="hidden md:flex items-center space-x-4">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -86,61 +87,68 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
           </Link>
         </nav>
 
-        {/* Mobile Menu Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="md:hidden text-foreground"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
-      </div>
-
-      {/* Mobile Navigation Menu for public pages */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-background/90 backdrop-blur-sm">
-          <nav className="p-4 space-y-2">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link 
-                  key={item.path} 
-                  to={item.path}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`w-full justify-start ${isActive ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-accent"}`}
+        {/* Mobile Menu Button (Hamburger) */}
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetTrigger asChild className="md:hidden">
+            <Button
+              variant="ghost"
+              size="icon" // Changed size to icon for a square button
+              className="text-foreground h-10 w-10" // Increased size
+            >
+              <Menu className="h-6 w-6" /> {/* Larger icon */}
+              <span className="sr-only">Toggle mobile menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64 bg-background flex flex-col">
+            <div className="p-4 border-b border-border flex items-center justify-center">
+              <img 
+                src={kudiGuardLogo} 
+                alt="KudiGuard" 
+                className="h-10 w-auto"
+              />
+            </div>
+            <nav className="flex-1 p-4 space-y-2">
+              {navItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link 
+                    key={item.path} 
+                    to={item.path}
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <item.icon className="h-4 w-4 mr-3" />
-                    {item.label}
+                    <Button
+                      variant="ghost"
+                      className={`w-full justify-start text-base h-12 ${isActive ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-accent"}`}
+                    >
+                      <item.icon className="h-5 w-5 mr-3" />
+                      {item.label}
+                    </Button>
+                  </Link>
+                );
+              })}
+              <div className="pt-4 border-t border-border mt-4">
+                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-base h-12 hover:bg-primary/10"
+                  >
+                    <User className="h-5 w-5 mr-3" />
+                    Login
                   </Button>
                 </Link>
-              );
-            })}
-            <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-foreground hover:bg-accent"
-              >
-                Login
-              </Button>
-            </Link>
-            <Link to="/signup" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-foreground hover:bg-accent"
-              >
-                Sign Up
-              </Button>
-            </Link>
-          </nav>
-        </div>
-      )}
+                <Link to="/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button
+                    className="w-full justify-start text-base h-12 mt-2 bg-gradient-primary hover:shadow-success"
+                  >
+                    <ArrowRight className="h-5 w-5 mr-3" />
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
+            </nav>
+          </SheetContent>
+        </Sheet>
+      </div>
     </header>
   );
 };
