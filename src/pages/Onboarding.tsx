@@ -375,7 +375,7 @@ const Onboarding = () => {
               className="h-16 w-auto"
             />
           </div>
-          <h1 className="text-3xl font-bold text-primary">Welcome to KudiGuard!</h1>
+          <h1 className="text-3xl font-bold text-primary">Welcome!</h1>
           <p className="text-muted-foreground mt-2">
             Let's set up your profile for success.
           </p>

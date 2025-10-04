@@ -397,7 +397,7 @@ const ChatPage = () => {
               alt="KudiGuard" 
               className="h-8 w-auto mr-3"
             />
-            <h1 className="text-xl font-bold text-primary">KudiGuard Analyst</h1>
+            <h1 className="text-xl font-bold text-primary">Analyst</h1>
           </div>
         </header>
 

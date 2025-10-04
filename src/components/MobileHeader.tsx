@@ -19,7 +19,7 @@ const MobileHeader = ({ onMenuClick }: MobileHeaderProps) => {
           alt="KudiGuard" 
           className="h-8 w-auto mr-2"
         />
-        <span className="text-lg font-bold text-primary">KudiGuard</span>
+        {/* Removed the KudiGuard text */}
       </div>
       {/* Placeholder for potential right-side elements or to balance space */}
       <div className="w-10"></div> 

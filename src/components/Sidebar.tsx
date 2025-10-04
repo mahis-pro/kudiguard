@@ -62,7 +62,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick }: SidebarPro
           alt="KudiGuard" 
           className="h-10 w-auto mr-2"
         />
-        <span className="text-xl font-bold text-sidebar-primary">KudiGuard</span>
+        {/* Removed the KudiGuard text */}
       </div>
 
       {/* User Info */}

@@ -61,7 +61,7 @@ const About = () => {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-primary mb-4">
-            About KudiGuard
+            About Us
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Your trusted financial advisor for smart business decisions. 

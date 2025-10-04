@@ -115,7 +115,7 @@ const LoginScreen = () => {
               className="h-16 w-auto"
             />
           </div>
-          <h1 className="text-3xl font-bold text-primary">KudiGuard</h1>
+          <h1 className="text-3xl font-bold text-primary"></h1>
           <p className="text-muted-foreground mt-2">
             Your financial advisor for smart business decisions
           </p>
