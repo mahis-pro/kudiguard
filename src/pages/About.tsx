@@ -14,14 +14,13 @@ import {
   Target,
   ArrowRight,
   Lightbulb,
-  AlertTriangle, // Added missing import
+  AlertTriangle, 
   Facebook, 
   Twitter,  
   Instagram 
 } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import HowItWorks from '@/components/HowItWorks'; 
-import Testimonials from '@/components/Testimonials'; 
 import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll'; 
 
 const About = () => {
@@ -137,9 +136,6 @@ const About = () => {
             })}
           </div>
         </section>
-
-        {/* Testimonials Section - Reusing the component */}
-        <Testimonials />
 
         {/* CTA Section */}
         <section className="bg-gradient-primary py-16">
