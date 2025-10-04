@@ -38,8 +38,8 @@ const HowItWorks = () => {
       </div>
       
       <div className="relative max-w-3xl mx-auto">
-        {/* Central Vertical Line - Now visible on all screen sizes */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-border"></div>
+        {/* Central Vertical Line - Hidden on mobile, block on desktop */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-border hidden md:block"></div>
 
         <div className="space-y-12">
           {steps.map((step, index) => {
@@ -61,9 +61,10 @@ const HowItWorks = () => {
                   <step.icon className="h-6 w-6 text-primary" />
                 </div>
 
-                {/* Mobile Content Block: Icon on left, text left-aligned, positioned to the right of the central line */}
-                <div className="w-full md:hidden">
-                  <div className="flex items-start space-x-4 text-left ml-[calc(50%+20px)] pr-4">
+                {/* Content Block */}
+                <div className="w-full p-4 md:p-0">
+                  {/* Mobile Layout: Icon on left, text left-aligned */}
+                  <div className="flex items-start space-x-4 text-left md:hidden">
                     <div className="bg-gradient-primary w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0">
                       <step.icon className="h-6 w-6 text-primary-foreground" />
                     </div>
@@ -76,19 +77,19 @@ const HowItWorks = () => {
                       </p>
                     </div>
                   </div>
-                </div>
 
-                {/* Desktop Layout: Alternating left/right, text aligned to center line */}
-                <div className={`
-                  hidden md:block md:w-1/2 md:p-0 
-                  ${isEven ? 'md:pr-12 md:text-right md:ml-auto' : 'md:pl-12 md:text-left md:mr-auto'}
-                `}>
-                  <h3 className="text-xl font-semibold text-primary mb-2">
-                    {step.title}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {step.description}
-                  </p>
+                  {/* Desktop Layout: Alternating left/right, text aligned to center line */}
+                  <div className={`
+                    hidden md:block md:w-1/2 
+                    ${isEven ? 'md:pr-12 md:text-right md:ml-auto' : 'md:pl-12 md:text-left md:mr-auto'}
+                  `}>
+                    <h3 className="text-xl font-semibold text-primary mb-2">
+                      {step.title}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {step.description}
+                    </p>
+                  </div>
                 </div>
               </div>
             );
