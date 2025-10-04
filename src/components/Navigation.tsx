@@ -31,7 +31,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
 
   if (showBackButton && onBack) {
     return (
-      <header className="w-full bg-card shadow-card border-b border-border">
+      <header className="w-full bg-background/90 backdrop-blur-sm fixed top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center">
           <Button variant="ghost" onClick={onBack} className="mr-3 p-2">
             <ArrowLeft className="h-5 w-5" />
@@ -49,7 +49,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
   }
 
   return (
-    <header className="w-full bg-card shadow-card border-b border-border">
+    <header className="w-full bg-background/90 backdrop-blur-sm fixed top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center">
           <img 
@@ -68,7 +68,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
                 <Button
                   variant={isActive ? "default" : "ghost"}
                   size="sm"
-                  className={isActive ? "bg-gradient-primary" : ""}
+                  className={isActive ? "bg-gradient-primary" : "text-foreground hover:bg-accent"}
                 >
                   <item.icon className="h-4 w-4 mr-2" />
                   {item.label}
@@ -93,7 +93,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
         <Button
           variant="ghost"
           size="sm"
-          className="md:hidden"
+          className="md:hidden text-foreground"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
           {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -102,7 +102,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
 
       {/* Mobile Navigation Menu for public pages */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t bg-card">
+        <div className="md:hidden border-t border-border bg-background/90 backdrop-blur-sm">
           <nav className="p-4 space-y-2">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -115,7 +115,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
                   <Button
                     variant={isActive ? "default" : "ghost"}
                     size="sm"
-                    className={`w-full justify-start ${isActive ? "bg-gradient-primary" : ""}`}
+                    className={`w-full justify-start ${isActive ? "bg-gradient-primary" : "text-foreground hover:bg-accent"}`}
                   >
                     <item.icon className="h-4 w-4 mr-3" />
                     {item.label}
@@ -127,7 +127,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start"
+                className="w-full justify-start text-foreground hover:bg-accent"
               >
                 Login
               </Button>
@@ -136,7 +136,7 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start"
+                className="w-full justify-start text-foreground hover:bg-accent"
               >
                 Sign Up
               </Button>
