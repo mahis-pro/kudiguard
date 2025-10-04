@@ -3,15 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react'; // Import AlertCircle and CheckCircle icons
+import { Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { Link } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast'; // Import useToast for error toasts
-
-interface SignUpScreenProps {
-  // onSendOtpSuccess is no longer needed for email/password signup
-}
+import { useToast } from '@/hooks/use-toast';
 
 const SignUpScreen = () => {
   const { supabase } = useSession();
@@ -23,7 +19,7 @@ const SignUpScreen = () => {
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [formMessage, setFormMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
-  const { toast } = useToast(); // Initialize useToast for error toasts
+  const { toast } = useToast();
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -73,7 +69,6 @@ const SignUpScreen = () => {
         password,
         options: {
           // You can add user_metadata here if needed, e.g., first_name, last_name
-          // data: { first_name: '...', last_name: '...' }
         }
       });
 
@@ -81,9 +76,7 @@ const SignUpScreen = () => {
         throw error;
       }
 
-      // Only set form message for success
       setFormMessage({ type: 'success', text: 'Sign Up Successful! Please check your email to verify your account. You can then log in.' });
-      // No direct navigation here, user needs to verify email first
     } catch (error: any) {
       console.error('Error signing up:', error.message);
       setFormMessage({ type: 'error', text: error.message || 'Failed to sign up. Please try again.' });
@@ -103,7 +96,7 @@ const SignUpScreen = () => {
               className="h-16 w-auto"
             />
           </div>
-          <h1 className="text-3xl font-bold text-primary">Sign Up</h1>
+          <h1 className="text-3xl font-bold text-primary">Join KudiGuard</h1> {/* Added a title */}
           <p className="text-muted-foreground mt-2">
             Get personalized financial advice for your business
           </p>
@@ -137,7 +130,7 @@ const SignUpScreen = () => {
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (emailError) setEmailError('');
-                  setFormMessage(null); // Clear form message on input change
+                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${emailError ? 'border-destructive' : ''}`}
               />
@@ -161,7 +154,7 @@ const SignUpScreen = () => {
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (passwordError) setPasswordError('');
-                  setFormMessage(null); // Clear form message on input change
+                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${passwordError ? 'border-destructive' : ''}`}
               />
@@ -185,7 +178,7 @@ const SignUpScreen = () => {
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
                   if (confirmPasswordError) setConfirmPasswordError('');
-                  setFormMessage(null); // Clear form message on input change
+                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${confirmPasswordError ? 'border-destructive' : ''}`}
               />

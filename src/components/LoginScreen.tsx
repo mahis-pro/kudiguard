@@ -3,11 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react'; // Import AlertCircle and CheckCircle icons
+import { Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { supabase } from '@/lib/supabase';
-import { Link } from 'react-router-dom'; // Import Link for navigation
-import { useToast } from '@/hooks/use-toast'; // Import useToast
+import { Link } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +16,7 @@ const LoginScreen = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [formMessage, setFormMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
-  const { toast } = useToast(); // Initialize useToast for error and password reset toasts
+  const { toast } = useToast();
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,7 +61,6 @@ const LoginScreen = () => {
         throw error;
       }
 
-      // Only set form message for success, SessionContextProvider will handle redirection
       setFormMessage({ type: 'success', text: 'Login Successful! Redirecting...' }); 
     } catch (error: any) {
       console.error('Error signing in:', error.message);
@@ -74,7 +73,7 @@ const LoginScreen = () => {
   const handleForgotPassword = async () => {
     if (!email || !validateEmail(email)) {
       setEmailError('Please enter a valid email to reset password');
-      setFormMessage(null); // Clear other messages
+      setFormMessage(null);
       return;
     }
 
@@ -115,7 +114,7 @@ const LoginScreen = () => {
               className="h-16 w-auto"
             />
           </div>
-          <h1 className="text-3xl font-bold text-primary"></h1>
+          <h1 className="text-3xl font-bold text-primary">Welcome Back!</h1> {/* Added a title */}
           <p className="text-muted-foreground mt-2">
             Your financial advisor for smart business decisions
           </p>
@@ -149,7 +148,7 @@ const LoginScreen = () => {
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (emailError) setEmailError('');
-                  setFormMessage(null); // Clear form message on input change
+                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${emailError ? 'border-destructive' : ''}`}
               />
@@ -173,7 +172,7 @@ const LoginScreen = () => {
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (passwordError) setPasswordError('');
-                  setFormMessage(null); // Clear form message on input change
+                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${passwordError ? 'border-destructive' : ''}`}
               />
