@@ -106,6 +106,7 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
           badgeVariant: 'default',
           cardClasses: 'bg-success-light border-success/20',
           iconClasses: 'text-success',
+          shadowClass: 'shadow-success-glow',
         };
       case 'WAIT':
         return {
@@ -114,6 +115,7 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
           badgeVariant: 'secondary',
           cardClasses: 'bg-warning-light border-warning/20',
           iconClasses: 'text-warning',
+          shadowClass: 'shadow-warning-glow',
         };
       case 'REJECT':
         return {
@@ -122,6 +124,7 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
           badgeVariant: 'destructive',
           cardClasses: 'bg-destructive/10 border-destructive/20',
           iconClasses: 'text-destructive',
+          shadowClass: 'shadow-destructive-glow',
         };
       default:
         return {
@@ -130,11 +133,12 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
           badgeVariant: 'outline',
           cardClasses: 'bg-muted',
           iconClasses: 'text-muted-foreground',
+          shadowClass: 'shadow-card',
         };
     }
   };
 
-  const { Icon, title, badgeVariant, cardClasses, iconClasses } = getRecommendationDetails();
+  const { Icon, title, badgeVariant, cardClasses, iconClasses, shadowClass } = getRecommendationDetails();
 
   const hasDecisionParameters = 
     (estimated_salary !== null && estimated_salary !== undefined) || 
@@ -202,7 +206,7 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
   }
 
   return (
-    <Card className={`shadow-md mt-2 ${cardClasses}`}>
+    <Card className={`shadow-md mt-2 ${cardClasses} ${shadowClass}`}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center text-lg">
           <Icon className={`mr-3 h-6 w-6 ${iconClasses}`} />
