@@ -55,7 +55,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick }: SidebarPro
   };
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-lg">
+    <div className="flex flex-col h-full bg-gradient-subtle text-sidebar-foreground border-r border-sidebar-border shadow-lg">
       {/* Logo and App Name */}
       <div className="p-4 border-b border-sidebar-border flex items-center justify-center">
         <img 
