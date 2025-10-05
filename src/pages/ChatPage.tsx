@@ -7,11 +7,11 @@ import { useSession } from '@/components/auth/SessionContextProvider';
 import AddDataModal from '@/components/AddDataModal';
 import DecisionCard from '@/components/DecisionCard';
 import { useToast } from '@/hooks/use-toast';
-import { Switch } from '@/components/ui/switch'; // Import Switch component
-import kudiGuardIcon from '/kudiguard-icon.jpg'; // Import the new icon
-import { Textarea } from '@/components/ui/textarea'; // Import Textarea for multi-line input
-import { Card } from '@/components/ui/card'; // Import Card component
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import { Switch } from '@/components/ui/switch';
+import kudiGuardIcon from '/kudiguard-icon.jpg';
+import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ChatMessage {
   id: string;
@@ -23,15 +23,25 @@ interface ChatMessage {
   dataNeeded?: {
     field: string;
     prompt: string;
-    type: 'number' | 'boolean' | 'text_enum'; // Added 'text_enum' type
-    options?: string[]; // Added options for 'text_enum'
-    intent_context: { intent: string; decision_type: string; current_payload?: Record<string, any>; }; // Added current_payload
-    canBeZeroOrNone?: boolean; // Added canBeZeroOrNone
+    type: 'number' | 'boolean' | 'text_enum';
+    options?: string[];
+    intent_context: { intent: string; decision_type: string; current_payload?: Record<string, any>; };
+    canBeZeroOrNone?: boolean;
   };
-  // Store the original question for multi-step data collection
   originalQuestion?: string; 
-  // Store collected payload data across steps
   collectedPayload?: Record<string, any>;
+}
+
+// Define the structure of the chat state to be saved
+interface PersistedChatState {
+  messages: ChatMessage[];
+  pendingDataRequest: ChatMessage['dataNeeded'] | null;
+  currentIntent: string | null;
+  currentQuestion: string | null;
+  currentPayload: Record<string, any>;
+  lastUserQueryText: string | null;
+  lastUserQueryIntent: string | null;
+  lastUserQueryPayload: Record<string, any> | null;
 }
 
 const TypingIndicator = () => (
@@ -43,41 +53,97 @@ const TypingIndicator = () => (
 );
 
 const ChatPage = () => {
-  const { userDisplayName, isLoading: sessionLoading, supabase, isFmcgVendor } = useSession(); // Get isFmcgVendor
+  const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
   const { toast } = useToast();
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
   const [pendingDataRequest, setPendingDataRequest] = useState<ChatMessage['dataNeeded'] | null>(null);
-  const [currentIntent, setCurrentIntent] = useState<string | null>(null); // To keep track of the main intent
-  const [currentQuestion, setCurrentQuestion] = useState<string | null>(null); // To keep track of the original question
-  const [currentPayload, setCurrentPayload] = useState<Record<string, any>>({}); // To accumulate payload data
+  const [currentIntent, setCurrentIntent] = useState<string | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<string | null>(null);
+  const [currentPayload, setCurrentPayload] = useState<Record<string, any>>({});
 
-  // New states to store the last query for "Try again" functionality
   const [lastUserQueryText, setLastUserQueryText] = useState<string | null>(null);
   const [lastUserQueryIntent, setLastUserQueryIntent] = useState<string | null>(null);
   const [lastUserQueryPayload, setLastUserQueryPayload] = useState<Record<string, any> | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Helper to get the localStorage key based on user ID
+  const getLocalStorageKey = (userId: string | undefined) => 
+    userId ? `kudiguard_chat_state_${userId}` : 'kudiguard_chat_state_anonymous';
+
+  // Effect to load chat state from localStorage on mount
+  useEffect(() => {
+    if (!sessionLoading && userDisplayName) {
+      const userId = session?.user?.id;
+      const key = getLocalStorageKey(userId);
+      const savedState = localStorage.getItem(key);
+
+      if (savedState) {
+        try {
+          const parsedState: PersistedChatState = JSON.parse(savedState);
+          setMessages(parsedState.messages);
+          setPendingDataRequest(parsedState.pendingDataRequest);
+          setCurrentIntent(parsedState.currentIntent);
+          setCurrentQuestion(parsedState.currentQuestion);
+          setCurrentPayload(parsedState.currentPayload);
+          setLastUserQueryText(parsedState.lastUserQueryText);
+          setLastUserQueryIntent(parsedState.lastUserQueryIntent);
+          setLastUserQueryPayload(parsedState.lastUserQueryPayload);
+        } catch (e) {
+          console.error("Failed to parse saved chat state from localStorage:", e);
+          setMessages([initialGreeting(userDisplayName)]);
+        }
+      } else {
+        setMessages([initialGreeting(userDisplayName)]);
+      }
+    }
+  }, [sessionLoading, userDisplayName, session?.user?.id]); // Re-run if user changes
+
+  // Effect to save chat state to localStorage whenever relevant state changes
+  useEffect(() => {
+    if (!sessionLoading && userDisplayName) {
+      const userId = session?.user?.id;
+      const key = getLocalStorageKey(userId);
+      const stateToSave: PersistedChatState = {
+        messages,
+        pendingDataRequest,
+        currentIntent,
+        currentQuestion,
+        currentPayload,
+        lastUserQueryText,
+        lastUserQueryIntent,
+        lastUserQueryPayload,
+      };
+      localStorage.setItem(key, JSON.stringify(stateToSave));
+    }
+  }, [
+    messages,
+    pendingDataRequest,
+    currentIntent,
+    currentQuestion,
+    currentPayload,
+    lastUserQueryText,
+    lastUserQueryIntent,
+    lastUserQueryPayload,
+    sessionLoading,
+    userDisplayName,
+    session?.user?.id,
+  ]);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isAiTyping]);
 
-  const initialGreeting = (name: string): ChatMessage => ({ // Explicitly type the return
+  const initialGreeting = (name: string): ChatMessage => ({
     id: '1',
-    sender: 'ai', // Explicitly 'ai'
+    sender: 'ai',
     text: `Hello ${name}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
     timestamp: new Date().toISOString(),
     quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
   });
-
-  useEffect(() => {
-    if (!sessionLoading && userDisplayName) {
-      setMessages([initialGreeting(userDisplayName)]);
-    }
-  }, [sessionLoading, userDisplayName]);
 
   const sendToDecisionEngine = async (intent: string, question: string, payload?: Record<string, any>) => {
     setIsAiTyping(true);
@@ -129,7 +195,6 @@ const ChatPage = () => {
         setCurrentQuestion(question);
         setCurrentPayload(edgeFunctionResult.data.data_needed.intent_context.current_payload || {});
         
-        // Update lastUserQueryPayload to reflect accumulated data for potential retry
         setLastUserQueryPayload(edgeFunctionResult.data.data_needed.intent_context.current_payload || {});
 
         const dataNeededMessage: ChatMessage = {
@@ -159,7 +224,6 @@ const ChatPage = () => {
       setCurrentIntent(null);
       setCurrentQuestion(null);
       setCurrentPayload({});
-      // Clear last query states as the decision is complete
       setLastUserQueryText(null);
       setLastUserQueryIntent(null);
       setLastUserQueryPayload(null);
@@ -198,9 +262,8 @@ const ChatPage = () => {
 
     if (finalMessageInput.trim() === '') return;
 
-    const lowerCaseInput = finalMessageInput.toLowerCase(); // Define lowerCaseInput here
+    const lowerCaseInput = finalMessageInput.toLowerCase();
 
-    // Handle "Thank you" / "Thanks!"
     if (['thank you', 'thanks', 'thank you!', 'thanks!'].includes(lowerCaseInput)) {
         const userThankYou: ChatMessage = {
             id: String(Date.now()),
@@ -328,7 +391,6 @@ const ChatPage = () => {
       setCurrentQuestion(finalMessageInput);
       setCurrentPayload(initialPayload);
 
-      // Store this as the last successful query that initiated a flow
       setLastUserQueryText(finalMessageInput);
       setLastUserQueryIntent(intentDetected);
       setLastUserQueryPayload(initialPayload);
@@ -350,7 +412,6 @@ const ChatPage = () => {
   const handleQuickReply = (reply: string) => {
     const lowerCaseReply = reply.toLowerCase();
 
-    // For special actions, explicitly add the user message and then perform the action
     if (lowerCaseReply === 'add new data') {
       setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
       setIsAddDataModalOpen(true);
@@ -371,10 +432,10 @@ const ChatPage = () => {
     } else if (lowerCaseReply === 'try again') {
         setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
         if (lastUserQueryIntent && lastUserQueryText) {
-            setPendingDataRequest(null); // Clear any pending request before retrying
+            setPendingDataRequest(null);
             setCurrentIntent(lastUserQueryIntent);
             setCurrentQuestion(lastUserQueryText);
-            setCurrentPayload(lastUserQueryPayload || {}); // Use the last accumulated payload
+            setCurrentPayload(lastUserQueryPayload || {});
             sendToDecisionEngine(lastUserQueryIntent, lastUserQueryText, lastUserQueryPayload || {});
         } else {
             const noRetryMessage: ChatMessage = {
@@ -387,7 +448,6 @@ const ChatPage = () => {
             setMessages((prev) => [...prev, noRetryMessage]);
         }
     } else if (lowerCaseReply === 'what else can you do?') {
-        // This case is fine as the second setMessages overwrites the first, effectively resetting the chat.
         setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
         setMessages([initialGreeting(userDisplayName || 'User')]);
         setPendingDataRequest(null);
@@ -398,8 +458,6 @@ const ChatPage = () => {
         setLastUserQueryIntent(null);
         setLastUserQueryPayload(null);
     } else {
-        // For other quick replies, set the input field and then call handleSendMessage.
-        // handleSendMessage will be responsible for adding the user's message to the state.
         setMessageInput(reply); 
         setTimeout(() => handleSendMessage(reply), 0); 
     }
@@ -417,7 +475,6 @@ const ChatPage = () => {
     if (pendingDataRequest) {
       let placeholder = pendingDataRequest.prompt;
       if (pendingDataRequest.type === 'number') {
-        // Add currency hint if it's a number input and not already in prompt
         if (!placeholder.includes('(₦)')) {
           placeholder += ' (in ₦)';
         }
@@ -447,7 +504,7 @@ const ChatPage = () => {
                 className={`max-w-[80%] p-3 rounded-lg shadow-sm ${
                   msg.sender === 'user'
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-gradient-subtle text-foreground border' // Applied gradient here
+                    : 'bg-gradient-subtle text-foreground border'
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
@@ -477,7 +534,7 @@ const ChatPage = () => {
               <div className="flex-shrink-0 mr-2 mt-1">
                 <img src={kudiGuardIcon} alt="KudiGuard AI" className="h-7 w-7 rounded-full" />
               </div>
-              <Card className="max-w-[70%] p-3 rounded-lg bg-gradient-subtle text-foreground border"> {/* Applied gradient here */}
+              <Card className="max-w-[70%] p-3 rounded-lg bg-gradient-subtle text-foreground border">
                 <TypingIndicator />
               </Card>
             </div>
@@ -523,17 +580,17 @@ const ChatPage = () => {
               </Button>
             </div>
           ) : (
-            <Textarea // Changed from Input to Textarea
+            <Textarea
               placeholder={getPlaceholderText()}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) { // Allow Shift+Enter for new line
-                  e.preventDefault(); // Prevent default behavior (new line)
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
                   handleSendMessage();
                 }
               }}
-              className="flex-1 mr-2 h-12 min-h-[48px] max-h-[150px] resize-none" // Changed resize-y to resize-none
+              className="flex-1 mr-2 h-12 min-h-[48px] max-h-[150px] resize-none"
               disabled={isAiTyping}
             />
           )}
