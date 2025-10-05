@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, CalendarDays, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, CalendarDays, Clock, CheckCircle, XCircle, MessageCircle, Eye, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard';
 import { useQuery } from '@tanstack/react-query';
+import DecisionDetailsDialog from '@/components/DecisionDetailsDialog'; // Import DecisionDetailsDialog
 
 const InsightsPage = () => {
   const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedDecision, setSelectedDecision] = useState<any | null>(null);
 
   const userId = session?.user?.id;
 
@@ -37,7 +40,7 @@ const InsightsPage = () => {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('decisions')
-        .select('id, question, recommendation, reasoning, created_at')
+        .select('id, question, recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary, estimated_inventory_cost, inventory_turnover_days, supplier_credit_terms_days, average_receivables_turnover_days, outstanding_supplier_debts, supplier_discount_percentage, storage_cost_percentage_of_order, proposed_marketing_budget, is_localized_promotion, historic_foot_traffic_increase_observed, sales_increase_last_campaign_1, sales_increase_last_campaign_2, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(3); // Fetch top 3 recent decisions for recommendations
@@ -87,6 +90,24 @@ const InsightsPage = () => {
       healthMessage = "Your business is currently facing challenges. Focus on increasing revenue and reducing expenses to improve stability.";
     }
   }
+
+  const getRecommendationBadge = (recommendation: string) => {
+    switch (recommendation) {
+      case 'APPROVE':
+        return <Badge variant="default" className="bg-success hover:bg-success/90">Approve</Badge>;
+      case 'WAIT':
+        return <Badge variant="secondary" className="bg-warning hover:bg-warning/90">Wait</Badge>;
+      case 'REJECT':
+        return <Badge variant="destructive" className="hover:bg-destructive/90">Reject</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
+  const handleViewDetails = (decision: any) => {
+    setSelectedDecision(decision);
+    setIsDetailsModalOpen(true);
+  };
 
   return (
     <div className="h-full overflow-y-auto">
@@ -148,15 +169,22 @@ const InsightsPage = () => {
             <CardTitle className="text-xl">KudiGuard Recommendations</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
               {decisionsData && decisionsData.length > 0 ? (
                 decisionsData.map((decision) => (
-                  <div key={decision.id} className="flex items-start">
-                    <Info className="h-5 w-5 text-primary mr-3 mt-1" />
-                    <div>
-                      <p className="font-medium">{decision.question}</p>
-                      <p className="text-sm text-muted-foreground">{decision.reasoning}</p>
-                      <Badge variant="outline" className="mt-1">{decision.recommendation}</Badge>
+                  <div key={decision.id} className="border-b border-border pb-4 last:border-b-0 last:pb-0">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start">
+                        <MessageCircle className="h-5 w-5 text-primary mr-3 mt-1 flex-shrink-0" />
+                        <p className="font-medium text-foreground">{decision.question}</p>
+                      </div>
+                      {getRecommendationBadge(decision.recommendation)}
+                    </div>
+                    <p className="text-sm text-muted-foreground pl-8 mb-3">{decision.reasoning}</p>
+                    <div className="pl-8">
+                      <Button variant="outline" size="sm" onClick={() => handleViewDetails(decision)}>
+                        <Eye className="h-4 w-4 mr-2" /> View Details
+                      </Button>
                     </div>
                   </div>
                 ))
@@ -184,6 +212,11 @@ const InsightsPage = () => {
           </CardContent>
         </Card>
       </div>
+      <DecisionDetailsDialog 
+        isOpen={isDetailsModalOpen} 
+        onClose={() => setIsDetailsModalOpen(false)} 
+        decision={selectedDecision} 
+      />
     </div>
   );
 };
