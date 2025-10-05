@@ -74,20 +74,20 @@ const InsightsPage = () => {
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
-  // Placeholder for financial health score logic (will be dynamic later)
+  // Improved financial health score logic
   let healthScore: 'stable' | 'caution' | 'risky' = 'caution';
   let healthMessage = "No recent financial data. Please add your monthly revenue, expenses, and savings to get a personalized health score.";
 
   if (financialData) {
-    if (netProfit > 0 && currentSavings >= totalExpenses) {
-      healthScore = 'stable';
-      healthMessage = "Your business is performing well with positive profit and healthy savings. Keep up the great work!";
-    } else if (netProfit > 0 || currentSavings > 0) {
-      healthScore = 'caution';
-      healthMessage = "Your business shows potential, but there are areas to improve, such as increasing savings or optimizing expenses.";
-    } else {
+    if (netProfit <= 0 || currentSavings < (0.5 * totalExpenses)) {
       healthScore = 'risky';
-      healthMessage = "Your business is currently facing challenges. Focus on increasing revenue and reducing expenses to improve stability.";
+      healthMessage = "Your business is facing significant financial challenges. Focus on immediate revenue generation and aggressive cost reduction to improve stability.";
+    } else if (netProfit > 0 && (profitMargin < 10 || currentSavings < totalExpenses)) {
+      healthScore = 'caution';
+      healthMessage = "Your business is profitable, but there are areas for improvement. Consider optimizing expenses, increasing profit margins, or building a stronger savings buffer.";
+    } else if (netProfit > 0 && profitMargin >= 10 && currentSavings >= totalExpenses) {
+      healthScore = 'stable';
+      healthMessage = "Your business is in a stable financial position with healthy profits and sufficient reserves. You're well-positioned for growth and strategic investments.";
     }
   }
 
