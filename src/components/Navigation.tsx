@@ -90,9 +90,9 @@ const Navigation = ({ showBackButton, onBack }: NavigationProps) => {
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild className="md:hidden">
             <Button
-              variant="outline" // Changed to outline variant
+              variant="outline"
               size="icon"
-              className="text-foreground h-11 w-11" // Slightly increased size
+              className="text-foreground h-11 w-11"
             >
               <Menu className="h-6 w-6" />
               <span className="sr-only">Toggle mobile menu</span>
