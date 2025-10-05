@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +22,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick }: SidebarPro
   const navItems = [
     { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/insights', icon: LayoutDashboard, label: 'Insights' },
+    { path: '/analytics', icon: LineChart, label: 'Analytics' }, // New Analytics link
     { path: '/history', icon: History, label: 'History' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];

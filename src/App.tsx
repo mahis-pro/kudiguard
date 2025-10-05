@@ -18,6 +18,7 @@ import ResetPassword from "./pages/ResetPassword";
 import { SessionContextProvider } from "./components/auth/SessionContextProvider";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout";
 import InsightsPage from "./pages/InsightsPage";
+import AnalyticsPage from "./pages/AnalyticsPage"; // Import the new AnalyticsPage
 import DecisionHistoryPage from "./pages/DecisionHistoryPage";
 
 const queryClient = new QueryClient({
@@ -52,6 +53,7 @@ const App = () => {
               <Route element={<AuthenticatedLayout />}>
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/insights" element={<InsightsPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} /> {/* New Analytics Route */}
                 <Route path="/history" element={<DecisionHistoryPage />} />
                 <Route path="/settings" element={<Profile />} />
                 {/* Add other authenticated routes here, e.g., /learning-hub */}

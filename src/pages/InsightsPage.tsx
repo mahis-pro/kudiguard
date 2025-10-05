@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, CalendarDays, Clock, CheckCircle, XCircle, MessageCircle, Eye, AlertTriangle } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, CalendarDays, Clock, CheckCircle, XCircle, MessageCircle, Eye, AlertTriangle, LineChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard';
 import { useQuery } from '@tanstack/react-query';
 import DecisionDetailsDialog from '@/components/DecisionDetailsDialog';
-import FinancialTrendChart from '@/components/FinancialTrendChart'; // Import the new chart component
 import { Link } from 'react-router-dom'; // Import Link for navigation
 
 const InsightsPage = () => {
@@ -200,11 +199,20 @@ const InsightsPage = () => {
           </Card>
         </div>
 
-        {/* Financial Trends Chart */}
-        {financialEntries && financialEntries.length > 1 && (
-          <div className="mb-6">
-            <FinancialTrendChart financialEntries={financialEntries} />
-          </div>
+        {/* Link to Analytics Page */}
+        {financialEntries && financialEntries.length > 0 && (
+          <Card className="shadow-card mb-6">
+            <CardContent className="p-6 text-center">
+              <LineChart className="h-10 w-10 text-primary mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-primary mb-2">View Detailed Financial Trends</h3>
+              <p className="text-muted-foreground mb-4">
+                Explore interactive charts and historical data on your dedicated Analytics page.
+              </p>
+              <Link to="/analytics">
+                <Button className="bg-gradient-primary hover:shadow-success">Go to Analytics</Button>
+              </Link>
+            </CardContent>
+          </Card>
         )}
 
         <Card className="shadow-card mb-6">
