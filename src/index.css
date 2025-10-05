@@ -10,7 +10,7 @@ All colors MUST be HSL.
   :root {
     /* --- Core Backgrounds & Text --- */
     --background: 0 0% 100%; /* Pure White */
-    --foreground: 274 54% 20%; /* Dark Purple for text */
+    --foreground: 0 0% 10%; /* Dark Gray (#1A1A1A) for text */
 
     /* --- Primary Brand Colors (Action & Emphasis) --- */
     --primary: 274 54% 39%; /* Primary Purple */
@@ -20,17 +20,17 @@ All colors MUST be HSL.
 
     /* --- Secondary & Muted Colors (Structure & Support) --- */
     --secondary: 0 0% 92%; /* Light Gray */
-    --secondary-foreground: 274 54% 20%; /* Dark Purple */
+    --secondary-foreground: 0 0% 10%; /* Dark Gray (#1A1A1A) */
     --muted: 0 0% 92%; /* Light Gray */
-    --muted-foreground: 274 30% 35%; /* Muted Dark Purple for placeholders */
+    --muted-foreground: 0 0% 30%; /* Muted Dark Gray for placeholders */
     --accent: 0 0% 92%; /* Light Gray */
-    --accent-foreground: 274 54% 20%; /* Dark Purple */
+    --accent-foreground: 0 0% 10%; /* Dark Gray (#1A1A1A) */
 
     /* --- Card & Popover (Content Containers) --- */
     --card: 0 0% 100% / 0.9; /* Pure White with 90% opacity for subtle gradient blend */
-    --card-foreground: 274 54% 20%; /* Dark Purple */
+    --card-foreground: 0 0% 10%; /* Dark Gray (#1A1A1A) */
     --popover: 0 0% 100%; /* Pure White */
-    --popover-foreground: 274 54% 20%; /* Dark Purple */
+    --popover-foreground: 0 0% 10%; /* Dark Gray (#1A1A1A) */
 
     /* --- Borders, Inputs, Rings (Interactive Elements) --- */
     --border: 0 0% 80%; /* Slightly darker Light Gray */
@@ -60,11 +60,11 @@ All colors MUST be HSL.
 
     /* --- Sidebar (Light Theme) --- */
     --sidebar-background: 0 0% 100%; /* Pure White */
-    --sidebar-foreground: 240 69% 49%; /* Deep Charcoal */
+    --sidebar-foreground: 0 0% 10%; /* Dark Gray (#1A1A1A) */
     --sidebar-primary: 274 54% 39%; /* Primary Purple */
     --sidebar-primary-foreground: 0 0% 100%; /* Pure White */
     --sidebar-accent: 0 0% 92%; /* Light Gray */
-    --sidebar-accent-foreground: 240 69% 49%; /* Deep Charcoal */
+    --sidebar-accent-foreground: 0 0% 10%; /* Dark Gray (#1A1A1A) */
     --sidebar-border: 0 0% 80%; /* Slightly darker Light Gray */
     --sidebar-ring: 274 54% 39%; /* Primary Purple */
   }
