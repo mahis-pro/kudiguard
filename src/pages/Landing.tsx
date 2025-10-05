@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card'; // Keep Card import for CTA section if needed
+import { Card, CardContent } from '@/components/ui/card';
 import { 
   Shield, 
   TrendingUp, 
@@ -11,15 +11,15 @@ import {
   ArrowRight,
   Lightbulb,
   MessageCircle,
-  Facebook, // Added for social media
-  Twitter,  // Added for social media
-  Instagram // Added for social media
+  Facebook, 
+  Twitter,  
+  Instagram 
 } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import HeroVisual from '@/components/HeroVisual';
 import HowItWorks from '@/components/HowItWorks';
-import Navigation from '@/components/Navigation'; // Import Navigation for public pages
-import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll'; // Import the new hook
+import Navigation from '@/components/Navigation';
+import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll';
 
 
 const Landing = () => {
@@ -49,32 +49,32 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       {/* Header */}
-      <Navigation /> {/* Use the public Navigation component */}
+      <Navigation />
 
       {/* Main content wrapper with padding to account for fixed header */}
-      <div className="pt-16"> {/* Added padding-top here */}
+      <div className="pt-16">
         {/* Hero Section */}
-        <section className="container mx-auto px-4 py-16 bg-hero-gradient"> {/* Applied new gradient class */}
+        <section className="container mx-auto px-4 py-16 bg-hero-gradient">
           <div className="max-w-4xl mx-auto flex flex-col items-center text-center">
             {/* Text Content */}
-            <h1 className="text-5xl md:text-7xl font-extrabold text-primary-foreground mb-6 leading-tight animate-fade-in"> {/* Changed text color for contrast */}
+            <h1 className="text-5xl md:text-7xl font-extrabold text-primary-foreground mb-6 leading-tight animate-fade-in">
               Stop Guessing, Start Deciding
             </h1>
             
-            <p className="text-xl md:text-2xl text-primary-foreground/90 mb-8 max-w-3xl mx-auto animate-fade-in"> {/* Changed text color for contrast */}
+            <p className="text-xl md:text-2xl text-primary-foreground/90 mb-8 max-w-3xl mx-auto animate-fade-in">
               With KudiGuard, you get clear answers to everyday questions when to restock, hire, or save so your money works smarter.
             </p>
             
             {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-fade-in">
               <Link to="/signup">
-                <Button size="lg" className="bg-gradient-primary hover:shadow-success text-lg px-8 py-4"> {/* Adjusted button style for contrast */}
+                <Button size="lg" className="bg-gradient-primary hover:shadow-success text-lg px-8 py-4">
                   Get Started
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link to="/about">
-                <Button size="lg" variant="outline" className="text-lg px-8 py-4 border-primary text-primary hover:bg-primary/10"> {/* Adjusted button style for contrast */}
+                <Button size="lg" variant="outline" className="text-lg px-8 py-4 border-primary text-primary hover:bg-primary/10">
                   Learn More
                 </Button>
               </Link>
@@ -103,7 +103,7 @@ const Landing = () => {
           
           <div className="max-w-3xl mx-auto space-y-8">
             {features.map((feature, index) => {
-              const { ref, isVisible } = useAnimateOnScroll({ delay: index * 150 }); // Staggered delay
+              const { ref, isVisible } = useAnimateOnScroll({ delay: index * 150 });
               return (
                 <div 
                   key={index} 
@@ -141,7 +141,7 @@ const Landing = () => {
               Join hundreds of Nigerian vendors who are already making smarter financial decisions with KudiGuard.
             </p>
             <Link to="/signup">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-4 hover:shadow-success"> {/* Added hover:shadow-success */}
+              <Button size="lg" variant="secondary" className="text-lg px-8 py-4 hover:shadow-success">
                 Get Started Today
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -185,6 +185,7 @@ const Landing = () => {
               <div>
                 <h3 className="text-lg font-semibold text-primary mb-4">Connect</h3>
                 <div className="flex justify-center md:justify-start space-x-4">
+                  {/* Keeping placeholder links as official KudiGuard social media URLs are not provided */}
                   <a href="https://facebook.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                     <Facebook className="h-6 w-6" />
                   </a>

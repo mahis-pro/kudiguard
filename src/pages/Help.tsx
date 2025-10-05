@@ -16,13 +16,13 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Facebook, // Added for social media
-  Twitter,  // Added for social media
-  Instagram // Added for social media
+  Facebook, 
+  Twitter,  
+  Instagram 
 } from 'lucide-react';
-import kudiGuardLogo from '@/assets/kudiguard-logo.png'; // Import logo for footer
-import { Link } from 'react-router-dom'; // Import Link for footer
-import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll'; // Import the new hook
+import kudiGuardLogo from '@/assets/kudiguard-logo.png';
+import { Link } from 'react-router-dom';
+import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll';
 
 interface FAQ {
   id: string;
@@ -39,6 +39,7 @@ const Help = () => {
     subject: '',
     message: ''
   });
+  const [searchTerm, setSearchTerm] = useState(''); // New state for search term
   const { toast } = useToast();
 
   const faqs: FAQ[] = [
@@ -109,13 +110,15 @@ const Help = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   const filteredFAQs = faqs.filter(faq => 
-    selectedCategory === 'All' || faq.category === selectedCategory
+    (selectedCategory === 'All' || faq.category === selectedCategory) &&
+    (faq.question.toLowerCase().includes(searchTerm.toLowerCase()) || 
+     faq.answer.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Navigation />
-      <div className="pt-16"> {/* Added pt-16 to account for fixed header */}
+      <div className="pt-16">
         
         {/* Hero Section */}
         <section className="container mx-auto px-4 py-16 bg-hero-gradient text-center">
@@ -146,9 +149,27 @@ const Help = () => {
           </div>
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
-              { icon: MessageCircle, title: "Chat Support", description: "Get instant help with your questions", buttonText: "Start Chat" },
-              { icon: Mail, title: "Email Support", description: "Send detailed questions via email", buttonText: "Send Email" },
-              { icon: Phone, title: "Phone Support", description: "Speak directly with our team", buttonText: "Call Now" }
+              { 
+                icon: MessageCircle, 
+                title: "Chat Support", 
+                description: "Get instant, AI-powered answers to your business questions. Best for quick advice.", 
+                buttonText: "Start Chat", 
+                link: "/chat" 
+              },
+              { 
+                icon: Mail, 
+                title: "Email Support", 
+                description: "Send us detailed inquiries. We aim to respond within 24 hours.", 
+                buttonText: "Send Email", 
+                link: "mailto:support@kudiguard.com" 
+              },
+              { 
+                icon: Phone, 
+                title: "Phone Support", 
+                description: "Speak directly with our support team during business hours.", 
+                buttonText: "Call Now", 
+                link: "tel:+234800KUDIGUARD" 
+              }
             ].map((item, index) => {
               const { ref, isVisible } = useAnimateOnScroll({ delay: index * 100 });
               return (
@@ -164,7 +185,9 @@ const Help = () => {
                       <item.icon className="h-8 w-8 text-primary mx-auto mb-3" />
                       <h3 className="font-semibold mb-2 text-xl text-primary">{item.title}</h3>
                       <p className="text-sm text-muted-foreground mb-4 flex-grow">{item.description}</p>
-                      <Button variant="outline" size="sm" className="mt-auto">{item.buttonText}</Button>
+                      <Link to={item.link} className="mt-auto">
+                        <Button variant="outline" size="sm">{item.buttonText}</Button>
+                      </Link>
                     </CardContent>
                   </Card>
                 </div>
@@ -200,6 +223,13 @@ const Help = () => {
           </div>
           <Card className="shadow-card mb-8 max-w-5xl mx-auto">
             <CardHeader>
+              <Input
+                type="text"
+                placeholder="Search FAQs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="mb-4 h-12"
+              />
               <div className="flex flex-wrap gap-2">
                 {categories.map((category) => (
                   <Button
@@ -216,40 +246,46 @@ const Help = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {filteredFAQs.map((faq, index) => {
-                  const { ref, isVisible } = useAnimateOnScroll({ delay: index * 50 });
-                  return (
-                    <div 
-                      key={faq.id} 
-                      ref={ref}
-                      className={`
-                        ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}
-                      `}
-                    >
-                      <Collapsible
-                        open={openFAQ === faq.id}
-                        onOpenChange={() => setOpenFAQ(openFAQ === faq.id ? null : faq.id)}
+                {filteredFAQs.length > 0 ? (
+                  filteredFAQs.map((faq, index) => {
+                    const { ref, isVisible } = useAnimateOnScroll({ delay: index * 50 });
+                    return (
+                      <div 
+                        key={faq.id} 
+                        ref={ref}
+                        className={`
+                          ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}
+                        `}
                       >
-                        <CollapsibleTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            className="w-full text-left justify-between p-4 h-auto font-medium hover:bg-accent"
-                          >
-                            <span>{faq.question}</span>
-                            <ChevronDown className={`h-4 w-4 transition-transform ${
-                              openFAQ === faq.id ? 'rotate-180' : ''
-                            }`} />
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="px-4 pb-4">
-                          <div className="bg-accent rounded p-4">
-                            <p className="text-muted-foreground">{faq.answer}</p>
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    </div>
-                  );
-                })}
+                        <Collapsible
+                          open={openFAQ === faq.id}
+                          onOpenChange={() => setOpenFAQ(openFAQ === faq.id ? null : faq.id)}
+                        >
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className="w-full text-left justify-between p-4 h-auto font-medium hover:bg-accent"
+                            >
+                              <span>{faq.question}</span>
+                              <ChevronDown className={`h-4 w-4 transition-transform ${
+                                openFAQ === faq.id ? 'rotate-180' : ''
+                              }`} />
+                            </Button>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent className="px-4 pb-4">
+                            <div className="bg-accent rounded p-4">
+                              <p className="text-muted-foreground">{faq.answer}</p>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center text-muted-foreground py-8">
+                    No FAQs match your search or filter criteria.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -1,18 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertCircle, Clock, Eye, MessageCircle, DollarSign, CalendarDays } from 'lucide-react'; // Import new icons
+import { CheckCircle, XCircle, AlertCircle, Clock, Eye, MessageCircle, DollarSign, CalendarDays, Info } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import DecisionDetailsDialog from '@/components/DecisionDetailsDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Link } from 'react-router-dom';
+import { Label } from '@/components/ui/label'; // Import Label component
 
 const DecisionHistoryPage = () => {
   const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState<any | null>(null);
+  const [filterType, setFilterType] = useState('all'); // 'all', 'APPROVE', 'WAIT', 'REJECT'
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest'
   const isMobile = useIsMobile();
 
   const userId = session?.user?.id;
@@ -23,14 +28,39 @@ const DecisionHistoryPage = () => {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('decisions')
-        .select('id, question, recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary, estimated_inventory_cost, inventory_turnover_days, supplier_credit_terms_days, average_receivables_turnover_days, outstanding_supplier_debts, supplier_discount_percentage, storage_cost_percentage_of_order, proposed_marketing_budget, is_localized_promotion, historic_foot_traffic_increase_observed, sales_increase_last_campaign_1, sales_increase_last_campaign_2, created_at') // Removed equipment-related fields
+        .select('id, question, recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary, estimated_inventory_cost, inventory_turnover_days, supplier_credit_terms_days, average_receivables_turnover_days, outstanding_supplier_debts, supplier_discount_percentage, storage_cost_percentage_of_order, proposed_marketing_budget, is_localized_promotion, historic_foot_traffic_increase_observed, sales_increase_last_campaign_1, sales_increase_last_campaign_2, created_at')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }); // Default to newest first from DB
       if (error) throw error;
       return data;
     },
     enabled: !!userId,
   });
+
+  const filteredAndSortedDecisions = useMemo(() => {
+    let currentDecisions = decisions || [];
+
+    // Apply filter
+    if (filterType !== 'all') {
+      currentDecisions = currentDecisions.filter(
+        (decision) => decision.recommendation === filterType
+      );
+    }
+
+    // Apply sort
+    if (sortOrder === 'oldest') {
+      currentDecisions = [...currentDecisions].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    } else {
+      // 'newest' is default from query, but re-sort if filter changed
+      currentDecisions = [...currentDecisions].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+
+    return currentDecisions;
+  }, [decisions, filterType, sortOrder]);
 
   if (sessionLoading || decisionsLoading) {
     return (
@@ -75,9 +105,39 @@ const DecisionHistoryPage = () => {
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="text-xl">Your Business Decisions</CardTitle>
+            {decisions && decisions.length > 0 && (
+              <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                <div className="flex-1">
+                  <Label htmlFor="filter-type" className="sr-only">Filter by Recommendation</Label>
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger id="filter-type" className="w-full">
+                      <SelectValue placeholder="Filter by Recommendation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Recommendations</SelectItem>
+                      <SelectItem value="APPROVE">Approve</SelectItem>
+                      <SelectItem value="WAIT">Wait</SelectItem>
+                      <SelectItem value="REJECT">Reject</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1">
+                  <Label htmlFor="sort-order" className="sr-only">Sort by Date</Label>
+                  <Select value={sortOrder} onValueChange={setSortOrder}>
+                    <SelectTrigger id="sort-order" className="w-full">
+                      <SelectValue placeholder="Sort by Date" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">Date (Newest First)</SelectItem>
+                      <SelectItem value="oldest">Date (Oldest First)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
-            {decisions && decisions.length > 0 ? (
+            {filteredAndSortedDecisions && filteredAndSortedDecisions.length > 0 ? (
               <>
                 {/* Desktop Table View */}
                 <div className="hidden md:block overflow-x-auto">
@@ -91,7 +151,7 @@ const DecisionHistoryPage = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {decisions.map((decision) => (
+                      {filteredAndSortedDecisions.map((decision) => (
                         <TableRow key={decision.id}>
                           <TableCell className="font-medium">{new Date(decision.created_at).toLocaleDateString()}</TableCell>
                           <TableCell className="max-w-[200px] truncate">{decision.question}</TableCell>
@@ -114,7 +174,7 @@ const DecisionHistoryPage = () => {
 
                 {/* Mobile Card View */}
                 <div className="md:hidden space-y-4">
-                  {decisions.map((decision) => (
+                  {filteredAndSortedDecisions.map((decision) => (
                     <Card key={decision.id} className="shadow-sm border">
                       <CardContent className="p-4 space-y-2">
                         <div className="flex items-center justify-between">
@@ -143,7 +203,15 @@ const DecisionHistoryPage = () => {
               </>
             ) : (
               <div className="text-center text-muted-foreground py-8">
-                No decisions recorded yet. Start a chat to get your first recommendation!
+                <Info className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+                <p className="mb-4 text-center">
+                  No decisions recorded yet. Start a chat to get your first recommendation!
+                </p>
+                <Link to="/chat">
+                  <Button className="bg-gradient-primary hover:shadow-success">
+                    Start a Chat
+                  </Button>
+                </Link>
               </div>
             )}
           </CardContent>
