@@ -6,7 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import FinancialHealthScoreCard from '@/components/FinancialHealthScoreCard';
 import { useQuery } from '@tanstack/react-query';
-import DecisionDetailsDialog from '@/components/DecisionDetailsDialog'; // Import DecisionDetailsDialog
+import DecisionDetailsDialog from '@/components/DecisionDetailsDialog';
+import FinancialTrendChart from '@/components/FinancialTrendChart'; // Import the new chart component
+import { Link } from 'react-router-dom'; // Import Link for navigation
 
 const InsightsPage = () => {
   const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
@@ -15,23 +17,33 @@ const InsightsPage = () => {
 
   const userId = session?.user?.id;
 
-  // Fetch latest financial entry
-  const { data: financialData, isLoading: financialLoading, error: financialError } = useQuery({
+  // Fetch latest financial entries (up to 2 for trend comparison)
+  const { data: financialEntries, isLoading: financialLoading, error: financialError } = useQuery({
     queryKey: ['latestFinancialEntry', userId],
     queryFn: async () => {
-      if (!userId) return null;
+      if (!userId) return [];
       const { data, error } = await supabase
         .from('financial_entries')
-        .select('monthly_revenue, monthly_expenses, current_savings')
+        .select('monthly_revenue, monthly_expenses, current_savings, created_at') // Include created_at for charting
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 means no rows found
+        .limit(6); // Fetch up to 6 entries for better trend visualization
+      if (error) throw error;
       return data;
     },
     enabled: !!userId,
   });
+
+  const latestFinancialData = financialEntries?.[0];
+  const previousFinancialData = financialEntries?.[1];
+
+  // Helper function to determine trend
+  const getTrend = (current: number, previous: number | undefined, isExpense: boolean = false) => {
+    if (previous === undefined || previous === null) return 'none';
+    if (current > previous) return isExpense ? 'down' : 'up'; // Expenses 'up' is bad (down arrow)
+    if (current < previous) return isExpense ? 'up' : 'down'; // Expenses 'down' is good (up arrow)
+    return 'same';
+  };
 
   // Fetch recent decisions
   const { data: decisionsData, isLoading: decisionsLoading, error: decisionsError } = useQuery({
@@ -68,17 +80,28 @@ const InsightsPage = () => {
 
   const firstName = userDisplayName ? userDisplayName.split(' ')[0] : 'User';
 
-  const totalRevenue = financialData?.monthly_revenue || 0;
-  const totalExpenses = financialData?.monthly_expenses || 0;
-  const currentSavings = financialData?.current_savings || 0;
+  const totalRevenue = latestFinancialData?.monthly_revenue || 0;
+  const totalExpenses = latestFinancialData?.monthly_expenses || 0;
+  const currentSavings = latestFinancialData?.current_savings || 0;
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
+  // Calculate trends for each metric
+  const revenueTrend = getTrend(totalRevenue, previousFinancialData?.monthly_revenue);
+  const expensesTrend = getTrend(totalExpenses, previousFinancialData?.monthly_expenses, true); // isExpense = true
+  const netProfitTrend = getTrend(netProfit, (previousFinancialData?.monthly_revenue || 0) - (previousFinancialData?.monthly_expenses || 0));
+
+  const renderTrendIcon = (trend: 'up' | 'down' | 'same' | 'none') => {
+    if (trend === 'up') return <TrendingUp className="h-4 w-4 text-success ml-1" />;
+    if (trend === 'down') return <TrendingDown className="h-4 w-4 text-destructive ml-1" />;
+    return null; // No icon for 'same' or 'none'
+  };
 
   // Improved financial health score logic
   let healthScore: 'stable' | 'caution' | 'risky' = 'caution';
   let healthMessage = "No recent financial data. Please add your monthly revenue, expenses, and savings to get a personalized health score.";
 
-  if (financialData) {
+  if (latestFinancialData) {
     if (netProfit <= 0 || currentSavings < (0.5 * totalExpenses)) {
       healthScore = 'risky';
       healthMessage = "Your business is facing significant financial challenges. Focus on immediate revenue generation and aggressive cost reduction to improve stability.";
@@ -125,7 +148,10 @@ const InsightsPage = () => {
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                {renderTrendIcon(revenueTrend)}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold currency">{totalRevenue.toLocaleString()}</div>
@@ -135,7 +161,10 @@ const InsightsPage = () => {
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
-              <TrendingDown className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center">
+                <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                {renderTrendIcon(expensesTrend)}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold currency">{totalExpenses.toLocaleString()}</div>
@@ -145,7 +174,10 @@ const InsightsPage = () => {
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                {renderTrendIcon(netProfitTrend)}
+              </div>
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold currency ${netProfit > 0 ? 'text-success' : netProfit < 0 ? 'text-destructive' : 'text-foreground'}`}>
@@ -167,6 +199,13 @@ const InsightsPage = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Financial Trends Chart */}
+        {financialEntries && financialEntries.length > 1 && (
+          <div className="mb-6">
+            <FinancialTrendChart financialEntries={financialEntries} />
+          </div>
+        )}
 
         <Card className="shadow-card mb-6">
           <CardHeader>
@@ -193,13 +232,25 @@ const InsightsPage = () => {
                   </div>
                 ))
               ) : (
-                <p className="text-muted-foreground">No recent recommendations. Ask KudiGuard a question!</p>
+                <div className="text-center py-8">
+                  <Info className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">
+                    No recent recommendations. Start a chat to get personalized advice for your business!
+                  </p>
+                  <Link to="/chat">
+                    <Button className="bg-gradient-primary hover:shadow-success">
+                      Ask KudiGuard a Question
+                    </Button>
+                  </Link>
+                </div>
               )}
             </div>
             {decisionsData && decisionsData.length > 0 && (
-              <Button variant="link" className="mt-4 p-0" onClick={() => window.location.href = '/history'}>
-                View all decisions
-              </Button>
+              <Link to="/history">
+                <Button className="mt-4 bg-gradient-primary hover:shadow-success">
+                  View All Decisions
+                </Button>
+              </Link>
             )}
           </CardContent>
         </Card>
@@ -209,9 +260,15 @@ const InsightsPage = () => {
             <CardTitle className="text-xl">Upcoming Financial Events</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center text-muted-foreground">
-              <CalendarDays className="h-5 w-5 mr-2" />
-              <p>No upcoming events. Add data to get personalized reminders!</p>
+            <div className="flex flex-col items-center text-muted-foreground py-4">
+              <CalendarDays className="h-10 w-10 mb-4" />
+              <p className="mb-4 text-center">
+                No upcoming events or reminders set.
+                KudiGuard can help you track important financial dates.
+              </p>
+              <Button variant="outline" className="hover:bg-primary/10">
+                Set Up Reminders
+              </Button>
             </div>
           </CardContent>
         </Card>
