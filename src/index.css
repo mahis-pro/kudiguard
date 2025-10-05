@@ -10,7 +10,7 @@ All colors MUST be HSL.
   :root {
     /* --- Core Backgrounds & Text --- */
     --background: 0 0% 100%; /* Pure White */
-    --foreground: 240 69% 49%; /* Deep Charcoal */
+    --foreground: 274 54% 20%; /* Dark Purple for text */
 
     /* --- Primary Brand Colors (Action & Emphasis) --- */
     --primary: 274 54% 39%; /* Primary Purple */
