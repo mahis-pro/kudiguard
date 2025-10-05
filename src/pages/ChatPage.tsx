@@ -493,7 +493,7 @@ const ChatPage = () => {
                   handleSendMessage();
                 }
               }}
-              className="flex-1 mr-2 h-12 min-h-[48px] max-h-[150px] resize-y" // Added resize-y for dynamic height
+              className="flex-1 mr-2 h-12 min-h-[48px] max-h-[150px] resize-none" // Changed resize-y to resize-none
               disabled={isAiTyping}
             />
           )}
