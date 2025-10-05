@@ -1,4 +1,4 @@
-/// <reference path="../../src/types/supabase-edge-functions.d.ts" />
+/// <reference path="../../../src/types/supabase-edge-functions.d.ts" />
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { v4 as uuidv4 } from "https://esm.sh/uuid@9.0.1";
@@ -275,7 +275,7 @@ if (!GEMINI_API_KEY) {
   );
 }
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Using gemini-pro
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Changed model to gemini-1.5-flash
 
 // Main Edge Function Logic
 serve(async (req: Request) => {
@@ -429,7 +429,6 @@ serve(async (req: Request) => {
 
   } catch (error) {
     console.error(`[${requestId}] RAW ERROR CAUGHT IN MAIN HANDLER:`, error);
-    // Note: supabaseClient is not used in handleError for intent-parser, so it's omitted.
     return handleError(error, requestId, user ? user.id : null, req.body);
   }
 });

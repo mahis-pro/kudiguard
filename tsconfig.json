@@ -20,15 +20,10 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Path Aliases */
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "typeRoots": ["./node_modules/@types", "./src/types"],
-    "types": ["deno"],
-    "allowArbitraryExtensions": true // Enable this for better URL import resolution
+    }
   },
-  "include": ["src", "src/types/supabase-edge-functions.d.ts", "supabase/functions"],
+  "include": ["src", "supabase/functions"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
