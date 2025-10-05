@@ -1577,7 +1577,7 @@ serve(async (req) => {
     }
     const isFmcgVendor = profileData.is_fmcg_vendor === true; // Ensure it's a boolean
     const businessType = profileData.business_type || 'Other'; // Default if not set
-    console.log(`[${requestId}] Fetched profile data - isFmcgVendor: ${isFmcgVendor}, businessType: ${businessType}`);
+    console.log(`[${requestId}] Fetched profile data - isFmcgVendor: ${isFmcgVendor}, business_type: ${businessType}`);
 
     // 4. Call appropriate Decision Logic
     let decisionResult: DecisionFunctionReturn;
