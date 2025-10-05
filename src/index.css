@@ -20,17 +20,17 @@ All colors MUST be HSL.
 
     /* --- Secondary & Muted Colors (Structure & Support) --- */
     --secondary: 0 0% 92%; /* Light Gray */
-    --secondary-foreground: 240 69% 49%; /* Deep Charcoal */
+    --secondary-foreground: 274 54% 20%; /* Dark Purple */
     --muted: 0 0% 92%; /* Light Gray */
-    --muted-foreground: 0 0% 50%; /* Medium Gray */
+    --muted-foreground: 274 30% 35%; /* Muted Dark Purple for placeholders */
     --accent: 0 0% 92%; /* Light Gray */
-    --accent-foreground: 240 69% 49%; /* Deep Charcoal */
+    --accent-foreground: 274 54% 20%; /* Dark Purple */
 
     /* --- Card & Popover (Content Containers) --- */
     --card: 0 0% 100% / 0.9; /* Pure White with 90% opacity for subtle gradient blend */
-    --card-foreground: 240 69% 49%; /* Deep Charcoal */
+    --card-foreground: 274 54% 20%; /* Dark Purple */
     --popover: 0 0% 100%; /* Pure White */
-    --popover-foreground: 240 69% 49%; /* Deep Charcoal */
+    --popover-foreground: 274 54% 20%; /* Dark Purple */
 
     /* --- Borders, Inputs, Rings (Interactive Elements) --- */
     --border: 0 0% 80%; /* Slightly darker Light Gray */
