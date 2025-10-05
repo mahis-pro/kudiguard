@@ -56,7 +56,7 @@ const AnalyticsPage = () => {
             <FinancialTrendChart financialEntries={financialEntries} />
           </div>
         ) : (
-          <Card className="shadow-card mb-6">
+          <Card className="shadow-card mb-6 bg-gradient-subtle"> {/* Applied gradient here */}
             <CardContent className="p-6 text-center">
               <Info className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">
@@ -71,7 +71,7 @@ const AnalyticsPage = () => {
           </Card>
         )}
 
-        <Card className="shadow-card mt-6">
+        <Card className="shadow-card mt-6 bg-gradient-subtle"> {/* Applied gradient here */}
           <CardHeader>
             <CardTitle className="text-xl flex items-center">
               <LineChart className="h-5 w-5 mr-2 text-primary" />

@@ -284,7 +284,7 @@ const Profile = () => {
             <p className="text-muted-foreground">Manage your account information and preferences</p>
           </div>
 
-          <Card className="shadow-card mb-6">
+          <Card className="shadow-card mb-6 bg-gradient-subtle"> {/* Applied gradient here */}
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-xl">Personal & Business Information</CardTitle>
               <Button
@@ -425,7 +425,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          <Card className="shadow-card mb-6">
+          <Card className="shadow-card mb-6 bg-gradient-subtle"> {/* Applied gradient here */}
             <CardHeader>
               <CardTitle className="text-xl">Business Overview</CardTitle>
             </CardHeader>
@@ -462,7 +462,7 @@ const Profile = () => {
           </Card>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="shadow-card">
+            <Card className="shadow-card bg-gradient-subtle"> {/* Applied gradient here */}
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Bell className="mr-2 h-5 w-5 text-primary" />
@@ -506,7 +506,7 @@ const Profile = () => {
               </CardContent>
             </Card>
 
-            <Card className="shadow-card">
+            <Card className="shadow-card bg-gradient-subtle"> {/* Applied gradient here */}
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Shield className="mr-2 h-5 w-5 text-primary" />
@@ -551,7 +551,7 @@ const Profile = () => {
             </Card>
           </div>
 
-          <Card className="shadow-card mt-6 border-destructive/20">
+          <Card className="shadow-card mt-6 border-destructive/20 bg-gradient-subtle"> {/* Applied gradient here */}
             <CardHeader>
               <CardTitle className="text-lg text-destructive">Danger Zone</CardTitle>
             </CardHeader>

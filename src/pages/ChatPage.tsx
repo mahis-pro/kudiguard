@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch'; // Import Switch component
 import kudiGuardIcon from '/kudiguard-icon.jpg'; // Import the new icon
 import { Textarea } from '@/components/ui/textarea'; // Import Textarea for multi-line input
+import { Card } from '@/components/ui/card'; // Import Card component
 
 interface ChatMessage {
   id: string;
@@ -418,11 +419,11 @@ const ChatPage = () => {
                   <img src={kudiGuardIcon} alt="KudiGuard AI" className="h-7 w-7 rounded-full" />
                 </div>
               )}
-              <div
+              <Card
                 className={`max-w-[80%] p-3 rounded-lg shadow-sm ${
                   msg.sender === 'user'
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-card text-foreground border'
+                    : 'bg-gradient-subtle text-foreground border' // Applied gradient here
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
@@ -444,7 +445,7 @@ const ChatPage = () => {
                 <p className={`text-xs mt-1 text-right ${msg.sender === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
-              </div>
+              </Card>
             </div>
           ))}
           {isAiTyping && (
@@ -452,9 +453,9 @@ const ChatPage = () => {
               <div className="flex-shrink-0 mr-2 mt-1">
                 <img src={kudiGuardIcon} alt="KudiGuard AI" className="h-7 w-7 rounded-full" />
               </div>
-              <div className="max-w-[70%] p-3 rounded-lg bg-card text-foreground border">
+              <Card className="max-w-[70%] p-3 rounded-lg bg-gradient-subtle text-foreground border"> {/* Applied gradient here */}
                 <TypingIndicator />
-              </div>
+              </Card>
             </div>
           )}
           <div ref={chatEndRef} />

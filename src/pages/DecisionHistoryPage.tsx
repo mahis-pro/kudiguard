@@ -102,7 +102,7 @@ const DecisionHistoryPage = () => {
         <h1 className="text-3xl font-bold text-primary mb-6">Decision History</h1>
         <p className="text-muted-foreground mb-8">Review past financial decisions and their outcomes.</p>
 
-        <Card className="shadow-card">
+        <Card className="shadow-card bg-gradient-subtle"> {/* Applied gradient here */}
           <CardHeader>
             <CardTitle className="text-xl">Your Business Decisions</CardTitle>
             {decisions && decisions.length > 0 && (
@@ -175,7 +175,7 @@ const DecisionHistoryPage = () => {
                 {/* Mobile Card View */}
                 <div className="md:hidden space-y-4">
                   {filteredAndSortedDecisions.map((decision) => (
-                    <Card key={decision.id} className="shadow-sm border">
+                    <Card key={decision.id} className="shadow-sm border bg-gradient-subtle"> {/* Applied gradient here */}
                       <CardContent className="p-4 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground flex items-center">
