@@ -348,20 +348,14 @@ const ChatPage = () => {
   };
 
   const handleQuickReply = (reply: string) => {
-    // Add user's quick reply as a message
-    const userQuickReplyMessage: ChatMessage = {
-        id: String(Date.now()),
-        sender: 'user',
-        text: reply,
-        timestamp: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, userQuickReplyMessage]);
-
     const lowerCaseReply = reply.toLowerCase();
 
+    // For special actions, explicitly add the user message and then perform the action
     if (lowerCaseReply === 'add new data') {
+      setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
       setIsAddDataModalOpen(true);
     } else if (lowerCaseReply === 'cancel' && pendingDataRequest) {
+      setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
       setPendingDataRequest(null);
       setCurrentIntent(null);
       setCurrentQuestion(null);
@@ -375,6 +369,7 @@ const ChatPage = () => {
       };
       setMessages((prev) => [...prev, cancelMessage]);
     } else if (lowerCaseReply === 'try again') {
+        setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
         if (lastUserQueryIntent && lastUserQueryText) {
             setPendingDataRequest(null); // Clear any pending request before retrying
             setCurrentIntent(lastUserQueryIntent);
@@ -392,8 +387,9 @@ const ChatPage = () => {
             setMessages((prev) => [...prev, noRetryMessage]);
         }
     } else if (lowerCaseReply === 'what else can you do?') {
-        // Reset chat to initial state
-        setMessages([initialGreeting(userDisplayName || 'User')]); // Use initialGreeting
+        // This case is fine as the second setMessages overwrites the first, effectively resetting the chat.
+        setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
+        setMessages([initialGreeting(userDisplayName || 'User')]);
         setPendingDataRequest(null);
         setCurrentIntent(null);
         setCurrentQuestion(null);
@@ -402,8 +398,9 @@ const ChatPage = () => {
         setLastUserQueryIntent(null);
         setLastUserQueryPayload(null);
     } else {
-        // For other quick replies, treat as a regular message input
-        setMessageInput(reply);
+        // For other quick replies, set the input field and then call handleSendMessage.
+        // handleSendMessage will be responsible for adding the user's message to the state.
+        setMessageInput(reply); 
         setTimeout(() => handleSendMessage(reply), 0); 
     }
   };
