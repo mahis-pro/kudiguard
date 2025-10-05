@@ -26,6 +26,10 @@ declare module "https://deno.land/x/zod@v3.23.0/mod.ts" {
   export * from 'zod';
 }
 
+declare module "https://esm.sh/@google/generative-ai@0.15.0" {
+  export { GoogleGenerativeAI } from '@google/generative-ai';
+}
+
 // Type definitions for KudiGuard decision engine
 export type FinancialData = {
   monthly_revenue: number;

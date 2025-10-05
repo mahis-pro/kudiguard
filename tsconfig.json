@@ -25,6 +25,7 @@
     "paths": {
       "@/*": ["./src/*"]
     }
+    // Removed "types": ["./src/types/supabase-edge-functions"]
   },
   "include": ["src", "src/types/supabase-edge-functions.d.ts", "supabase/functions"],
   "references": [{ "path": "./tsconfig.node.json" }]

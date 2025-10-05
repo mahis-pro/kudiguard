@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { v4 as uuidv4 } from "https://esm.sh/uuid@9.0.1";
 import { z } from "https://deno.land/x/zod@v3.23.0/mod.ts";
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.15.0"; // Import Gemini
 
 // --- constants.ts content (re-declared for self-containment) ---
 export const API_VERSION = "v1.0";
@@ -247,6 +248,32 @@ export const IntentParserInputSchema = z.object({
   user_query: z.string().min(1, "User query cannot be empty."),
 });
 
+// Define the expected output schema from Gemini
+const GeminiOutputSchema = z.object({
+  intent: z.enum([
+    'hiring', 
+    'inventory', 
+    'marketing',
+    'savings', 
+    'equipment',
+    'loan_management',
+    'business_expansion',
+    'unknown', // Allow 'unknown' intent
+  ]),
+  question: z.string(),
+  payload: z.record(z.string(), z.any()).optional(), // Flexible payload
+});
+
+// Initialize Gemini
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+if (!GEMINI_API_KEY) {
+  console.error("GEMINI_API_KEY is not set in environment variables.");
+  // In a real scenario, you might want to throw an error here to prevent function deployment
+  // or handle it gracefully during runtime. For now, we'll let it proceed but log.
+}
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "dummy-key"); // Use dummy key if not set
+const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Using gemini-pro
+
 // Main Edge Function Logic
 serve(async (req) => {
   const requestId = generateRequestId();
@@ -278,36 +305,71 @@ serve(async (req) => {
     const { user_query } = validationResult.data;
     console.log(`[${requestId}] Validated user query: "${user_query}"`);
 
-    // Placeholder for Gemini API integration (Phase 2)
-    // For now, we'll just echo the input or return a placeholder response.
-    const mockParsedIntent = {
-      intent: "unknown", // Default to unknown
-      question: user_query,
-      payload: {},
-    };
+    // 3. Gemini API Call for Intent Parsing
+    const prompt = `
+      You are an AI assistant for KudiGuard, a financial advisor for Nigerian small businesses.
+      Your task is to analyze a user's query and extract their primary financial intent and any relevant numerical or boolean data.
+      
+      Possible intents are: 'hiring', 'inventory', 'marketing', 'savings', 'equipment', 'loan_management', 'business_expansion', or 'unknown'.
+      
+      Extract the following fields into a JSON object. If a field is not present or cannot be confidently extracted, omit it from the payload.
+      
+      Output format MUST be a JSON object with 'intent', 'question', and an optional 'payload' field.
+      
+      Example Intents and Payload fields:
+      - 'hiring': estimated_salary (number)
+      - 'inventory': estimated_inventory_cost (number), inventory_turnover_days (number), outstanding_supplier_debts (number), supplier_credit_terms_days (number), average_receivables_turnover_days (number), supplier_discount_percentage (number), storage_cost_percentage_of_order (number)
+      - 'marketing': proposed_marketing_budget (number), is_localized_promotion (boolean), historic_foot_traffic_increase_observed (boolean), sales_increase_last_campaign_1 (number), sales_increase_last_campaign_2 (number)
+      - 'savings': is_volatile_industry (boolean), is_growth_stage (boolean), is_seasonal_windfall_month (boolean), debt_apr (number), outstanding_supplier_debts (number), consecutive_negative_cash_flow_months (number)
+      - 'equipment': equipment_cost (number), estimated_roi_percentage (number), is_essential_replacement (boolean), current_equipment_utilization_percentage (number)
+      - 'loan_management': total_business_liabilities (number), total_business_assets (number), total_monthly_debt_repayments (number), debt_apr (number), loan_purpose_is_revenue_generating (boolean), consecutive_negative_cash_flow_months (number)
+      - 'business_expansion': profit_growth_consistent_6_months (boolean), market_research_validates_demand (boolean), capital_available_percentage_of_cost (number), expansion_cost (number), profit_margin_trend (string: 'consistent_growth', 'positive_fluctuating', 'declining_unstable'), revenue_growth_trend (string: 'consistent_growth', 'positive_fluctuating', 'declining_unstable')
+      
+      If the intent is 'unknown', the payload should be empty.
+      
+      User Query: "${user_query}"
+      
+      JSON Output:
+    `;
 
-    // If we can detect a simple intent from keywords for testing purposes
-    const lowerCaseQuery = user_query.toLowerCase();
-    if (lowerCaseQuery.includes('hire') || lowerCaseQuery.includes('staff')) {
-      mockParsedIntent.intent = 'hiring';
-    } else if (lowerCaseQuery.includes('inventory') || lowerCaseQuery.includes('stock')) {
-      mockParsedIntent.intent = 'inventory';
-    } else if (lowerCaseQuery.includes('marketing') || lowerCaseQuery.includes('promote')) {
-      mockParsedIntent.intent = 'marketing';
-    } else if (lowerCaseQuery.includes('savings') || lowerCaseQuery.includes('save')) {
-      mockParsedIntent.intent = 'savings';
-    } else if (lowerCaseQuery.includes('equipment') || lowerCaseQuery.includes('machine')) {
-      mockParsedIntent.intent = 'equipment';
-    } else if (lowerCaseQuery.includes('loan') || lowerCaseQuery.includes('debt')) {
-      mockParsedIntent.intent = 'loan_management';
-    } else if (lowerCaseQuery.includes('expand') || lowerCaseQuery.includes('growth')) {
-      mockParsedIntent.intent = 'business_expansion';
+    let geminiResponseText: string;
+    try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      geminiResponseText = response.text();
+      console.log(`[${requestId}] Raw Gemini response:`, geminiResponseText);
+    } catch (geminiError) {
+      console.error(`[${requestId}] Gemini API error:`, geminiError);
+      throw new CustomError(
+        ERROR_CODES.GEMINI_API_ERROR,
+        "Failed to get a response from the AI. Please try again.",
+        SEVERITY.MEDIUM,
+        502, // Bad Gateway or Service Unavailable
+        geminiError
+      );
     }
 
+    let parsedIntent: z.infer<typeof GeminiOutputSchema>;
+    try {
+      // Attempt to clean up the response if it contains markdown code blocks
+      const cleanedResponse = geminiResponseText.replace(/```json\n|```/g, '').trim();
+      parsedIntent = GeminiOutputSchema.parse(JSON.parse(cleanedResponse));
+    } catch (parseError) {
+      console.error(`[${requestId}] Failed to parse Gemini response as JSON or validate schema:`, parseError);
+      throw new CustomError(
+        ERROR_CODES.INVALID_INPUT,
+        "AI returned an unparseable response. Please try rephrasing your question.",
+        SEVERITY.MEDIUM,
+        500,
+        parseError
+      );
+    }
+
+    console.log(`[${requestId}] Parsed Intent from Gemini:`, parsedIntent);
 
     const responsePayload = {
       success: true,
-      data: mockParsedIntent,
+      data: parsedIntent,
       error: null,
       meta: {
         requestId,
@@ -315,7 +377,7 @@ serve(async (req) => {
         version: API_VERSION,
       },
     };
-    console.log(`[${requestId}] Returning mock parsed intent:`, mockParsedIntent);
+    console.log(`[${requestId}] Returning parsed intent response.`);
 
     return new Response(JSON.stringify(responsePayload), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
