@@ -8,7 +8,7 @@ import AddDataModal from '@/components/AddDataModal';
 import DecisionCard from '@/components/DecisionCard';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch'; // Import Switch component
-import kudiGuardLogo from '@/assets/kudiguard-logo.png'; // Import the logo
+import kudiGuardIcon from '/kudiguard-icon.jpg'; // Import the new icon
 import { Textarea } from '@/components/ui/textarea'; // Import Textarea for multi-line input
 
 interface ChatMessage {
@@ -415,7 +415,7 @@ const ChatPage = () => {
             >
               {msg.sender === 'ai' && (
                 <div className="flex-shrink-0 mr-2 mt-1">
-                  <img src={kudiGuardLogo} alt="KudiGuard AI" className="h-7 w-7 rounded-full" />
+                  <img src={kudiGuardIcon} alt="KudiGuard AI" className="h-7 w-7 rounded-full" />
                 </div>
               )}
               <div
@@ -450,7 +450,7 @@ const ChatPage = () => {
           {isAiTyping && (
             <div className="flex justify-start">
               <div className="flex-shrink-0 mr-2 mt-1">
-                <img src={kudiGuardLogo} alt="KudiGuard AI" className="h-7 w-7 rounded-full" />
+                <img src={kudiGuardIcon} alt="KudiGuard AI" className="h-7 w-7 rounded-full" />
               </div>
               <div className="max-w-[70%] p-3 rounded-lg bg-card text-foreground border">
                 <TypingIndicator />
