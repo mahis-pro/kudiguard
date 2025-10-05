@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat, Banknote, Landmark } from 'lucide-react'; // Added Banknote, Landmark
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat, Banknote, Landmark, Store, Search, TrendingDown } from 'lucide-react'; // Added Store, Search, TrendingDown
 
 interface DecisionCardProps {
   data: {
@@ -60,6 +60,13 @@ interface DecisionCardProps {
     total_business_assets?: number | null;
     total_monthly_debt_repayments?: number | null;
     loan_purpose_is_revenue_generating?: boolean | null;
+    // New fields for business_expansion
+    profit_growth_consistent_6_months?: boolean | null;
+    market_research_validates_demand?: boolean | null;
+    capital_available_percentage_of_cost?: number | null;
+    expansion_cost?: number | null;
+    profit_margin_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
+    revenue_growth_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
   };
 }
 
@@ -115,6 +122,13 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     total_business_assets,
     total_monthly_debt_repayments,
     loan_purpose_is_revenue_generating,
+    // Business Expansion fields
+    profit_growth_consistent_6_months,
+    market_research_validates_demand,
+    capital_available_percentage_of_cost,
+    expansion_cost,
+    profit_margin_trend,
+    revenue_growth_trend,
   } = data;
 
   const getRecommendationDetails = () => {
@@ -202,7 +216,13 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     (total_business_liabilities !== null && total_business_liabilities !== undefined) || // New debt fields
     (total_business_assets !== null && total_business_assets !== undefined) ||
     (total_monthly_debt_repayments !== null && total_monthly_debt_repayments !== undefined) ||
-    (loan_purpose_is_revenue_generating !== null && loan_purpose_is_revenue_generating !== undefined);
+    (loan_purpose_is_revenue_generating !== null && loan_purpose_is_revenue_generating !== undefined) ||
+    (profit_growth_consistent_6_months !== null && profit_growth_consistent_6_months !== undefined) || // New expansion fields
+    (market_research_validates_demand !== null && market_research_validates_demand !== undefined) ||
+    (capital_available_percentage_of_cost !== null && capital_available_percentage_of_cost !== undefined) ||
+    (expansion_cost !== null && expansion_cost !== undefined) ||
+    (profit_margin_trend !== null && profit_margin_trend !== undefined) ||
+    (revenue_growth_trend !== null && revenue_growth_trend !== undefined);
 
   const formatCurrency = (value: number | null | undefined) => 
     value !== null && value !== undefined ? `₦${value.toLocaleString()}` : 'N/A';
@@ -212,6 +232,15 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     value !== null && value !== undefined ? (value ? 'Yes' : 'No') : 'N/A';
   const formatFactor = (value: number | null | undefined) =>
     value !== null && value !== undefined ? `${value}x` : 'N/A';
+  const formatTrend = (value: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null | undefined) => {
+    if (value === null || value === undefined) return 'N/A';
+    switch (value) {
+      case 'consistent_growth': return 'Consistent Growth';
+      case 'positive_fluctuating': return 'Positive but Fluctuating';
+      case 'declining_unstable': return 'Declining or Unstable';
+      default: return 'N/A';
+    }
+  };
 
   const roi = (revenue_gain_last_campaign && marketing_spend_last_campaign && marketing_spend_last_campaign > 0) 
     ? (revenue_gain_last_campaign / marketing_spend_last_campaign) 
@@ -525,6 +554,43 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
                 <div className="flex items-center">
                   <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
                   <span className="text-muted-foreground">Loan Purpose Revenue-Generating: <span className="font-medium text-foreground">{formatBoolean(loan_purpose_is_revenue_generating)}</span></span>
+                </div>
+              )}
+              {/* Business Expansion Fields */}
+              {expansion_cost !== null && expansion_cost !== undefined && (
+                <div className="flex items-center">
+                  <Store className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Expansion Cost: <span className="font-medium text-foreground">{formatCurrency(expansion_cost)}</span></span>
+                </div>
+              )}
+              {capital_available_percentage_of_cost !== null && capital_available_percentage_of_cost !== undefined && (
+                <div className="flex items-center">
+                  <Wallet className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Capital Available: <span className="font-medium text-foreground">{formatPercentage(capital_available_percentage_of_cost)} of cost</span></span>
+                </div>
+              )}
+              {profit_growth_consistent_6_months !== null && profit_growth_consistent_6_months !== undefined && (
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Consistent Profit Growth (6M): <span className="font-medium text-foreground">{formatBoolean(profit_growth_consistent_6_months)}</span></span>
+                </div>
+              )}
+              {market_research_validates_demand !== null && market_research_validates_demand !== undefined && (
+                <div className="flex items-center">
+                  <Search className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Market Research Validates Demand: <span className="font-medium text-foreground">{formatBoolean(market_research_validates_demand)}</span></span>
+                </div>
+              )}
+              {profit_margin_trend !== null && profit_margin_trend !== undefined && (
+                <div className="flex items-center">
+                  {profit_margin_trend === 'consistent_growth' ? <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" /> : <TrendingDown className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />}
+                  <span className="text-muted-foreground">Profit Margin Trend: <span className="font-medium text-foreground">{formatTrend(profit_margin_trend)}</span></span>
+                </div>
+              )}
+              {revenue_growth_trend !== null && revenue_growth_trend !== undefined && (
+                <div className="flex items-center">
+                  {revenue_growth_trend === 'consistent_growth' ? <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" /> : <TrendingDown className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />}
+                  <span className="text-muted-foreground">Revenue Growth Trend: <span className="font-medium text-foreground">{formatTrend(revenue_growth_trend)}</span></span>
                 </div>
               )}
             </div>

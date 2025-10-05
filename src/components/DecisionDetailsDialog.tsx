@@ -63,6 +63,18 @@ interface DecisionDetailsDialogProps {
     estimated_roi_percentage?: number | null;
     is_essential_replacement?: boolean | null;
     current_equipment_utilization_percentage?: number | null;
+    // New fields for loan_management
+    total_business_liabilities?: number | null;
+    total_business_assets?: number | null;
+    total_monthly_debt_repayments?: number | null;
+    loan_purpose_is_revenue_generating?: boolean | null;
+    // New fields for business_expansion
+    profit_growth_consistent_6_months?: boolean | null;
+    market_research_validates_demand?: boolean | null;
+    capital_available_percentage_of_cost?: number | null;
+    expansion_cost?: number | null;
+    profit_margin_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
+    revenue_growth_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
     created_at: string;
   } | null;
 }

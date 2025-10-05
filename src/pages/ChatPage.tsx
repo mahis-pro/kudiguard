@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'; // Import Switch component
 import kudiGuardIcon from '/kudiguard-icon.jpg'; // Import the new icon
 import { Textarea } from '@/components/ui/textarea'; // Import Textarea for multi-line input
 import { Card } from '@/components/ui/card'; // Import Card component
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
 
 interface ChatMessage {
   id: string;
@@ -22,7 +23,8 @@ interface ChatMessage {
   dataNeeded?: {
     field: string;
     prompt: string;
-    type: 'number' | 'boolean'; // Added type field
+    type: 'number' | 'boolean' | 'text_enum'; // Added 'text_enum' type
+    options?: string[]; // Added options for 'text_enum'
     intent_context: { intent: string; decision_type: string; current_payload?: Record<string, any>; }; // Added current_payload
     canBeZeroOrNone?: boolean; // Added canBeZeroOrNone
   };
@@ -68,7 +70,7 @@ const ChatPage = () => {
     sender: 'ai', // Explicitly 'ai'
     text: `Hello ${name}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
     timestamp: new Date().toISOString(),
-    quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Add new data', 'What else can you do?'],
+    quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
   });
 
   useEffect(() => {
@@ -211,7 +213,7 @@ const ChatPage = () => {
             sender: 'ai',
             text: "You're most welcome! I'm here to help your business thrive. Is there anything else I can assist you with?",
             timestamp: new Date().toISOString(),
-            quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Add new data', 'What else can you do?'],
+            quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
         };
         setMessages((prev) => [...prev, userThankYou, aiReply]);
         setMessageInput('');
@@ -227,11 +229,11 @@ const ChatPage = () => {
     setMessages((prev) => [...prev, userMessage]);
 
     if (pendingDataRequest && currentIntent && currentQuestion) {
-      let parsedValue: number | boolean | undefined;
+      let parsedValue: number | boolean | string | undefined;
       
       if (pendingDataRequest.type === 'boolean') {
         parsedValue = lowerCaseInput === 'true' || lowerCaseInput === 'yes';
-      } else { // type is 'number'
+      } else if (pendingDataRequest.type === 'number') {
         const valueMatch = String(finalMessageInput).match(/(\d[\d,\.]*)/);
         if (valueMatch && valueMatch[1]) {
           parsedValue = parseFloat(valueMatch[1].replace(/,/g, ''));
@@ -239,13 +241,32 @@ const ChatPage = () => {
             parsedValue = undefined;
           }
         }
+      } else if (pendingDataRequest.type === 'text_enum') {
+        const selectedOption = pendingDataRequest.options?.find(option => 
+          option.toLowerCase().includes(lowerCaseInput)
+        );
+        if (selectedOption) {
+          parsedValue = selectedOption;
+        } else {
+          const retryMessage: ChatMessage = {
+            id: String(Date.now()),
+            sender: 'ai',
+            text: `I couldn't understand your choice. Please select one of the following options: ${pendingDataRequest.options?.join(', ')}.`,
+            timestamp: new Date().toISOString(),
+            quickReplies: ['Cancel'],
+          };
+          setMessages((prev) => [...prev, retryMessage]);
+          setIsAiTyping(false);
+          setMessageInput('');
+          return;
+        }
       }
 
       if (parsedValue === undefined) {
         const retryMessage: ChatMessage = {
           id: String(Date.now()),
           sender: 'ai',
-          text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000' or 'Yes/No').`,
+          text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000', 'Yes/No', or select from options).`,
           timestamp: new Date().toISOString(),
           quickReplies: ['Cancel'],
         };
@@ -298,6 +319,8 @@ const ChatPage = () => {
       intentDetected = 'equipment';
     } else if (lowerCaseInput.includes('loan') || lowerCaseInput.includes('debt') || lowerCaseInput.includes('borrow') || lowerCaseInput.includes('credit')) {
       intentDetected = 'loan_management';
+    } else if (lowerCaseInput.includes('expand') || lowerCaseInput.includes('expansion') || lowerCaseInput.includes('grow business') || lowerCaseInput.includes('new location') || lowerCaseInput.includes('new product line')) {
+      intentDetected = 'business_expansion';
     }
 
     if (intentDetected) {
@@ -315,7 +338,7 @@ const ChatPage = () => {
       const noIntentResponse: ChatMessage = {
         id: String(Date.now()),
         sender: 'ai',
-        text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, and loan decisions. Please ask me a question like 'Can I afford to hire a new staff member?', 'Should I restock my shop?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', or 'Should I take a loan?'.",
+        text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loan, and business expansion decisions. Please ask me a question like 'Can I afford to hire a new staff member?', 'Should I restock my shop?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', or 'Should I expand my business?'.",
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, noIntentResponse]);
@@ -348,7 +371,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
-        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Add new data', 'What else can you do?'],
+        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
       };
       setMessages((prev) => [...prev, cancelMessage]);
     } else if (lowerCaseReply === 'try again') {
@@ -364,7 +387,7 @@ const ChatPage = () => {
                 sender: 'ai',
                 text: "I don't have a previous query to retry. Please ask me a new question.",
                 timestamp: new Date().toISOString(),
-                quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Add new data', 'What else can you do?'],
+                quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
             };
             setMessages((prev) => [...prev, noRetryMessage]);
         }
@@ -406,7 +429,7 @@ const ChatPage = () => {
       }
       return placeholder;
     }
-    return "Ask about hiring, inventory, marketing, savings, equipment, or loans...";
+    return "Ask about hiring, inventory, marketing, savings, equipment, loans, or business expansion...";
   };
 
   return (
@@ -486,6 +509,22 @@ const ChatPage = () => {
                 </Button>
               </div>
             </div>
+          ) : pendingDataRequest?.type === 'text_enum' && pendingDataRequest.options ? (
+            <div className="flex items-center w-full">
+              <Select onValueChange={(value) => setMessageInput(value)} value={messageInput} disabled={isAiTyping}>
+                <SelectTrigger className="flex-1 mr-2 h-12">
+                  <SelectValue placeholder={getPlaceholderText()} />
+                </SelectTrigger>
+                <SelectContent>
+                  {pendingDataRequest.options.map(option => (
+                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={() => handleSendMessage()} className="bg-gradient-primary h-12 ml-2" disabled={isAiTyping || messageInput.trim() === ''}>
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
           ) : (
             <Textarea // Changed from Input to Textarea
               placeholder={getPlaceholderText()}
@@ -501,9 +540,11 @@ const ChatPage = () => {
               disabled={isAiTyping}
             />
           )}
-          <Button onClick={() => handleSendMessage()} className="bg-gradient-primary h-12 ml-2" disabled={isAiTyping || (pendingDataRequest?.type !== 'boolean' && messageInput.trim() === '')}>
-            <Send className="h-5 w-5" />
-          </Button>
+          {!(pendingDataRequest?.type === 'boolean' || (pendingDataRequest?.type === 'text_enum' && pendingDataRequest.options)) && (
+            <Button onClick={() => handleSendMessage()} className="bg-gradient-primary h-12 ml-2" disabled={isAiTyping || messageInput.trim() === ''}>
+              <Send className="h-5 w-5" />
+            </Button>
+          )}
         </div>
       </div>
       <AddDataModal isOpen={isAddDataModalOpen} onClose={() => setIsAddDataModalOpen(false)} />

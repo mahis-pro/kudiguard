@@ -309,7 +309,8 @@ export const DecisionEngineInputSchema = z.object({
     'marketing',
     'savings', 
     'equipment',
-    'loan_management', // Added new intent: loan_management
+    'loan_management',
+    'business_expansion', // Added new intent: business_expansion
   ]),
   question: z.string(),
   payload: z.object({
@@ -346,6 +347,13 @@ export const DecisionEngineInputSchema = z.object({
     total_business_assets: z.number().min(0).optional(),
     total_monthly_debt_repayments: z.number().min(0).optional(),
     loan_purpose_is_revenue_generating: z.boolean().optional(),
+    // New fields for business_expansion
+    profit_growth_consistent_6_months: z.boolean().optional(),
+    market_research_validates_demand: z.boolean().optional(),
+    capital_available_percentage_of_cost: z.number().min(0).max(100).optional(),
+    expansion_cost: z.number().min(0).optional(),
+    profit_margin_trend: z.enum(['consistent_growth', 'positive_fluctuating', 'declining_unstable']).optional(),
+    revenue_growth_trend: z.enum(['consistent_growth', 'positive_fluctuating', 'declining_unstable']).optional(),
   }).optional(),
 });
 
@@ -401,13 +409,21 @@ export type DecisionResult = {
   total_business_assets?: number | null;
   total_monthly_debt_repayments?: number | null;
   loan_purpose_is_revenue_generating?: boolean | null;
+  // New fields for business_expansion
+  profit_growth_consistent_6_months?: boolean | null;
+  market_research_validates_demand?: boolean | null;
+  capital_available_percentage_of_cost?: number | null;
+  expansion_cost?: number | null;
+  profit_margin_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
+  revenue_growth_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
 };
 
 // Define a type for the data needed response
 export type DataNeededResponse = {
   field: string;
   prompt: string;
-  type: 'number' | 'boolean'; // Added type field
+  type: 'number' | 'boolean' | 'text_enum'; // Added 'text_enum' type
+  options?: string[]; // Added options for 'text_enum'
   intent_context: { intent: string; decision_type: string; current_payload?: Record<string, any>; };
   canBeZeroOrNone?: boolean; // New field to indicate if '0' or 'none' is a valid input
 };
@@ -421,6 +437,7 @@ export type DecisionFunctionReturn = {
 // Helper to safely get a number, treating null/undefined as 0
 const getNumberOrDefault = (value: number | null | undefined): number => value ?? 0;
 const getBooleanOrDefault = (value: boolean | null | undefined): boolean => value ?? false;
+const getStringOrDefault = (value: string | null | undefined): string => value ?? '';
 
 
 // --- decisions/hiring.ts content ---
@@ -1771,6 +1788,255 @@ export function makeDebtLoanDecision(
   };
 }
 
+// --- decisions/business_expansion.ts content ---
+export function makeBusinessExpansionDecision(
+  financialData: FinancialData,
+  profileData: ProfileData,
+  currentPayload: Record<string, any>,
+  question: string,
+  requestId: string,
+): DecisionFunctionReturn {
+  console.log(`[${requestId}] makeBusinessExpansionDecision: Start. currentPayload:`, currentPayload);
+
+  let profitGrowthConsistent6Months: boolean | null = currentPayload.hasOwnProperty('profit_growth_consistent_6_months') ? currentPayload.profit_growth_consistent_6_months : null;
+  let marketResearchValidatesDemand: boolean | null = currentPayload.hasOwnProperty('market_research_validates_demand') ? currentPayload.market_research_validates_demand : null;
+  let capitalAvailablePercentageOfCost: number | null = currentPayload.hasOwnProperty('capital_available_percentage_of_cost') ? currentPayload.capital_available_percentage_of_cost : null;
+  let expansionCost: number | null = currentPayload.hasOwnProperty('expansion_cost') ? currentPayload.expansion_cost : null;
+  let profitMarginTrend: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null = currentPayload.hasOwnProperty('profit_margin_trend') ? currentPayload.profit_margin_trend : null;
+  let revenueGrowthTrend: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null = currentPayload.hasOwnProperty('revenue_growth_trend') ? currentPayload.revenue_growth_trend : null;
+
+  const { monthly_revenue, monthly_expenses, current_savings } = financialData;
+  const net_profit = monthly_revenue - monthly_expenses;
+
+  const reasons: string[] = [];
+  let recommendation: 'APPROVE' | 'WAIT' | 'REJECT' = 'APPROVE'; // Default to APPROVE
+  let actionable_steps: string[] = [];
+
+  // --- Data Gathering Sequence for Business Expansion ---
+  if (expansionCost === null || expansionCost <= 0) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "expansion_cost",
+        prompt: "What is the estimated total cost for this business expansion (in ₦)? (Must be greater than 0)",
+        type: 'number',
+        intent_context: {
+          intent: "business_expansion",
+          decision_type: "expansion_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (capitalAvailablePercentageOfCost === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "capital_available_percentage_of_cost",
+        prompt: "What percentage of the expansion cost do you currently have available in capital (e.g., '60' for 60%)? (Type '0' if none)",
+        type: 'number',
+        intent_context: {
+          intent: "business_expansion",
+          decision_type: "expansion_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+  if (profitGrowthConsistent6Months === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "profit_growth_consistent_6_months",
+        prompt: "Have you experienced consistent profit growth (at least 15% increase) for the last 6 months? (Yes/No)",
+        type: 'boolean',
+        intent_context: {
+          intent: "business_expansion",
+          decision_type: "expansion_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (marketResearchValidatesDemand === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "market_research_validates_demand",
+        prompt: "Does your market research clearly validate demand for this expansion (e.g., new products, new location)? (Yes/No)",
+        type: 'boolean',
+        intent_context: {
+          intent: "business_expansion",
+          decision_type: "expansion_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (profitMarginTrend === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "profit_margin_trend",
+        prompt: "What is your current profit margin trend?",
+        type: 'text_enum',
+        options: ['consistent_growth', 'positive_fluctuating', 'declining_unstable'],
+        intent_context: {
+          intent: "business_expansion",
+          decision_type: "expansion_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (revenueGrowthTrend === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "revenue_growth_trend",
+        prompt: "What is your current revenue growth trend?",
+        type: 'text_enum',
+        options: ['consistent_growth', 'positive_fluctuating', 'declining_unstable'],
+        intent_context: {
+          intent: "business_expansion",
+          decision_type: "expansion_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  console.log(`[${requestId}] makeBusinessExpansionDecision: After Data Gathering. currentPayload:`, currentPayload);
+
+  // --- Final Validation and Defaulting ---
+  const finalProfitGrowthConsistent6Months = getBooleanOrDefault(profitGrowthConsistent6Months);
+  const finalMarketResearchValidatesDemand = getBooleanOrDefault(marketResearchValidatesDemand);
+  const finalCapitalAvailablePercentageOfCost = getNumberOrDefault(capitalAvailablePercentageOfCost);
+  const finalExpansionCost = getNumberOrDefault(expansionCost);
+  const finalProfitMarginTrend = getStringOrDefault(profitMarginTrend);
+  const finalRevenueGrowthTrend = getStringOrDefault(revenueGrowthTrend);
+
+  // --- Rule Evaluation ---
+
+  // Not Advisable (REJECT) Conditions (Highest Priority)
+  if (net_profit <= 0) {
+    recommendation = 'REJECT';
+    reasons.push(`Your business is currently not profitable (Net Income: ₦${net_profit.toLocaleString()}). Expansion would add further strain.`);
+  } else if (finalProfitMarginTrend === 'declining_unstable' || finalRevenueGrowthTrend === 'declining_unstable') {
+    recommendation = 'REJECT';
+    reasons.push(`Your profit margin trend is ${finalProfitMarginTrend} and/or revenue growth trend is ${finalRevenueGrowthTrend}. This indicates instability.`);
+  } else if (!finalMarketResearchValidatesDemand) {
+    recommendation = 'REJECT';
+    reasons.push(`There is no validated market research data to support demand for this expansion.`);
+  } else if (finalCapitalAvailablePercentageOfCost < 50) {
+    recommendation = 'REJECT';
+    reasons.push(`You only have ${finalCapitalAvailablePercentageOfCost}% of the required capital (₦${finalExpansionCost.toLocaleString()}) available, which is less than 50%.`);
+  }
+
+  if (recommendation === 'REJECT') {
+    actionable_steps = [
+      'Focus on stabilizing and improving your current business profitability and cash flow.',
+      'Conduct thorough market research to validate demand and identify potential risks.',
+      'Build up your capital reserves to at least 50% of the estimated expansion cost before reconsidering.',
+      'Explore smaller, less capital-intensive growth strategies first.'
+    ];
+  } else {
+    // If not REJECTED, evaluate for CAUTIOUS or RECOMMENDED
+    let recommendedConditionsMet = 0;
+    let cautiousConditionsMet = 0;
+
+    // Recommended Conditions
+    if (finalProfitGrowthConsistent6Months) {
+      recommendedConditionsMet++;
+      reasons.push(`You have experienced consistent profit growth (≥ 15% for 6 months).`);
+    }
+    if (finalMarketResearchValidatesDemand) { // Already checked above, but for positive reinforcement
+      recommendedConditionsMet++;
+      reasons.push(`Market research clearly validates demand for this expansion.`);
+    }
+    if (finalCapitalAvailablePercentageOfCost >= 70) {
+      recommendedConditionsMet++;
+      reasons.push(`You have ${finalCapitalAvailablePercentageOfCost}% of the required capital (₦${finalExpansionCost.toLocaleString()}) available, which is ≥ 70%.`);
+    }
+    if (finalProfitMarginTrend === 'consistent_growth' && finalRevenueGrowthTrend === 'consistent_growth') {
+      recommendedConditionsMet++;
+      reasons.push(`Both your profit margin and revenue growth trends show consistent growth.`);
+    }
+
+    // Cautious Conditions
+    if (finalProfitMarginTrend === 'positive_fluctuating' || finalRevenueGrowthTrend === 'positive_fluctuating') {
+      cautiousConditionsMet++;
+      reasons.push(`Your profit margin trend is ${finalProfitMarginTrend} and/or revenue growth trend is ${finalRevenueGrowthTrend}, indicating some fluctuation.`);
+    }
+    if (finalCapitalAvailablePercentageOfCost >= 50 && finalCapitalAvailablePercentageOfCost < 70) {
+      cautiousConditionsMet++;
+      reasons.push(`You have ${finalCapitalAvailablePercentageOfCost}% of the required capital (₦${finalExpansionCost.toLocaleString()}) available, which is between 50% and 69%.`);
+    }
+
+    if (recommendedConditionsMet >= 3) { // Strong approval
+      recommendation = 'APPROVE';
+      actionable_steps = [
+        'Develop a detailed business plan for the expansion, including financial projections and timelines.',
+        'Secure any remaining capital needed and finalize funding arrangements.',
+        'Implement the expansion in phases, if possible, to manage risk and learn along the way.',
+        'Continuously monitor key performance indicators (KPIs) to track the success of the expansion.'
+      ];
+    } else if (cautiousConditionsMet > 0 || recommendedConditionsMet > 0) { // Some positive signs, but also caution
+      recommendation = 'WAIT';
+      actionable_steps = [
+        'Refine your market research to gain clearer insights into demand and competitive landscape.',
+        'Explore ways to increase your capital availability or reduce the initial expansion cost.',
+        'Consider a pilot program or a smaller-scale test of the expansion idea before a full rollout.',
+        'Strengthen your operational efficiency and financial controls in your existing business.'
+      ];
+    } else { // Default to WAIT if no strong signals for APPROVE or REJECT
+      recommendation = 'WAIT';
+      reasons.push('More data or stronger financial indicators are needed to recommend expansion.');
+      actionable_steps = [
+        'Focus on achieving consistent profit and revenue growth for at least 6 months.',
+        'Invest in comprehensive market research to validate demand for your expansion idea.',
+        'Increase your capital reserves to comfortably cover the majority of the expansion cost.',
+        'Review your current business operations for areas of improvement and efficiency.'
+      ];
+    }
+  }
+
+  // Construct final reasoning string
+  let finalReasoning: string | string[];
+  if (recommendation === 'APPROVE') {
+    finalReasoning = `Your business demonstrates strong readiness and financial strength for this expansion. ${reasons.join(' ')}.`;
+  } else {
+    finalReasoning = reasons; // For WAIT/REJECT, return array of specific reasons
+  }
+
+  // Ensure actionable steps are unique
+  actionable_steps = Array.from(new Set(actionable_steps));
+  console.log(`[${requestId}] Final actionable steps:`, actionable_steps);
+
+  console.log(`[${requestId}] makeBusinessExpansionDecision: Before final decision return. Recommendation: ${recommendation}`);
+
+  return {
+    decision: {
+      recommendation,
+      reasoning: finalReasoning,
+      actionable_steps,
+      financial_snapshot: financialData,
+      profit_growth_consistent_6_months: finalProfitGrowthConsistent6Months,
+      market_research_validates_demand: finalMarketResearchValidatesDemand,
+      capital_available_percentage_of_cost: finalCapitalAvailablePercentageOfCost,
+      expansion_cost: finalExpansionCost,
+      profit_margin_trend: finalProfitMarginTrend === '' ? null : finalProfitMarginTrend,
+      revenue_growth_trend: finalRevenueGrowthTrend === '' ? null : finalRevenueGrowthTrend,
+    }
+  };
+}
+
+
 // --- Main decision-engine logic ---
 
 serve(async (req) => {
@@ -1863,6 +2129,9 @@ serve(async (req) => {
       case 'loan_management': // New loan_management decision
         decisionResult = makeDebtLoanDecision(financialData, { is_fmcg_vendor: isFmcgVendor, business_type: businessType }, currentPayload, question, requestId);
         break;
+      case 'business_expansion': // New business_expansion decision
+        decisionResult = makeBusinessExpansionDecision(financialData, { is_fmcg_vendor: isFmcgVendor, business_type: businessType }, currentPayload, question, requestId);
+        break;
       default:
         throw new InputValidationError("Unsupported Intent", `Intent '${intent}' is not yet supported.`);
     }
@@ -1932,6 +2201,13 @@ serve(async (req) => {
       total_business_assets: decision.total_business_assets ?? null,
       total_monthly_debt_repayments: decision.total_monthly_debt_repayments ?? null,
       loan_purpose_is_revenue_generating: decision.loan_purpose_is_revenue_generating ?? null,
+      // New business_expansion fields
+      profit_growth_consistent_6_months: decision.profit_growth_consistent_6_months ?? null,
+      market_research_validates_demand: decision.market_research_validates_demand ?? null,
+      capital_available_percentage_of_cost: decision.capital_available_percentage_of_cost ?? null,
+      expansion_cost: decision.expansion_cost ?? null,
+      profit_margin_trend: decision.profit_margin_trend ?? null,
+      revenue_growth_trend: decision.revenue_growth_trend ?? null,
     };
     console.log(`[${requestId}] Attempting to save decision:`, decisionToSave);
 
