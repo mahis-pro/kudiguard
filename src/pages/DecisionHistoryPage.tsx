@@ -7,7 +7,6 @@ import { useSession } from '@/components/auth/SessionContextProvider';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import DecisionDetailsDialog from '@/components/DecisionDetailsDialog';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from 'react-router-dom';
 import { Label } from '@/components/ui/label'; // Import Label component
@@ -18,7 +17,7 @@ const DecisionHistoryPage = () => {
   const [selectedDecision, setSelectedDecision] = useState<any | null>(null);
   const [filterType, setFilterType] = useState('all'); // 'all', 'APPROVE', 'WAIT', 'REJECT'
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest'
-  // const isMobile = useIsMobile(); // Removed as it's not used
+  // The 'useIsMobile' hook was imported but not used, so it has been removed.
 
   const userId = session?.user?.id;
 
