@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2020"],
     "module": "ESNext",
     "skipLibCheck": true,
 
@@ -25,5 +25,8 @@
     }
   },
   "include": ["src", "supabase/functions"],
+  "files": [
+    "src/types/supabase-edge-functions.d.ts"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
