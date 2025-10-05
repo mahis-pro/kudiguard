@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
-  Home, 
   User, 
   BookOpen, 
   HelpCircle, 
   ArrowLeft,
   Menu,
-  X,
   ArrowRight,
 } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';

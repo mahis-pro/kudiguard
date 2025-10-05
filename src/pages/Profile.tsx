@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,8 +17,6 @@ import {
   ListChecks,
   X,
   HelpCircle,
-  Lock, // Added for security section
-  Clock // Added for security section
 } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -195,7 +193,7 @@ const Profile = () => {
   const userId = session?.user?.id;
 
   // Fetch all decisions for the user
-  const { data: decisions, isLoading: decisionsLoading, error: decisionsError } = useQuery({
+  const { data: decisions, isLoading: decisionsLoading } = useQuery({
     queryKey: ['userDecisions', userId],
     queryFn: async () => {
       if (!userId) return [];
@@ -210,7 +208,7 @@ const Profile = () => {
   });
 
   // Fetch latest financial entry for health score
-  const { data: latestFinancialEntry, isLoading: financialLoading, error: financialError } = useQuery({
+  const { data: latestFinancialEntry, isLoading: financialLoading } = useQuery({
     queryKey: ['latestFinancialEntryForProfile', userId],
     queryFn: async () => {
       if (!userId) return null;

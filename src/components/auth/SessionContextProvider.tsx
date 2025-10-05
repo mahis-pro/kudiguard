@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { PostgrestError } from '@supabase/supabase-js'; // Import PostgrestError
 
 // Define a simple UserRole for KudiGuard
 type UserRole = "vendor" | "admin" | "analyst";
@@ -56,7 +57,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         } else {
           toast({
             title: "Profile Error",
-            description: `Could not load user profile: ${error.message}`,
+            description: `Could not load user profile: ${(error as PostgrestError).message}`, // Safely access message
             variant: "destructive",
           });
         }
@@ -113,7 +114,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
 
   // Effect 1: Auth state listener and initial load
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => { // Removed unused 'event'
       setSession(currentSession);
 
       if (currentSession) {

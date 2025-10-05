@@ -1,13 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import LoginScreen from '@/components/LoginScreen';
-import { useToast } from '@/hooks/use-toast';
 import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
 
 const Login = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { session, isLoading } = useSession(); // Use session from context
+  const { isLoading } = useSession(); // Use session from context
 
   // The redirect logic is now handled by SessionContextProvider,
   // so we only need to ensure the LoginScreen is rendered if not authenticated.

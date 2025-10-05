@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface UseAnimateOnScrollOptions {
   threshold?: number; // Percentage of element visibility to trigger

@@ -1,18 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Send } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect, useRef } from 'react';
+import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import AddDataModal from '@/components/AddDataModal';
 import DecisionCard from '@/components/DecisionCard';
 import { useToast } from '@/hooks/use-toast';
-import { Switch } from '@/components/ui/switch';
 import kudiGuardIcon from '/kudiguard-icon.jpg';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ParsedIntent, IntentParserResponse } from '@/types/supabase-edge-functions'; // Import new types
+import { ParsedIntent } from '@/types/supabase-edge-functions'; // Import new types
 
 interface ChatMessage {
   id: string;

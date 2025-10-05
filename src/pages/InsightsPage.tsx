@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, CalendarDays, Clock, CheckCircle, XCircle, MessageCircle, Eye, AlertTriangle, LineChart } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, CalendarDays, MessageCircle, Eye, LineChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';

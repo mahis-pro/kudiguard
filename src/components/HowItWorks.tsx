@@ -1,4 +1,3 @@
-import React from 'react';
 import { MessageCircle, Calculator, CheckCircle, History } from 'lucide-react';
 import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll';
 

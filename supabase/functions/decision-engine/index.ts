@@ -56,15 +56,15 @@ export function redactSensitiveData(data: any): any {
   const sensitiveKeys = ['password', 'email', 'authHeader', 'access_token', 'refresh_token', 'jwt', 'api_key'];
   const redactedData = { ...data };
 
-  for (const key of sensitiveKeys) {
-    if (redactedData[key]) {
+  for (const key in redactedData) {
+    if (Object.prototype.hasOwnProperty.call(redactedData, key) && sensitiveKeys.includes(key)) {
       redactedData[key] = '[REDACTED]';
     }
   }
 
   // Recursively redact if data is an object
   for (const key in redactedData) {
-    if (typeof redactedData[key] === 'object' && redactedData[key] !== null) {
+    if (Object.prototype.hasOwnProperty.call(redactedData, key) && typeof redactedData[key] === 'object' && redactedData[key] !== null) {
       redactedData[key] = redactSensitiveData(redactedData[key]);
     }
   }
@@ -1227,15 +1227,16 @@ export function makeSavingsDecision(
     }
 
     // Rule 3.1 & 3.2 & 3.3: Debt vs. Savings Balance
-    if (finalDebtApr > 15 && debt_ratio > 0.3) {
+    // Prioritize high-interest debt repayment over general savings if APR is high
+    if (finalDebtApr > 18 && debt_ratio > 0.2) { // High APR and moderate debt ratio
       if (recommendation === 'APPROVE') recommendation = 'WAIT'; // Downgrade if not already REJECT/WAIT
-      reasons.push(`Your debt APR (${finalDebtApr}%) is high and your debt ratio (${(debt_ratio * 100).toFixed(1)}%) is above 30%. Prioritize debt repayment.`);
-      actionable_steps.push('Focus on aggressively paying down high-interest debt.', 'Maintain a minimum 10% of net profit allocation to savings even while servicing debt to preserve liquidity.');
-      console.log(`[${requestId}] Rule 3.1/3.2 triggered. Recommendation: ${recommendation}`);
-    } else if (finalDebtApr > 0 && debt_ratio > 0.3) {
+      reasons.push(`Your highest debt APR (${finalDebtApr}%) is high and your debt ratio (${(debt_ratio * 100).toFixed(1)}%) is above 20%. Prioritize aggressively paying down this high-interest debt.`);
+      actionable_steps.push('Focus on aggressively paying down high-interest debt first, as it offers a guaranteed return.', 'Maintain a minimum 5% of net profit allocation to savings even while servicing debt to preserve some liquidity.');
+      console.log(`[${requestId}] Rule 3.1/3.2 triggered (high interest debt). Recommendation: ${recommendation}`);
+    } else if (finalDebtApr > 0 && debt_ratio > 0.3) { // Moderate debt ratio with any debt
       if (recommendation === 'APPROVE') recommendation = 'WAIT'; // Downgrade if not already REJECT/WAIT
       reasons.push(`Your debt ratio (${(debt_ratio * 100).toFixed(1)}%) is above 30%. Consider prioritizing debt repayment.`);
-      actionable_steps.push('Review debt repayment strategies.', 'Maintain a minimum 10% of net profit allocation to savings.');
+      actionable_steps.push('Review debt repayment strategies to reduce your overall debt burden.', 'Maintain a minimum 10% of net profit allocation to savings.');
       console.log(`[${requestId}] Rule 3.2 triggered (non-critical). Recommendation: ${recommendation}`);
     }
 
@@ -1277,6 +1278,14 @@ export function makeSavingsDecision(
       reasons.push('Growth reserves should not be used for expansion if your profit margin is below 15% or if it would deplete your emergency buffer.');
       console.log(`[${requestId}] Rule 5.2/5.3 triggered (conditions not met).`);
     }
+
+    // Rule 8: Profit Reinvestment (New Rule)
+    if (recommendation === 'APPROVE' && net_profit > (2 * fixed_operating_expenses) && current_savings >= (3 * fixed_operating_expenses)) {
+      const reinvestmentAmount = net_profit * 0.20; // Suggest 20% of net profit for reinvestment
+      actionable_steps.push(`Consider reinvesting up to ₦${reinvestmentAmount.toLocaleString()} (20% of your net profit) into strategic business growth initiatives, such as new equipment, marketing, or staff training.`);
+      reasons.push(`Your business has strong profitability (Net Profit: ₦${net_profit.toLocaleString()}) and a healthy savings buffer (₦${current_savings.toLocaleString()}), making it an ideal time to consider strategic reinvestment for growth.`);
+    }
+
 
     // Rule 7: Sector-Specific Adjustments
     switch (profileData.business_type) {
@@ -1918,8 +1927,9 @@ export function makeBusinessExpansionDecision(
   const finalMarketResearchValidatesDemand = getBooleanOrDefault(marketResearchValidatesDemand);
   const finalCapitalAvailablePercentageOfCost = getNumberOrDefault(capitalAvailablePercentageOfCost);
   const finalExpansionCost = getNumberOrDefault(expansionCost);
-  const finalProfitMarginTrend = getStringOrDefault(profitMarginTrend);
-  const finalRevenueGrowthTrend = getStringOrDefault(revenueGrowthTrend);
+  // Directly use the enum types, as they are already correctly typed from currentPayload
+  const finalProfitMarginTrend = profitMarginTrend; 
+  const finalRevenueGrowthTrend = revenueGrowthTrend;
 
   // --- Rule Evaluation ---
 
@@ -2030,8 +2040,8 @@ export function makeBusinessExpansionDecision(
       market_research_validates_demand: finalMarketResearchValidatesDemand,
       capital_available_percentage_of_cost: finalCapitalAvailablePercentageOfCost,
       expansion_cost: finalExpansionCost,
-      profit_margin_trend: finalProfitMarginTrend === '' ? null : finalProfitMarginTrend,
-      revenue_growth_trend: finalRevenueGrowthTrend === '' ? null : finalRevenueGrowthTrend,
+      profit_margin_trend: finalProfitMarginTrend,
+      revenue_growth_trend: finalRevenueGrowthTrend,
     }
   };
 }

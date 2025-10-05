@@ -1,6 +1,4 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat, Banknote, Landmark, Store, Search, TrendingDown } from 'lucide-react'; // Added Store, Search, TrendingDown
 
 interface DecisionCardProps {
@@ -75,7 +73,6 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     recommendation, 
     reasoning, 
     actionable_steps, 
-    financial_snapshot, 
     estimated_salary,
     estimated_inventory_cost,
     inventory_turnover_days,
@@ -137,7 +134,6 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
         return {
           Icon: CheckCircle,
           title: 'Recommendation: Approve',
-          badgeVariant: 'default',
           cardClasses: 'bg-success-light border-success/20',
           iconClasses: 'text-success',
           shadowClass: 'shadow-success-glow',
@@ -146,7 +142,6 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
         return {
           Icon: AlertTriangle,
           title: 'Recommendation: Wait',
-          badgeVariant: 'secondary',
           cardClasses: 'bg-warning-light border-warning/20',
           iconClasses: 'text-warning',
           shadowClass: 'shadow-warning-glow',
@@ -155,7 +150,6 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
         return {
           Icon: XCircle,
           title: 'Recommendation: Reject',
-          badgeVariant: 'destructive',
           cardClasses: 'bg-destructive/10 border-destructive/20',
           iconClasses: 'text-destructive',
           shadowClass: 'shadow-destructive-glow',
@@ -164,7 +158,6 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
         return {
           Icon: Info,
           title: 'Recommendation',
-          badgeVariant: 'outline',
           cardClasses: 'bg-muted',
           iconClasses: 'text-muted-foreground',
           shadowClass: 'shadow-card',
@@ -172,7 +165,7 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     }
   };
 
-  const { Icon, title, badgeVariant, cardClasses, iconClasses, shadowClass } = getRecommendationDetails();
+  const { Icon, title, cardClasses, iconClasses, shadowClass } = getRecommendationDetails();
 
   const hasDecisionParameters = 
     (estimated_salary !== null && estimated_salary !== undefined) || 

@@ -1,5 +1,4 @@
-import React from 'react';
-import { MessageCircle, ArrowRight } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 const HeroVisual = () => {
   return (

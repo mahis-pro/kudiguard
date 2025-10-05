@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertCircle, Clock, Eye, MessageCircle, DollarSign, CalendarDays, Info } from 'lucide-react';
+import { Clock, Eye, MessageCircle, Info } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom';
 import { Label } from '@/components/ui/label'; // Import Label component
 
 const DecisionHistoryPage = () => {
-  const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
+  const { isLoading: sessionLoading, supabase, session } = useSession();
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState<any | null>(null);
   const [filterType, setFilterType] = useState('all'); // 'all', 'APPROVE', 'WAIT', 'REJECT'

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useQuery } from '@tanstack/react-query';

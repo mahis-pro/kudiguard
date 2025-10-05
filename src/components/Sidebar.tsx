@@ -1,7 +1,6 @@
-import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
@@ -15,7 +14,6 @@ interface SidebarProps {
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick }: SidebarProps) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { supabase, userDisplayName } = useSession();
   const { toast } = useToast();
 

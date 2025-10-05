@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,13 +14,11 @@ import {
   Mail, 
   Phone,
   Clock,
-  CheckCircle,
   AlertCircle,
   Facebook, 
   Twitter,  
   Instagram 
 } from 'lucide-react';
-import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { Link } from 'react-router-dom';
 import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll';
 
