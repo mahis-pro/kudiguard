@@ -308,7 +308,8 @@ export const DecisionEngineInputSchema = z.object({
     'inventory', 
     'marketing',
     'savings', 
-    'equipment', // Added new intent: equipment
+    'equipment',
+    'loan_management', // Added new intent: loan_management
   ]),
   question: z.string(),
   payload: z.object({
@@ -340,6 +341,11 @@ export const DecisionEngineInputSchema = z.object({
     estimated_roi_percentage: z.number().min(0).max(1000).optional(), // ROI can be high
     is_essential_replacement: z.boolean().optional(),
     current_equipment_utilization_percentage: z.number().min(0).max(100).optional(),
+    // New fields for loan_management
+    total_business_liabilities: z.number().min(0).optional(),
+    total_business_assets: z.number().min(0).optional(),
+    total_monthly_debt_repayments: z.number().min(0).optional(),
+    loan_purpose_is_revenue_generating: z.boolean().optional(),
   }).optional(),
 });
 
@@ -390,6 +396,11 @@ export type DecisionResult = {
   estimated_roi_percentage?: number | null;
   is_essential_replacement?: boolean | null;
   current_equipment_utilization_percentage?: number | null;
+  // New fields for loan_management
+  total_business_liabilities?: number | null;
+  total_business_assets?: number | null;
+  total_monthly_debt_repayments?: number | null;
+  loan_purpose_is_revenue_generating?: boolean | null;
 };
 
 // Define a type for the data needed response
@@ -1509,6 +1520,257 @@ export function makeEquipmentDecision(
   };
 }
 
+// --- decisions/debt_loan.ts content ---
+export function makeDebtLoanDecision(
+  financialData: FinancialData,
+  profileData: ProfileData,
+  currentPayload: Record<string, any>,
+  question: string,
+  requestId: string,
+): DecisionFunctionReturn {
+  console.log(`[${requestId}] makeDebtLoanDecision: Start. currentPayload:`, currentPayload);
+
+  let totalBusinessLiabilities: number | null = currentPayload.hasOwnProperty('total_business_liabilities') ? currentPayload.total_business_liabilities : null;
+  let totalBusinessAssets: number | null = currentPayload.hasOwnProperty('total_business_assets') ? currentPayload.total_business_assets : null;
+  let totalMonthlyDebtRepayments: number | null = currentPayload.hasOwnProperty('total_monthly_debt_repayments') ? currentPayload.total_monthly_debt_repayments : null;
+  let debtApr: number | null = currentPayload.hasOwnProperty('debt_apr') ? currentPayload.debt_apr : null; // Re-using existing debt_apr
+  let loanPurposeIsRevenueGenerating: boolean | null = currentPayload.hasOwnProperty('loan_purpose_is_revenue_generating') ? currentPayload.loan_purpose_is_revenue_generating : null;
+  let consecutiveNegativeCashFlowMonths: number | null = currentPayload.hasOwnProperty('consecutive_negative_cash_flow_months') ? currentPayload.consecutive_negative_cash_flow_months : null; // Re-using existing
+
+  const { monthly_revenue, monthly_expenses, current_savings } = financialData;
+  const net_profit = monthly_revenue - monthly_expenses;
+
+  const reasons: string[] = [];
+  let recommendation: 'APPROVE' | 'WAIT' | 'REJECT' = 'APPROVE'; // Default to APPROVE
+  let actionable_steps: string[] = [];
+
+  // --- Data Gathering Sequence for Debt Management / Loans ---
+  if (totalBusinessLiabilities === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "total_business_liabilities",
+        prompt: "What is your total business liabilities (all debts, in ₦)? (Type '0' if none)",
+        type: 'number',
+        intent_context: {
+          intent: "loan_management",
+          decision_type: "debt_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+  if (totalBusinessAssets === null || totalBusinessAssets <= 0) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "total_business_assets",
+        prompt: "What is your total business assets (cash, inventory, equipment, etc., in ₦)? (Must be greater than 0)",
+        type: 'number',
+        intent_context: {
+          intent: "loan_management",
+          decision_type: "debt_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (totalMonthlyDebtRepayments === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "total_monthly_debt_repayments",
+        prompt: "What are your total monthly debt repayments (for all existing loans, in ₦)? (Type '0' if none)",
+        type: 'number',
+        intent_context: {
+          intent: "loan_management",
+          decision_type: "debt_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+  if (debtApr === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "debt_apr",
+        prompt: "What is the Annual Percentage Rate (APR) of your highest interest debt (e.g., '20' for 20%)? (Type '0' if no debt)",
+        type: 'number',
+        intent_context: {
+          intent: "loan_management",
+          decision_type: "debt_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+  if (loanPurposeIsRevenueGenerating === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "loan_purpose_is_revenue_generating",
+        prompt: "Is the purpose of this loan (or your current debt) to generate more revenue for your business? (Yes/No)",
+        type: 'boolean',
+        intent_context: {
+          intent: "loan_management",
+          decision_type: "debt_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (consecutiveNegativeCashFlowMonths === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "consecutive_negative_cash_flow_months",
+        prompt: "How many consecutive months have you had negative cash flow? (Type '0' if none)",
+        type: 'number',
+        intent_context: {
+          intent: "loan_management",
+          decision_type: "debt_assessment",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+  console.log(`[${requestId}] makeDebtLoanDecision: After Data Gathering. currentPayload:`, currentPayload);
+
+  // --- Final Validation and Defaulting ---
+  const finalTotalBusinessLiabilities = getNumberOrDefault(totalBusinessLiabilities);
+  const finalTotalBusinessAssets = getNumberOrDefault(totalBusinessAssets);
+  const finalTotalMonthlyDebtRepayments = getNumberOrDefault(totalMonthlyDebtRepayments);
+  const finalDebtApr = getNumberOrDefault(debtApr);
+  const finalLoanPurposeIsRevenueGenerating = getBooleanOrDefault(loanPurposeIsRevenueGenerating);
+  const finalConsecutiveNegativeCashFlowMonths = getNumberOrDefault(consecutiveNegativeCashFlowMonths);
+
+  // Calculate Debt-to-Equity Ratio
+  const totalEquity = finalTotalBusinessAssets - finalTotalBusinessLiabilities;
+  const debtToEquityRatio = totalEquity > 0 ? (finalTotalBusinessLiabilities / totalEquity) : (finalTotalBusinessLiabilities > 0 ? Infinity : 0);
+
+  // Calculate Repayment Capacity Percentage
+  const repaymentCapacityPercentage = net_profit > 0 ? (finalTotalMonthlyDebtRepayments / net_profit) * 100 : (finalTotalMonthlyDebtRepayments > 0 ? Infinity : 0);
+
+  console.log(`[${requestId}] makeDebtLoanDecision: Calculated metrics:`, {
+    debtToEquityRatio,
+    repaymentCapacityPercentage,
+    net_profit,
+    finalDebtApr,
+    finalConsecutiveNegativeCashFlowMonths
+  });
+
+  // --- Rule Evaluation ---
+
+  // Not Advisable (REJECT) Conditions (Highest Priority)
+  if (debtToEquityRatio > 2.0) {
+    recommendation = 'REJECT';
+    reasons.push(`Your Debt-to-Equity ratio (${debtToEquityRatio.toFixed(2)}) is very high (above 2.0), indicating significant over-leverage.`);
+  }
+  if (finalDebtApr > 25) {
+    recommendation = 'REJECT';
+    reasons.push(`Your highest debt APR (${finalDebtApr}%) is extremely high (above 25%), making debt very costly.`);
+  }
+  if (repaymentCapacityPercentage > 40) {
+    recommendation = 'REJECT';
+    reasons.push(`Your total monthly debt repayments (${repaymentCapacityPercentage.toFixed(1)}% of net profit) are too high (above 40%), risking a severe cash flow squeeze.`);
+  }
+  if (finalConsecutiveNegativeCashFlowMonths > 0) {
+    recommendation = 'REJECT';
+    reasons.push(`You have experienced negative cash flow for ${finalConsecutiveNegativeCashFlowMonths} consecutive months, indicating income instability and high repayment risk.`);
+  }
+
+  if (recommendation === 'REJECT') {
+    actionable_steps = [
+      'Immediately focus on aggressive debt reduction, starting with the highest interest debts.',
+      'Implement strict cash flow management to improve profitability and build reserves.',
+      'Avoid taking on any new debt until your financial stability significantly improves.',
+      'Explore options for debt restructuring or negotiation with creditors.'
+    ];
+  } else {
+    // If not REJECTED, evaluate for CAUTIOUS or RECOMMENDED
+    let cautiousConditionsMet = 0;
+
+    // Cautious (WAIT) Conditions
+    if (debtToEquityRatio >= 1.0 && debtToEquityRatio <= 2.0) {
+      cautiousConditionsMet++;
+      reasons.push(`Your Debt-to-Equity ratio (${debtToEquityRatio.toFixed(2)}) is between 1.0 and 2.0, suggesting a moderate level of leverage.`);
+    }
+    if (finalDebtApr > 15 && finalDebtApr <= 20) {
+      cautiousConditionsMet++;
+      reasons.push(`Your highest debt APR (${finalDebtApr}%) is between 15% and 20%, which is manageable but requires careful monitoring.`);
+    }
+    if (repaymentCapacityPercentage >= 20 && repaymentCapacityPercentage <= 35) {
+      cautiousConditionsMet++;
+      reasons.push(`Your total monthly debt repayments (${repaymentCapacityPercentage.toFixed(1)}% of net profit) are between 20% and 35% of your net profit, indicating some repayment stress.`);
+    }
+
+    if (cautiousConditionsMet > 0) {
+      recommendation = 'WAIT';
+      actionable_steps = [
+        'Develop a clear, short-term repayment plan to reduce your debt burden.',
+        'Monitor your cash flow closely to ensure you can meet repayment obligations.',
+        'Ensure any new debt is for a clear, revenue-generating purpose with a solid growth plan.',
+        'Explore options to reduce interest rates or consolidate debts if possible.'
+      ];
+    } else {
+      // Recommended (APPROVE) Conditions (Default if no other rules triggered)
+      recommendation = 'APPROVE';
+      reasons.push(`Your Debt-to-Equity ratio (${debtToEquityRatio.toFixed(2)}) is healthy (below 1.0).`);
+      reasons.push(`Your highest debt APR (${finalDebtApr}%) is favorable (below 15%).`);
+      reasons.push(`Your total monthly debt repayments (${repaymentCapacityPercentage.toFixed(1)}% of net profit) are well within your capacity (below 20%).`);
+      if (finalLoanPurposeIsRevenueGenerating) {
+        reasons.push(`The loan purpose is revenue-generating, which supports strategic growth.`);
+      } else {
+        reasons.push(`The loan purpose is not explicitly revenue-generating, but your strong financial position allows for it.`);
+      }
+      reasons.push(`You have consistent positive cash flow.`);
+
+      actionable_steps = [
+        'Negotiate the most favorable interest rates and repayment terms for any new loans.',
+        'Create a detailed budget and plan for how the loan funds will be used to generate revenue.',
+        'Regularly review the impact of new debt on your business\'s profitability and cash flow.',
+        'Maintain a healthy emergency fund to mitigate unexpected financial challenges.'
+      ];
+    }
+  }
+
+  // Construct final reasoning string
+  let finalReasoning: string | string[];
+  if (recommendation === 'APPROVE') {
+    finalReasoning = `Your business is in a strong financial position to manage debt or take on a new loan. ${reasons.join(' ')}.`;
+  } else {
+    finalReasoning = reasons; // For WAIT/REJECT, return array of specific reasons
+  }
+
+  // Ensure actionable steps are unique
+  actionable_steps = Array.from(new Set(actionable_steps));
+  console.log(`[${requestId}] Final actionable steps:`, actionable_steps);
+
+  console.log(`[${requestId}] makeDebtLoanDecision: Before final decision return. Recommendation: ${recommendation}`);
+
+  return {
+    decision: {
+      recommendation,
+      reasoning: finalReasoning,
+      actionable_steps,
+      financial_snapshot: financialData,
+      total_business_liabilities: finalTotalBusinessLiabilities,
+      total_business_assets: finalTotalBusinessAssets,
+      total_monthly_debt_repayments: finalTotalMonthlyDebtRepayments,
+      debt_apr: finalDebtApr,
+      loan_purpose_is_revenue_generating: finalLoanPurposeIsRevenueGenerating,
+      consecutive_negative_cash_flow_months: finalConsecutiveNegativeCashFlowMonths,
+    }
+  };
+}
+
 // --- Main decision-engine logic ---
 
 serve(async (req) => {
@@ -1598,6 +1860,9 @@ serve(async (req) => {
       case 'equipment': // New equipment decision
         decisionResult = makeEquipmentDecision(financialData, { is_fmcg_vendor: isFmcgVendor, business_type: businessType }, currentPayload, question, requestId);
         break;
+      case 'loan_management': // New loan_management decision
+        decisionResult = makeDebtLoanDecision(financialData, { is_fmcg_vendor: isFmcgVendor, business_type: businessType }, currentPayload, question, requestId);
+        break;
       default:
         throw new InputValidationError("Unsupported Intent", `Intent '${intent}' is not yet supported.`);
     }
@@ -1662,6 +1927,11 @@ serve(async (req) => {
       estimated_roi_percentage: decision.estimated_roi_percentage ?? null,
       is_essential_replacement: decision.is_essential_replacement ?? null,
       current_equipment_utilization_percentage: decision.current_equipment_utilization_percentage ?? null,
+      // New loan_management fields
+      total_business_liabilities: decision.total_business_liabilities ?? null,
+      total_business_assets: decision.total_business_assets ?? null,
+      total_monthly_debt_repayments: decision.total_monthly_debt_repayments ?? null,
+      loan_purpose_is_revenue_generating: decision.loan_purpose_is_revenue_generating ?? null,
     };
     console.log(`[${requestId}] Attempting to save decision:`, decisionToSave);
 

@@ -68,7 +68,7 @@ const ChatPage = () => {
     sender: 'ai', // Explicitly 'ai'
     text: `Hello ${name}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
     timestamp: new Date().toISOString(),
-    quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Add new data', 'What else can you do?'],
+    quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Add new data', 'What else can you do?'],
   });
 
   useEffect(() => {
@@ -211,7 +211,7 @@ const ChatPage = () => {
             sender: 'ai',
             text: "You're most welcome! I'm here to help your business thrive. Is there anything else I can assist you with?",
             timestamp: new Date().toISOString(),
-            quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Add new data', 'What else can you do?'],
+            quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Add new data', 'What else can you do?'],
         };
         setMessages((prev) => [...prev, userThankYou, aiReply]);
         setMessageInput('');
@@ -296,6 +296,8 @@ const ChatPage = () => {
       intentDetected = 'savings';
     } else if (lowerCaseInput.includes('equipment') || lowerCaseInput.includes('asset') || lowerCaseInput.includes('machine') || lowerCaseInput.includes('tool')) {
       intentDetected = 'equipment';
+    } else if (lowerCaseInput.includes('loan') || lowerCaseInput.includes('debt') || lowerCaseInput.includes('borrow') || lowerCaseInput.includes('credit')) {
+      intentDetected = 'loan_management';
     }
 
     if (intentDetected) {
@@ -313,7 +315,7 @@ const ChatPage = () => {
       const noIntentResponse: ChatMessage = {
         id: String(Date.now()),
         sender: 'ai',
-        text: "I'm currently specialized in hiring, inventory, marketing, savings, and equipment decisions. Please ask me a question like 'Can I afford to hire a new staff member?', 'Should I restock my shop?', 'Should I invest in marketing?', 'How can I improve my savings?', or 'Should I buy new equipment?'.",
+        text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, and loan decisions. Please ask me a question like 'Can I afford to hire a new staff member?', 'Should I restock my shop?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', or 'Should I take a loan?'.",
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, noIntentResponse]);
@@ -346,7 +348,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
-        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Add new data', 'What else can you do?'],
+        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Add new data', 'What else can you do?'],
       };
       setMessages((prev) => [...prev, cancelMessage]);
     } else if (lowerCaseReply === 'try again') {
@@ -362,7 +364,7 @@ const ChatPage = () => {
                 sender: 'ai',
                 text: "I don't have a previous query to retry. Please ask me a new question.",
                 timestamp: new Date().toISOString(),
-                quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Add new data', 'What else can you do?'],
+                quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Add new data', 'What else can you do?'],
             };
             setMessages((prev) => [...prev, noRetryMessage]);
         }
@@ -404,7 +406,7 @@ const ChatPage = () => {
       }
       return placeholder;
     }
-    return "Ask about hiring, inventory, marketing, savings, or equipment...";
+    return "Ask about hiring, inventory, marketing, savings, equipment, or loans...";
   };
 
   return (

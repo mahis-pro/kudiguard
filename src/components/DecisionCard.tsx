@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat, Banknote, Landmark } from 'lucide-react'; // Added Banknote, Landmark
 
 interface DecisionCardProps {
   data: {
@@ -55,6 +55,11 @@ interface DecisionCardProps {
     estimated_roi_percentage?: number | null;
     is_essential_replacement?: boolean | null;
     current_equipment_utilization_percentage?: number | null;
+    // New fields for loan_management
+    total_business_liabilities?: number | null;
+    total_business_assets?: number | null;
+    total_monthly_debt_repayments?: number | null;
+    loan_purpose_is_revenue_generating?: boolean | null;
   };
 }
 
@@ -105,6 +110,11 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     estimated_roi_percentage,
     is_essential_replacement,
     current_equipment_utilization_percentage,
+    // Loan Management fields
+    total_business_liabilities,
+    total_business_assets,
+    total_monthly_debt_repayments,
+    loan_purpose_is_revenue_generating,
   } = data;
 
   const getRecommendationDetails = () => {
@@ -188,7 +198,11 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     (equipment_cost !== null && equipment_cost !== undefined) ||
     (estimated_roi_percentage !== null && estimated_roi_percentage !== undefined) ||
     (is_essential_replacement !== null && is_essential_replacement !== undefined) ||
-    (current_equipment_utilization_percentage !== null && current_equipment_utilization_percentage !== undefined);
+    (current_equipment_utilization_percentage !== null && current_equipment_utilization_percentage !== undefined) ||
+    (total_business_liabilities !== null && total_business_liabilities !== undefined) || // New debt fields
+    (total_business_assets !== null && total_business_assets !== undefined) ||
+    (total_monthly_debt_repayments !== null && total_monthly_debt_repayments !== undefined) ||
+    (loan_purpose_is_revenue_generating !== null && loan_purpose_is_revenue_generating !== undefined);
 
   const formatCurrency = (value: number | null | undefined) => 
     value !== null && value !== undefined ? `₦${value.toLocaleString()}` : 'N/A';
@@ -486,6 +500,31 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
                 <div className="flex items-center">
                   <BarChart className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
                   <span className="text-muted-foreground">Current Utilization: <span className="font-medium text-foreground">{formatPercentage(current_equipment_utilization_percentage)}</span></span>
+                </div>
+              )}
+              {/* Loan Management Fields */}
+              {total_business_liabilities !== null && total_business_liabilities !== undefined && (
+                <div className="flex items-center">
+                  <Banknote className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Total Liabilities: <span className="font-medium text-foreground">{formatCurrency(total_business_liabilities)}</span></span>
+                </div>
+              )}
+              {total_business_assets !== null && total_business_assets !== undefined && (
+                <div className="flex items-center">
+                  <Landmark className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Total Assets: <span className="font-medium text-foreground">{formatCurrency(total_business_assets)}</span></span>
+                </div>
+              )}
+              {total_monthly_debt_repayments !== null && total_monthly_debt_repayments !== undefined && (
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Monthly Debt Repayments: <span className="font-medium text-foreground">{formatCurrency(total_monthly_debt_repayments)}</span></span>
+                </div>
+              )}
+              {loan_purpose_is_revenue_generating !== null && loan_purpose_is_revenue_generating !== undefined && (
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Loan Purpose Revenue-Generating: <span className="font-medium text-foreground">{formatBoolean(loan_purpose_is_revenue_generating)}</span></span>
                 </div>
               )}
             </div>

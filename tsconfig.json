@@ -23,10 +23,10 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "shared/*": ["./supabase/functions/_shared/*"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "vite.config.ts", "supabase/functions/**/*.ts"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }],
+  "exclude": ["supabase"]
 }
