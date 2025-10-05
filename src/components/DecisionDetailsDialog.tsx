@@ -58,6 +58,11 @@ interface DecisionDetailsDialogProps {
     current_reserve_allocation_percentage_growth?: number | null;
     fixed_operating_expenses?: number | null;
     net_profit?: number | null;
+    // New fields for equipment purchase
+    equipment_cost?: number | null;
+    estimated_roi_percentage?: number | null;
+    is_essential_replacement?: boolean | null;
+    current_equipment_utilization_percentage?: number | null;
     created_at: string;
   } | null;
 }

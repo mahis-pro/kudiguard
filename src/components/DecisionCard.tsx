@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat } from 'lucide-react';
 
 interface DecisionCardProps {
   data: {
@@ -50,6 +50,11 @@ interface DecisionCardProps {
     current_reserve_allocation_percentage_growth?: number | null;
     fixed_operating_expenses?: number | null;
     net_profit?: number | null;
+    // New fields for equipment purchase
+    equipment_cost?: number | null;
+    estimated_roi_percentage?: number | null;
+    is_essential_replacement?: boolean | null;
+    current_equipment_utilization_percentage?: number | null;
   };
 }
 
@@ -95,6 +100,11 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     current_reserve_allocation_percentage_growth,
     fixed_operating_expenses,
     net_profit,
+    // Equipment fields
+    equipment_cost,
+    estimated_roi_percentage,
+    is_essential_replacement,
+    current_equipment_utilization_percentage,
   } = data;
 
   const getRecommendationDetails = () => {
@@ -174,7 +184,11 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     (current_reserve_allocation_percentage_emergency !== null && current_reserve_allocation_percentage_emergency !== undefined) ||
     (current_reserve_allocation_percentage_growth !== null && current_reserve_allocation_percentage_growth !== undefined) ||
     (fixed_operating_expenses !== null && fixed_operating_expenses !== undefined) ||
-    (net_profit !== null && net_profit !== undefined);
+    (net_profit !== null && net_profit !== undefined) ||
+    (equipment_cost !== null && equipment_cost !== undefined) ||
+    (estimated_roi_percentage !== null && estimated_roi_percentage !== undefined) ||
+    (is_essential_replacement !== null && is_essential_replacement !== undefined) ||
+    (current_equipment_utilization_percentage !== null && current_equipment_utilization_percentage !== undefined);
 
   const formatCurrency = (value: number | null | undefined) => 
     value !== null && value !== undefined ? `₦${value.toLocaleString()}` : 'N/A';
@@ -447,6 +461,31 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
                 <div className="flex items-center">
                   <PiggyBank className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
                   <span className="text-muted-foreground">Net Profit: <span className="font-medium text-foreground">{formatCurrency(net_profit)}</span></span>
+                </div>
+              )}
+              {/* Equipment Fields */}
+              {equipment_cost !== null && equipment_cost !== undefined && (
+                <div className="flex items-center">
+                  <HardHat className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Equipment Cost: <span className="font-medium text-foreground">{formatCurrency(equipment_cost)}</span></span>
+                </div>
+              )}
+              {estimated_roi_percentage !== null && estimated_roi_percentage !== undefined && (
+                <div className="flex items-center">
+                  <Percent className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Estimated ROI: <span className="font-medium text-foreground">{formatPercentage(estimated_roi_percentage)}</span></span>
+                </div>
+              )}
+              {is_essential_replacement !== null && is_essential_replacement !== undefined && (
+                <div className="flex items-center">
+                  <CheckCircle className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Essential Replacement: <span className="font-medium text-foreground">{formatBoolean(is_essential_replacement)}</span></span>
+                </div>
+              )}
+              {current_equipment_utilization_percentage !== null && current_equipment_utilization_percentage !== undefined && (
+                <div className="flex items-center">
+                  <BarChart className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                  <span className="text-muted-foreground">Current Utilization: <span className="font-medium text-foreground">{formatPercentage(current_equipment_utilization_percentage)}</span></span>
                 </div>
               )}
             </div>

@@ -28,7 +28,7 @@ const DecisionHistoryPage = () => {
       if (!userId) return [];
       const { data, error } = await supabase
         .from('decisions')
-        .select('id, question, recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary, estimated_inventory_cost, inventory_turnover_days, supplier_credit_terms_days, average_receivables_turnover_days, outstanding_supplier_debts, supplier_discount_percentage, storage_cost_percentage_of_order, proposed_marketing_budget, is_localized_promotion, historic_foot_traffic_increase_observed, sales_increase_last_campaign_1, sales_increase_last_campaign_2, created_at')
+        .select('id, question, recommendation, reasoning, actionable_steps, financial_snapshot, estimated_salary, estimated_inventory_cost, inventory_turnover_days, supplier_credit_terms_days, average_receivables_turnover_days, outstanding_supplier_debts, supplier_discount_percentage, storage_cost_percentage_of_order, proposed_marketing_budget, is_localized_promotion, historic_foot_traffic_increase_observed, sales_increase_last_campaign_1, sales_increase_last_campaign_2, is_volatile_industry, is_growth_stage, is_seasonal_windfall_month, debt_apr, consecutive_negative_cash_flow_months, current_reserve_allocation_percentage_emergency, current_reserve_allocation_percentage_growth, fixed_operating_expenses, net_profit, equipment_cost, estimated_roi_percentage, is_essential_replacement, current_equipment_utilization_percentage, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false }); // Default to newest first from DB
       if (error) throw error;

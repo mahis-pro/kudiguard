@@ -307,7 +307,8 @@ export const DecisionEngineInputSchema = z.object({
     'hiring', 
     'inventory', 
     'marketing',
-    'savings', // Added new intent
+    'savings', 
+    'equipment', // Added new intent: equipment
   ]),
   question: z.string(),
   payload: z.object({
@@ -334,6 +335,11 @@ export const DecisionEngineInputSchema = z.object({
     consecutive_negative_cash_flow_months: z.number().min(0).optional(),
     current_reserve_allocation_percentage_emergency: z.number().min(0).max(100).optional(), // For Rule 4.1, 5.1
     current_reserve_allocation_percentage_growth: z.number().min(0).max(100).optional(), // For Rule 5.1
+    // Fields for equipment purchase
+    equipment_cost: z.number().min(0).optional(),
+    estimated_roi_percentage: z.number().min(0).max(1000).optional(), // ROI can be high
+    is_essential_replacement: z.boolean().optional(),
+    current_equipment_utilization_percentage: z.number().min(0).max(100).optional(),
   }).optional(),
 });
 
@@ -379,6 +385,11 @@ export type DecisionResult = {
   current_reserve_allocation_percentage_growth?: number | null;
   fixed_operating_expenses?: number | null; // Derived from monthly_expenses for savings rules
   net_profit?: number | null; // Derived for savings rules
+  // New fields for equipment purchase
+  equipment_cost?: number | null;
+  estimated_roi_percentage?: number | null;
+  is_essential_replacement?: boolean | null;
+  current_equipment_utilization_percentage?: number | null;
 };
 
 // Define a type for the data needed response
@@ -1292,6 +1303,212 @@ export function makeSavingsDecision(
   };
 }
 
+// --- decisions/equipment.ts content ---
+export function makeEquipmentDecision(
+  financialData: FinancialData,
+  profileData: ProfileData, // Added profileData for consistency, though not strictly used in current rules
+  currentPayload: Record<string, any>,
+  question: string,
+  requestId: string,
+): DecisionFunctionReturn {
+  console.log(`[${requestId}] makeEquipmentDecision: Start. currentPayload:`, currentPayload);
+
+  let equipmentCost: number | null = currentPayload.hasOwnProperty('equipment_cost') ? currentPayload.equipment_cost : null;
+  let estimatedRoiPercentage: number | null = currentPayload.hasOwnProperty('estimated_roi_percentage') ? currentPayload.estimated_roi_percentage : null;
+  let isEssentialReplacement: boolean | null = currentPayload.hasOwnProperty('is_essential_replacement') ? currentPayload.is_essential_replacement : null;
+  let currentEquipmentUtilizationPercentage: number | null = currentPayload.hasOwnProperty('current_equipment_utilization_percentage') ? currentPayload.current_equipment_utilization_percentage : null;
+
+  const { monthly_revenue, monthly_expenses, current_savings } = financialData;
+  const net_income = monthly_revenue - monthly_expenses;
+  const savings_buffer_months = monthly_expenses > 0 ? (current_savings / monthly_expenses) : (current_savings > 0 ? 999 : 0); // Handle zero expenses
+
+  const reasons: string[] = [];
+  let recommendation: 'APPROVE' | 'WAIT' | 'REJECT' = 'APPROVE'; // Default to APPROVE
+  let actionable_steps: string[] = [];
+
+  // --- Data Gathering Sequence for Equipment ---
+  if (equipmentCost === null || equipmentCost <= 0) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "equipment_cost",
+        prompt: "What is the total cost of the equipment you are considering (in ₦)? (Must be greater than 0)",
+        type: 'number',
+        intent_context: {
+          intent: "equipment",
+          decision_type: "equipment_purchase",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (estimatedRoiPercentage === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "estimated_roi_percentage",
+        prompt: "What is the estimated Return on Investment (ROI) percentage you expect from this equipment within 12 months? (e.g., '20' for 20%. Type '0' if unsure or none)",
+        type: 'number',
+        intent_context: {
+          intent: "equipment",
+          decision_type: "equipment_purchase",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+  if (isEssentialReplacement === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "is_essential_replacement",
+        prompt: "Is this equipment a critical replacement for existing, failing equipment? (Yes/No)",
+        type: 'boolean',
+        intent_context: {
+          intent: "equipment",
+          decision_type: "equipment_purchase",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: false,
+      }
+    };
+  }
+  if (currentEquipmentUtilizationPercentage === null) {
+    return {
+      decision: null,
+      dataNeeded: {
+        field: "current_equipment_utilization_percentage",
+        prompt: "What is the current utilization percentage of your existing equipment (if applicable, e.g., '70' for 70%)? (Type '0' if no existing equipment or not applicable)",
+        type: 'number',
+        intent_context: {
+          intent: "equipment",
+          decision_type: "equipment_purchase",
+          current_payload: currentPayload
+        },
+        canBeZeroOrNone: true,
+      }
+    };
+  }
+  console.log(`[${requestId}] makeEquipmentDecision: After Data Gathering. currentPayload:`, currentPayload);
+
+  // --- Final Validation and Defaulting ---
+  const finalEquipmentCost = getNumberOrDefault(equipmentCost);
+  const finalEstimatedRoiPercentage = getNumberOrDefault(estimatedRoiPercentage);
+  const finalIsEssentialReplacement = getBooleanOrDefault(isEssentialReplacement);
+  const finalCurrentEquipmentUtilizationPercentage = getNumberOrDefault(currentEquipmentUtilizationPercentage);
+
+  // --- Rule Evaluation ---
+
+  // 1. REJECT (Highest Priority)
+  if (net_income <= 0) {
+    recommendation = 'REJECT';
+    reasons.push(`Your business is currently not profitable (Net Income: ₦${net_income.toLocaleString()}).`);
+  } else if (savings_buffer_months < 0.5 && !finalIsEssentialReplacement) {
+    recommendation = 'REJECT';
+    reasons.push(`Your savings (₦${current_savings.toLocaleString()}) are less than half a month of expenses (₦${monthly_expenses.toLocaleString()}), and this is not a critical replacement.`);
+  } else if (finalEstimatedRoiPercentage < 5 && !finalIsEssentialReplacement) {
+    recommendation = 'REJECT';
+    reasons.push(`The estimated ROI (${finalEstimatedRoiPercentage}%) is very low, and this is not a critical replacement.`);
+  }
+
+  if (recommendation === 'REJECT') {
+    actionable_steps = [
+      'Focus on increasing your monthly revenue and aggressively cutting non-essential expenses to achieve consistent profitability.',
+      'Build your emergency savings to cover at least 1 month of operating expenses.',
+      'Re-evaluate the necessity and potential cost-savings of this equipment, or explore more affordable alternatives like leasing.'
+    ];
+  } else {
+    // If not REJECTED, evaluate for APPROVE or WAIT
+    let approveConditionsMet = 0;
+    let waitConditionsTriggered = 0;
+
+    // Condition: Positive cash flow (already checked by net_income > 0)
+    // Condition: Savings buffer >= 2 months
+    if (savings_buffer_months >= 2) {
+      approveConditionsMet++;
+    } else {
+      reasons.push(`Your savings buffer (${savings_buffer_months.toFixed(1)} months) is less than 2 months of operating expenses.`);
+      waitConditionsTriggered++;
+    }
+
+    // Condition: ROI >= 20%
+    if (finalEstimatedRoiPercentage >= 20) {
+      approveConditionsMet++;
+    } else {
+      reasons.push(`The estimated ROI (${finalEstimatedRoiPercentage}%) is below the target of 20%.`);
+      waitConditionsTriggered++;
+    }
+
+    // Condition: Equipment utilization >= 70% (or 0 if new/not applicable)
+    if (finalCurrentEquipmentUtilizationPercentage >= 70 || finalCurrentEquipmentUtilizationPercentage === 0) {
+      approveConditionsMet++;
+    } else {
+      reasons.push(`Your existing equipment utilization (${finalCurrentEquipmentUtilizationPercentage}%) is below 70%.`);
+      waitConditionsTriggered++;
+    }
+
+    // Special APPROVE condition for essential replacement
+    if (finalIsEssentialReplacement && net_income > 0 && savings_buffer_months >= 1) {
+      recommendation = 'APPROVE';
+      reasons.push(`This is a critical replacement, and your business has positive net income (₦${net_income.toLocaleString()}) with at least 1 month of savings buffer (₦${current_savings.toLocaleString()}).`);
+      actionable_steps.push(
+        'Thoroughly research suppliers and negotiate the best possible terms and warranties.',
+        'Develop a clear plan for integrating the new equipment into your operations and training staff.',
+        'Monitor the actual revenue increase and cost savings to track the real ROI against your estimates.'
+      );
+    } else if (approveConditionsMet >= 3) { // All primary APPROVE conditions met
+      recommendation = 'APPROVE';
+      actionable_steps.push(
+        'Thoroughly research suppliers and negotiate the best possible terms and warranties.',
+        'Develop a clear plan for integrating the new equipment into your operations and training staff.',
+        'Monitor the actual revenue increase and cost savings to track the real ROI against your estimates.'
+      );
+    } else {
+      recommendation = 'WAIT';
+      actionable_steps.push(
+        'Increase your net income to build a stronger financial base.',
+        'Boost your savings buffer to cover at least 2 months of operating expenses.',
+        'Re-evaluate the estimated ROI. Can you find ways to increase the revenue impact or reduce the cost?',
+        'If existing equipment utilization is low, focus on maximizing its use before investing in new assets.',
+        'Consider alternative financing options or a smaller, less costly equipment model.',
+        'If it\'s an essential replacement, explore temporary solutions or more cost-effective options to maintain operations while improving finances.'
+      );
+    }
+  }
+
+  // Construct final reasoning string
+  let finalReasoning: string | string[];
+  if (recommendation === 'APPROVE') {
+    finalReasoning = 'Your business is in a strong financial position with healthy profitability, sufficient reserves, and a clear return on investment. This equipment purchase is likely to strengthen productivity without endangering liquidity.';
+    if (reasons.length > 0) {
+      finalReasoning += ` Key strengths: ${reasons.join(' ')}.`;
+    }
+  } else {
+    finalReasoning = reasons; // For WAIT/REJECT, return array of specific reasons
+  }
+
+  // Ensure actionable steps are unique
+  actionable_steps = Array.from(new Set(actionable_steps));
+  console.log(`[${requestId}] Final actionable steps:`, actionable_steps);
+
+  console.log(`[${requestId}] makeEquipmentDecision: Before final decision return. Recommendation: ${recommendation}`);
+
+  return {
+    decision: {
+      recommendation,
+      reasoning: finalReasoning,
+      actionable_steps,
+      financial_snapshot: financialData,
+      equipment_cost: finalEquipmentCost,
+      estimated_roi_percentage: finalEstimatedRoiPercentage,
+      is_essential_replacement: finalIsEssentialReplacement,
+      current_equipment_utilization_percentage: finalCurrentEquipmentUtilizationPercentage,
+    }
+  };
+}
+
 // --- Main decision-engine logic ---
 
 serve(async (req) => {
@@ -1378,6 +1595,9 @@ serve(async (req) => {
       case 'savings': // New savings decision
         decisionResult = makeSavingsDecision(financialData, { is_fmcg_vendor: isFmcgVendor, business_type: businessType }, currentPayload, question, requestId);
         break;
+      case 'equipment': // New equipment decision
+        decisionResult = makeEquipmentDecision(financialData, { is_fmcg_vendor: isFmcgVendor, business_type: businessType }, currentPayload, question, requestId);
+        break;
       default:
         throw new InputValidationError("Unsupported Intent", `Intent '${intent}' is not yet supported.`);
     }
@@ -1437,6 +1657,11 @@ serve(async (req) => {
       current_reserve_allocation_percentage_growth: decision.current_reserve_allocation_percentage_growth ?? null,
       fixed_operating_expenses: decision.fixed_operating_expenses ?? null,
       net_profit: decision.net_profit ?? null,
+      // New equipment fields
+      equipment_cost: decision.equipment_cost ?? null,
+      estimated_roi_percentage: decision.estimated_roi_percentage ?? null,
+      is_essential_replacement: decision.is_essential_replacement ?? null,
+      current_equipment_utilization_percentage: decision.current_equipment_utilization_percentage ?? null,
     };
     console.log(`[${requestId}] Attempting to save decision:`, decisionToSave);
 
