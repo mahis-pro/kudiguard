@@ -7,7 +7,8 @@ import {
   ArrowRight,
   Facebook, 
   Twitter,  
-  Instagram 
+  Instagram,
+  MessageCircle // Added MessageCircle import
 } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import HeroVisual from '@/components/HeroVisual';

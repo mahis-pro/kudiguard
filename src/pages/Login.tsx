@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import LoginScreen from '@/components/LoginScreen';
 import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
 

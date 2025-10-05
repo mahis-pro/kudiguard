@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAnimateOnScroll } from '@/hooks/use-animate-on-scroll';
+import kudiGuardLogo from '@/assets/kudiguard-logo.png'; // Added kudiGuardLogo import
 
 interface FAQ {
   id: string;

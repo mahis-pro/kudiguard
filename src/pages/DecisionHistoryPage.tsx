@@ -18,7 +18,7 @@ const DecisionHistoryPage = () => {
   const [selectedDecision, setSelectedDecision] = useState<any | null>(null);
   const [filterType, setFilterType] = useState('all'); // 'all', 'APPROVE', 'WAIT', 'REJECT'
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest'
-  const isMobile = useIsMobile();
+  // const isMobile = useIsMobile(); // Removed as it's not used
 
   const userId = session?.user?.id;
 

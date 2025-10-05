@@ -19,7 +19,7 @@ const SignUpScreen = () => {
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [formMessage, setFormMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
-  const { toast } = useToast();
+  const { toast } = useToast(); // This toast is actually used for the success message, so it should remain.
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -77,9 +77,19 @@ const SignUpScreen = () => {
       }
 
       setFormMessage({ type: 'success', text: 'Sign Up Successful! Please check your email to verify your account. You can then log in.' });
+      toast({
+        title: "Sign Up Successful",
+        description: "Please check your email to verify your account. You can then log in.",
+        variant: "default",
+      });
     } catch (error: any) {
       console.error('Error signing up:', error.message);
       setFormMessage({ type: 'error', text: error.message || 'Failed to sign up. Please try again.' });
+      toast({
+        title: "Sign Up Failed",
+        description: error.message || "An error occurred during sign up.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

@@ -12,7 +12,8 @@ import {
   AlertTriangle, 
   Facebook, 
   Twitter,  
-  Instagram 
+  Instagram,
+  PiggyBank // Added PiggyBank import
 } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import HowItWorks from '@/components/HowItWorks'; 
