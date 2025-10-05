@@ -148,7 +148,9 @@ const InsightsPage = () => {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold currency">{netProfit.toLocaleString()}</div>
+              <div className={`text-2xl font-bold currency ${netProfit > 0 ? 'text-success' : netProfit < 0 ? 'text-destructive' : 'text-foreground'}`}>
+                {netProfit.toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground">Latest calculation</p>
             </CardContent>
           </Card>
@@ -158,7 +160,9 @@ const InsightsPage = () => {
               <BarChart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{profitMargin.toFixed(1)}%</div>
+              <div className={`text-2xl font-bold ${profitMargin > 0 ? 'text-success' : profitMargin < 0 ? 'text-destructive' : 'text-foreground'}`}>
+                {profitMargin.toFixed(1)}%
+              </div>
               <p className="text-xs text-muted-foreground">Based on latest data</p>
             </CardContent>
           </Card>
