@@ -1,3 +1,4 @@
+/// <reference path="../../src/types/supabase-edge-functions.d.ts" />
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { v4 as uuidv4 } from "https://esm.sh/uuid@9.0.1";
@@ -154,7 +155,6 @@ interface LogEntry {
 }
 
 async function logError(
-  supabaseClient: SupabaseClient,
   logEntry: LogEntry
 ) {
   const { requestId, vendorId, errorCode, severity, errorSummary, timestamp, stack, payload, originalError } = logEntry;
@@ -181,7 +181,6 @@ export async function handleError(
   error: any,
   requestId: string,
   vendorId: string | null,
-  supabaseClient: SupabaseClient,
   requestPayload: any = {},
 ): Promise<Response> {
   let customError: CustomError;
@@ -210,7 +209,7 @@ export async function handleError(
     statusCode = 500;
   }
 
-  await logError(supabaseClient, {
+  await logError({ // Updated call to logError
     requestId,
     vendorId,
     errorCode: customError.code,
@@ -267,15 +266,19 @@ const GeminiOutputSchema = z.object({
 // Initialize Gemini
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 if (!GEMINI_API_KEY) {
-  console.error("GEMINI_API_KEY is not set in environment variables.");
-  // In a real scenario, you might want to throw an error here to prevent function deployment
-  // or handle it gracefully during runtime. For now, we'll let it proceed but log.
+  console.error("GEMINI_API_KEY is not set in environment variables. This function will not work without it.");
+  throw new CustomError(
+    ERROR_CODES.SERVICE_UNAVAILABLE,
+    "AI service is not configured. Please ensure GEMINI_API_KEY is set.",
+    SEVERITY.HIGH,
+    500
+  );
 }
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "dummy-key"); // Use dummy key if not set
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Using gemini-pro
 
 // Main Edge Function Logic
-serve(async (req) => {
+serve(async (req: Request) => {
   const requestId = generateRequestId();
   let user: any = null;
   
@@ -357,6 +360,7 @@ serve(async (req) => {
       
       JSON Output:
     `;
+    console.log(`[${requestId}] Prompt sent to Gemini:`, prompt); // Log the full prompt
 
     let geminiResponseText: string;
     try {
@@ -378,7 +382,20 @@ serve(async (req) => {
     let parsedIntent: z.infer<typeof GeminiOutputSchema>;
     try {
       // Attempt to clean up the response if it contains markdown code blocks
-      const cleanedResponse = geminiResponseText.replace(/```json\n|```/g, '').trim();
+      let cleanedResponse = geminiResponseText.replace(/```json\n|```/g, '').trim();
+      console.log(`[${requestId}] Cleaned Gemini response (after markdown removal):`, cleanedResponse);
+
+      // Further attempt to extract JSON if there's surrounding text
+      const jsonStartIndex = cleanedResponse.indexOf('{');
+      const jsonEndIndex = cleanedResponse.lastIndexOf('}');
+
+      if (jsonStartIndex !== -1 && jsonEndIndex !== -1 && jsonEndIndex > jsonStartIndex) {
+        cleanedResponse = cleanedResponse.substring(jsonStartIndex, jsonEndIndex + 1);
+        console.log(`[${requestId}] Extracted JSON string:`, cleanedResponse);
+      } else {
+        console.warn(`[${requestId}] Could not find valid JSON delimiters in cleaned response.`);
+      }
+
       parsedIntent = GeminiOutputSchema.parse(JSON.parse(cleanedResponse));
     } catch (parseError) {
       console.error(`[${requestId}] Failed to parse Gemini response as JSON or validate schema:`, parseError);
@@ -411,7 +428,8 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error(`[${requestId}] RAW ERROR CAUGHT IN INTENT-PARSER HANDLER:`, error);
-    return handleError(error, requestId, user ? user.id : null, supabase, req.body);
+    console.error(`[${requestId}] RAW ERROR CAUGHT IN MAIN HANDLER:`, error);
+    // Note: supabaseClient is not used in handleError for intent-parser, so it's omitted.
+    return handleError(error, requestId, user ? user.id : null, req.body);
   }
 });
