@@ -26,7 +26,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }],
-  "exclude": ["supabase"]
+  "include": ["src", "src/types/supabase-edge-functions.d.ts", "supabase/functions"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

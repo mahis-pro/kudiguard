@@ -12,6 +12,7 @@ import kudiGuardIcon from '/kudiguard-icon.jpg';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ParsedIntent, IntentParserResponse } from '@/types/supabase-edge-functions'; // Import new types
 
 interface ChatMessage {
   id: string;
@@ -229,7 +230,7 @@ const ChatPage = () => {
       setLastUserQueryPayload(null);
 
     } catch (error: any) {
-      console.error("Error invoking edge function:", error);
+      console.error("Error invoking decision-engine edge function:", error);
       let errorMessage = "An unexpected error occurred while analyzing your request.";
       if (error.context?.details) {
         errorMessage = error.context.details;
@@ -254,7 +255,7 @@ const ChatPage = () => {
     }
   };
 
-  const handleSendMessage = (valueToSend?: string | boolean) => {
+  const handleSendMessage = async (valueToSend?: string | boolean) => { // Made async
     let finalMessageInput = messageInput;
     if (valueToSend !== undefined) {
       finalMessageInput = String(valueToSend);
@@ -290,6 +291,7 @@ const ChatPage = () => {
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMessage]);
+    setMessageInput(''); // Clear input immediately after sending
 
     if (pendingDataRequest && currentIntent && currentQuestion) {
       let parsedValue: number | boolean | string | undefined;
@@ -320,7 +322,6 @@ const ChatPage = () => {
           };
           setMessages((prev) => [...prev, retryMessage]);
           setIsAiTyping(false);
-          setMessageInput('');
           return;
         }
       }
@@ -335,7 +336,6 @@ const ChatPage = () => {
         };
         setMessages((prev) => [...prev, retryMessage]);
         setIsAiTyping(false);
-        setMessageInput('');
         return;
       }
 
@@ -349,64 +349,86 @@ const ChatPage = () => {
         };
         setMessages((prev) => [...prev, retryMessage]);
         setIsAiTyping(false);
-        setMessageInput('');
         return;
       }
 
       const updatedPayload = { ...currentPayload, [pendingDataRequest.field]: parsedValue };
       setCurrentPayload(updatedPayload);
       sendToDecisionEngine(currentIntent, currentQuestion, updatedPayload);
-      setMessageInput('');
       return;
     }
 
-    let intentDetected: string | null = null;
-    let initialPayload: Record<string, any> = {};
+    // --- New Intent Parsing Logic ---
+    setIsAiTyping(true);
+    try {
+      const { data: intentParserResult, error: invokeError } = await supabase.functions.invoke('intent-parser', {
+        body: { user_query: finalMessageInput },
+      });
 
-    if (lowerCaseInput.includes('hire') || lowerCaseInput.includes('staff') || lowerCaseInput.includes('employee')) {
-      intentDetected = 'hiring';
-    } else if (lowerCaseInput.includes('inventory') || lowerCaseInput.includes('stock') || lowerCaseInput.includes('restock') || lowerCaseInput.includes('buy more')) {
-      intentDetected = 'inventory';
-      const discountMatch = lowerCaseInput.match(/(\d+(\.\d+)?)% discount/);
-      if (discountMatch && discountMatch[1]) {
-        const discount = parseFloat(discountMatch[1]);
-        if (!isNaN(discount) && discount >= 0 && discount <= 100) {
-          initialPayload.supplier_discount_percentage = discount;
-        }
+      if (invokeError) {
+        throw invokeError;
       }
-    } else if (lowerCaseInput.includes('marketing') || lowerCaseInput.includes('promote') || lowerCaseInput.includes('campaign') || lowerCaseInput.includes('advertise')) {
-      intentDetected = 'marketing';
-    } else if (lowerCaseInput.includes('savings') || lowerCaseInput.includes('save') || lowerCaseInput.includes('emergency fund') || lowerCaseInput.includes('growth fund') || lowerCaseInput.includes('allocate')) {
-      intentDetected = 'savings';
-    } else if (lowerCaseInput.includes('equipment') || lowerCaseInput.includes('asset') || lowerCaseInput.includes('machine') || lowerCaseInput.includes('tool')) {
-      intentDetected = 'equipment';
-    } else if (lowerCaseInput.includes('loan') || lowerCaseInput.includes('debt') || lowerCaseInput.includes('borrow') || lowerCaseInput.includes('credit')) {
-      intentDetected = 'loan_management';
-    } else if (lowerCaseInput.includes('expand') || lowerCaseInput.includes('expansion') || lowerCaseInput.includes('grow business') || lowerCaseInput.includes('new location') || lowerCaseInput.includes('new product line')) {
-      intentDetected = 'business_expansion';
-    }
 
-    if (intentDetected) {
-      setCurrentIntent(intentDetected);
-      setCurrentQuestion(finalMessageInput);
-      setCurrentPayload(initialPayload);
+      if (!intentParserResult || !intentParserResult.success || !intentParserResult.data) {
+        const errorMessage = intentParserResult?.error?.details || "I couldn't understand your request. Please try rephrasing.";
+        const errorResponse: ChatMessage = {
+          id: String(Date.now()),
+          sender: 'ai',
+          text: `Error: ${errorMessage}`,
+          timestamp: new Date().toISOString(),
+          quickReplies: ['What else can you do?'],
+        };
+        setMessages((prev) => [...prev, errorResponse]);
+        setIsAiTyping(false);
+        return;
+      }
 
-      setLastUserQueryText(finalMessageInput);
-      setLastUserQueryIntent(intentDetected);
-      setLastUserQueryPayload(initialPayload);
+      const parsedIntent: ParsedIntent = intentParserResult.data;
+      console.log("Parsed Intent:", parsedIntent);
 
-      sendToDecisionEngine(intentDetected, finalMessageInput, initialPayload);
-    } else {
-      const noIntentResponse: ChatMessage = {
+      if (parsedIntent.intent === 'unknown') {
+        const noIntentResponse: ChatMessage = {
+          id: String(Date.now()),
+          sender: 'ai',
+          text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loan, and business expansion decisions. Please ask me a question related to these topics.",
+          timestamp: new Date().toISOString(),
+          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
+        };
+        setMessages((prev) => [...prev, noIntentResponse]);
+        setIsAiTyping(false);
+        return;
+      }
+
+      // If intent is detected, proceed to decision engine
+      setCurrentIntent(parsedIntent.intent);
+      setCurrentQuestion(parsedIntent.question);
+      setCurrentPayload(parsedIntent.payload || {});
+
+      setLastUserQueryText(parsedIntent.question);
+      setLastUserQueryIntent(parsedIntent.intent);
+      setLastUserQueryPayload(parsedIntent.payload || {});
+
+      sendToDecisionEngine(parsedIntent.intent, parsedIntent.question, parsedIntent.payload);
+
+    } catch (error: any) {
+      console.error("Error invoking intent-parser edge function:", error);
+      let errorMessage = "An unexpected error occurred while processing your query.";
+      if (error.context?.details) {
+        errorMessage = error.context.details;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      const errorResponse: ChatMessage = {
         id: String(Date.now()),
         sender: 'ai',
-        text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loan, and business expansion decisions. Please ask me a question like 'Can I afford to hire a new staff member?', 'Should I restock my shop?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', or 'Should I expand my business?'.",
+        text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
+        quickReplies: ['What else can you do?'],
       };
-      setMessages((prev) => [...prev, noIntentResponse]);
+      setMessages((prev) => [...prev, errorResponse]);
       setIsAiTyping(false);
     }
-    setMessageInput('');
   };
 
   const handleQuickReply = (reply: string) => {

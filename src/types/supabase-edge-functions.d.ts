@@ -95,3 +95,36 @@ export type DecisionFunctionReturn = {
   decision: DecisionResult | null;
   dataNeeded?: DataNeededResponse;
 };
+
+// New types for intent-parser
+export type IntentParserInput = {
+  user_query: string;
+};
+
+export type ParsedIntent = {
+  intent: 'hiring' | 'inventory' | 'marketing' | 'savings' | 'equipment' | 'loan_management' | 'business_expansion' | 'unknown';
+  question: string;
+  payload: Record<string, any>;
+};
+
+export type IntentParserResponse = {
+  success: boolean;
+  data: ParsedIntent | null;
+  error: {
+    code: string;
+    severity: string;
+    details: string;
+  } | null;
+  meta: {
+    requestId: string;
+    timestamp: string;
+    version: string;
+  };
+};
+
+// Extend ERROR_CODES with GEMINI_API_ERROR
+declare module "https://deno.land/x/zod@v3.23.0/mod.ts" {
+  interface ZodIssueCode {
+    GEMINI_API_ERROR: "GEMINI_API_ERROR";
+  }
+}
