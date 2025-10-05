@@ -9,6 +9,7 @@ import DecisionCard from '@/components/DecisionCard';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch'; // Import Switch component
 import kudiGuardLogo from '@/assets/kudiguard-logo.png'; // Import the logo
+import { Textarea } from '@/components/ui/textarea'; // Import Textarea for multi-line input
 
 interface ChatMessage {
   id: string;
@@ -387,17 +388,36 @@ const ChatPage = () => {
     );
   }
 
+  const getPlaceholderText = () => {
+    if (pendingDataRequest) {
+      let placeholder = pendingDataRequest.prompt;
+      if (pendingDataRequest.type === 'number') {
+        // Add currency hint if it's a number input and not already in prompt
+        if (!placeholder.includes('(₦)')) {
+          placeholder += ' (in ₦)';
+        }
+      } else if (pendingDataRequest.type === 'boolean') {
+        placeholder += ' (Yes/No)';
+      }
+      return placeholder;
+    }
+    return "Ask about hiring, inventory, marketing, or savings...";
+  };
+
   return (
     <>
       <div className="flex flex-col flex-1">
-        {/* Removed the header section with the KudiGuard logo */}
-
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((msg) => (
             <div
               key={msg.id}
               className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
+              {msg.sender === 'ai' && (
+                <div className="flex-shrink-0 mr-2 mt-1">
+                  <img src={kudiGuardLogo} alt="KudiGuard AI" className="h-7 w-7 rounded-full" />
+                </div>
+              )}
               <div
                 className={`max-w-[80%] p-3 rounded-lg shadow-sm ${
                   msg.sender === 'user'
@@ -429,6 +449,9 @@ const ChatPage = () => {
           ))}
           {isAiTyping && (
             <div className="flex justify-start">
+              <div className="flex-shrink-0 mr-2 mt-1">
+                <img src={kudiGuardLogo} alt="KudiGuard AI" className="h-7 w-7 rounded-full" />
+              </div>
               <div className="max-w-[70%] p-3 rounded-lg bg-card text-foreground border">
                 <TypingIndicator />
               </div>
@@ -440,7 +463,7 @@ const ChatPage = () => {
         <div className="bg-card border-t border-border p-4 flex items-center flex-shrink-0">
           {pendingDataRequest?.type === 'boolean' ? (
             <div className="flex items-center justify-between w-full">
-              <span className="text-muted-foreground mr-4">{pendingDataRequest.prompt}</span>
+              <span className="text-muted-foreground mr-4">{getPlaceholderText()}</span>
               <div className="flex space-x-2">
                 <Button 
                   onClick={() => handleSendMessage(true)} 
@@ -459,17 +482,21 @@ const ChatPage = () => {
               </div>
             </div>
           ) : (
-            <Input
-              type="text"
-              placeholder={pendingDataRequest ? pendingDataRequest.prompt : "Ask about hiring, inventory, marketing, or savings..."}
+            <Textarea // Changed from Input to Textarea
+              placeholder={getPlaceholderText()}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              className="flex-1 mr-2 h-12"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { // Allow Shift+Enter for new line
+                  e.preventDefault(); // Prevent default behavior (new line)
+                  handleSendMessage();
+                }
+              }}
+              className="flex-1 mr-2 h-12 min-h-[48px] max-h-[150px] resize-y" // Added resize-y for dynamic height
               disabled={isAiTyping}
             />
           )}
-          <Button onClick={() => handleSendMessage()} className="bg-gradient-primary h-12 ml-2" disabled={isAiTyping}>
+          <Button onClick={() => handleSendMessage()} className="bg-gradient-primary h-12 ml-2" disabled={isAiTyping || (pendingDataRequest?.type !== 'boolean' && messageInput.trim() === '')}>
             <Send className="h-5 w-5" />
           </Button>
         </div>

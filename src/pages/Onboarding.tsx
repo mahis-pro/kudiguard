@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 import { 
   User, 
   ArrowRight, 
@@ -23,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Switch } from '@/components/ui/switch'; // Import Switch
+import { useToast } from '@/hooks/use-toast'; // Import useToast
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -41,6 +41,7 @@ const Onboarding = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalSteps = 3; // Personal, Business, Financial Habits
+  const stepLabels = ["Personal Info", "Business Details", "Financial Habits"]; // Labels for progress indicator
 
   // Predefined options for select fields
   const businessTypeOptions = [
@@ -211,7 +212,9 @@ const Onboarding = () => {
                 onChange={(e) => setFullName(e.target.value)}
                 className="h-12"
                 required
+                // Conceptual: Add onBlur validation here
               />
+              {/* Conceptual: Display real-time validation message here */}
             </div>
 
             <div className="space-y-2">
@@ -227,7 +230,9 @@ const Onboarding = () => {
                 onChange={(e) => setBusinessName(e.target.value)}
                 className="h-12"
                 required
+                // Conceptual: Add onBlur validation here
               />
+              {/* Conceptual: Display real-time validation message here */}
             </div>
           </div>
         );
@@ -257,6 +262,7 @@ const Onboarding = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {/* Conceptual: Display real-time validation message here */}
             </div>
 
             <div className="space-y-2">
@@ -282,6 +288,7 @@ const Onboarding = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {/* Conceptual: Display real-time validation message here */}
             </div>
 
             <div className="flex items-center justify-between space-x-2 pt-2">
@@ -381,17 +388,21 @@ const Onboarding = () => {
           </p>
           
           {/* Progress Indicator */}
-          <div className="flex justify-center space-x-2 mt-6">
-            {Array.from({ length: totalSteps }).map((_, index) => (
-              <div
-                key={index}
-                className={`h-2 w-8 rounded-full ${
-                  index + 1 <= currentStep ? 'bg-gradient-primary' : 'bg-muted'
-                }`}
-              />
-            ))}
+          <div className="flex flex-col items-center mt-6">
+            <div className="flex justify-center space-x-2 mb-2">
+              {Array.from({ length: totalSteps }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-2 w-8 rounded-full ${
+                    index + 1 <= currentStep ? 'bg-gradient-primary' : 'bg-muted'
+                  }`}
+                />
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Step {currentStep} of {totalSteps}: {stepLabels[currentStep - 1]}
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground mt-2">Step {currentStep} of {totalSteps}</p>
 
         </CardHeader>
         
