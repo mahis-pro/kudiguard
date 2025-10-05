@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'; // Ensure TooltipProvider is imported if not already globally
+import { useQuery } from '@tanstack/react-query'; // Import useQuery
 
 const Profile = () => {
   const { session, supabase, isLoading, userDisplayName } = useSession();
@@ -190,7 +191,43 @@ const Profile = () => {
     }));
   };
 
-  if (isLoading) {
+  // --- Data Fetching for Business Overview ---
+  const userId = session?.user?.id;
+
+  // Fetch all decisions for the user
+  const { data: decisions, isLoading: decisionsLoading, error: decisionsError } = useQuery({
+    queryKey: ['userDecisions', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from('decisions')
+        .select('id, recommendation')
+        .eq('user_id', userId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+
+  // Fetch latest financial entry for health score
+  const { data: latestFinancialEntry, isLoading: financialLoading, error: financialError } = useQuery({
+    queryKey: ['latestFinancialEntryForProfile', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from('financial_entries')
+        .select('monthly_revenue, monthly_expenses, current_savings')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+
+  if (isLoading || decisionsLoading || financialLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading profile...</p>
@@ -198,14 +235,34 @@ const Profile = () => {
     );
   }
 
-  const totalDecisions = 0;
-  const recommendedActions = 0;
-  const savedPotentialLoss = 0; 
+  // --- Derived Metrics for Business Overview ---
+  const totalDecisions = decisions?.length || 0;
+  const recommendedActions = decisions?.filter(d => d.recommendation === 'APPROVE').length || 0;
+  const savedPotentialLoss = 0; // Placeholder: Requires more complex logic or a new DB field.
+
   const memberSinceDate = session?.user?.created_at 
     ? new Date(session.user.created_at).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' }) 
     : 'N/A';
-  const financialHealthScore = 0;
-  const scoreInterpretation = "No decisions made yet. Your financial health score will appear here after your first analysis.";
+
+  let financialHealthScore = 0;
+  let scoreInterpretation = "No decisions made yet. Your financial health score will appear here after your first analysis.";
+
+  if (latestFinancialEntry) {
+    const { monthly_revenue, monthly_expenses, current_savings } = latestFinancialEntry;
+    const netProfit = monthly_revenue - monthly_expenses;
+    const profitMargin = monthly_revenue > 0 ? (netProfit / monthly_revenue) * 100 : 0;
+
+    if (netProfit <= 0 || current_savings < (0.5 * monthly_expenses)) {
+      financialHealthScore = 20; // Risky
+      scoreInterpretation = "Your business is facing significant financial challenges. Focus on immediate revenue generation and aggressive cost reduction to improve stability.";
+    } else if (netProfit > 0 && (profitMargin < 10 || current_savings < monthly_expenses)) {
+      financialHealthScore = 50; // Caution
+      scoreInterpretation = "Your business is profitable, but there are areas for improvement. Consider optimizing expenses, increasing profit margins, or building a stronger savings buffer.";
+    } else if (netProfit > 0 && profitMargin >= 10 && current_savings >= monthly_expenses) {
+      financialHealthScore = 100; // Stable
+      scoreInterpretation = "Your business is in a stable financial position with healthy profits and sufficient reserves. You're well-positioned for growth and strategic investments.";
+    }
+  }
 
   const profileFields = [
     { key: 'fullName', label: 'Full Name', icon: User, type: 'text', readOnly: false },
