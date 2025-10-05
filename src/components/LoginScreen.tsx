@@ -111,10 +111,10 @@ const LoginScreen = () => {
             <img 
               src={kudiGuardLogo} 
               alt="KudiGuard" 
-              className="h-16 w-auto"
+              className="h-8 w-auto"
             />
           </div>
-          <h1 className="text-3xl font-bold text-primary">Welcome Back!</h1> {/* Added a title */}
+          <h1 className="text-2xl font-bold text-primary">Welcome Back!</h1>
           <p className="text-muted-foreground mt-2">
             Your financial advisor for smart business decisions
           </p>
