@@ -80,17 +80,24 @@ const AnalyticsPage = () => {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              This chart helps you see how your revenue, expenses, and savings are changing.
-              Look for patterns:
+              This chart is your business's story! It helps you see how your revenue, expenses, and savings are changing over time. Look for these patterns to understand your business better:
             </p>
             <ul className="list-disc list-inside text-sm text-muted-foreground space-y-2">
-              <li>**Rising Revenue:** A good sign of business growth.</li>
-              <li>**Stable or Decreasing Expenses:** Indicates good cost control.</li>
-              <li>**Increasing Savings:** Shows improved financial health and resilience.</li>
-              <li>**Dips or Spikes:** Investigate what caused these changes to learn and adapt.</li>
+              <li>
+                <span className="font-semibold text-foreground">Rising Revenue:</span> This means your business is growing! Keep up the good work and explore what's driving these sales so you can do more of it.
+              </li>
+              <li>
+                <span className="font-semibold text-foreground">Stable or Decreasing Expenses:</span> Excellent! This shows you're managing your costs well. Continue to monitor and find smart ways to save without compromising quality.
+              </li>
+              <li>
+                <span className="font-semibold text-foreground">Increasing Savings:</span> Fantastic! A growing savings cushion means your business is becoming more resilient and ready for future opportunities or unexpected challenges.
+              </li>
+              <li>
+                <span className="font-semibold text-foreground">Dips or Spikes:</span> Don't worry, these are normal. Use them as opportunities to learn! Think about what happened during those times – did sales drop due to a holiday, or did expenses increase because of a new investment? Understanding these helps you plan better.
+              </li>
             </ul>
             <p className="text-muted-foreground mt-4">
-              Regularly adding your financial data will give you the most accurate and helpful insights.
+              Remember, the more regularly you add your financial data, the more accurate and helpful these insights will be for your business!
             </p>
           </CardContent>
         </Card>
