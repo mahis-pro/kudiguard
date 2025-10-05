@@ -14,6 +14,7 @@ const FinancialHealthScoreCard = ({ score, message }: FinancialHealthScoreProps)
   let title: string;
   let cardClasses: string;
   let iconClasses: string;
+  let shadowClass: string = 'shadow-card'; // Default shadow
 
   switch (score) {
     case 'stable':
@@ -21,33 +22,37 @@ const FinancialHealthScoreCard = ({ score, message }: FinancialHealthScoreProps)
       title = 'Stable';
       cardClasses = 'bg-success-light border-success/20';
       iconClasses = 'text-success';
+      shadowClass = 'shadow-success-glow'; // Apply specific glow
       break;
     case 'caution':
       icon = AlertTriangle;
       title = 'Caution';
       cardClasses = 'bg-warning-light border-warning/20';
       iconClasses = 'text-warning';
+      shadowClass = 'shadow-warning-glow'; // Apply specific glow
       break;
     case 'risky':
       icon = XCircle;
       title = 'Risky';
       cardClasses = 'bg-destructive/10 border-destructive/20';
       iconClasses = 'text-destructive';
+      shadowClass = 'shadow-destructive-glow'; // Apply specific glow
       break;
     default:
       icon = ShieldCheck;
       title = 'Unknown';
       cardClasses = 'bg-muted/30 border-muted/20';
       iconClasses = 'text-muted-foreground';
+      shadowClass = 'shadow-card';
   }
 
   const IconComponent = icon;
 
   return (
-    <Card className={`shadow-card ${cardClasses}`}>
+    <Card className={`${shadowClass} ${cardClasses} hover:shadow-lg transition-shadow duration-300`}>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center text-xl">
-          <IconComponent className={`mr-3 h-6 w-6 ${iconClasses}`} />
+        <CardTitle className="flex items-center text-2xl font-bold">
+          <IconComponent className={`mr-3 h-7 w-7 ${iconClasses}`} />
           Business Health: {title}
         </CardTitle>
       </CardHeader>

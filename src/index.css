@@ -53,7 +53,10 @@ All colors MUST be HSL.
     --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(var(--success-light)));
 
     /* --- Shadows --- */
-    --shadow-success: 0 4px 20px -2px hsl(var(--primary) / 0.3);
+    --shadow-primary-glow: 0 4px 20px -2px hsl(var(--primary) / 0.3);
+    --shadow-success-glow: 0 4px 20px -2px hsl(var(--success) / 0.3);
+    --shadow-warning-glow: 0 4px 20px -2px hsl(var(--warning) / 0.3);
+    --shadow-destructive-glow: 0 4px 20px -2px hsl(var(--destructive) / 0.3);
     --shadow-card: 0 2px 10px -2px hsl(0 0% 50% / 0.1); /* Medium Gray with low opacity */
 
     --radius: 0.75rem;
@@ -121,8 +124,20 @@ All colors MUST be HSL.
     background: var(--gradient-subtle);
   }
   
-  .shadow-success {
-    box-shadow: var(--shadow-success);
+  .shadow-primary-glow {
+    box-shadow: var(--shadow-primary-glow);
+  }
+  
+  .shadow-success-glow {
+    box-shadow: var(--shadow-success-glow);
+  }
+  
+  .shadow-warning-glow {
+    box-shadow: var(--shadow-warning-glow);
+  }
+  
+  .shadow-destructive-glow {
+    box-shadow: var(--shadow-destructive-glow);
   }
   
   .shadow-card {
