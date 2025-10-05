@@ -15,7 +15,7 @@ interface DecisionDetailsDialogProps {
     id: string;
     question: string;
     recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
-    reasoning: string;
+    reasoning: string | string[]; // Updated to allow array of strings
     actionable_steps: string[];
     financial_snapshot: {
       monthly_revenue: number;

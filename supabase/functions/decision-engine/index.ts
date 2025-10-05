@@ -1,5 +1,3 @@
-// supabase/functions/decision-engine/index.ts
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { v4 as uuidv4 } from "https://esm.sh/uuid@9.0.1";
@@ -354,7 +352,7 @@ export type ProfileData = {
 // Define a type for the decision result
 export type DecisionResult = {
   recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
-  reasoning: string;
+  reasoning: string | string[]; // Changed to allow array of strings
   actionable_steps: string[];
   financial_snapshot: FinancialData;
   estimated_salary?: number | null;
@@ -434,10 +432,10 @@ export function makeHiringDecision(
   const { monthly_revenue, monthly_expenses, current_savings } = financialData;
   const net_income = monthly_revenue - monthly_expenses;
   
-  const reasons = [];
+  const reasons: string[] = []; // Changed to string array
   let score = 0;
   let recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
-  let reasoning: string;
+  let reasoning: string | string[]; // Changed to allow array of strings
   let actionable_steps: string[];
 
   // Rule 1: Positive Net Income
@@ -472,7 +470,7 @@ export function makeHiringDecision(
     ];
   } else if (score >= 1) {
     recommendation = 'WAIT';
-    reasoning = `While your business has some strengths, it's not fully ready for a new hire. The key reasons to wait are: ${reasons.join(' ')}`;
+    reasoning = reasons; // Return array of reasons
     actionable_steps = [
       'Focus on increasing revenue or decreasing non-essential costs to improve net income.',
       'Build your emergency savings to cover at least 1-3 months of expenses.',
@@ -480,7 +478,7 @@ export function makeHiringDecision(
     ];
   } else {
     recommendation = 'REJECT';
-    reasoning = `Hiring a new staff member now would be too risky for your business. The key reasons for this are: ${reasons.join(' ')}`;
+    reasoning = reasons; // Return array of reasons
     actionable_steps = [
       'Conduct a full review of your business expenses to find savings.',
       'Explore strategies to boost your monthly revenue.',
@@ -521,13 +519,13 @@ export function makeInventoryDecision(
   const net_income = monthly_revenue - monthly_expenses;
   const isFmcgVendor = profileData.is_fmcg_vendor;
   
-  const reasons = [];
+  const reasons: string[] = []; // Changed to string array
   let approveScore = 0;
   let waitScore = 0;
   let rejectScore = 0;
   let actionable_steps: string[] = [];
   let recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
-  let reasoning: string;
+  let reasoning: string | string[]; // Changed to allow array of strings
 
   // --- Data Gathering Sequence for Inventory ---
   if (estimatedInventoryCost === null || estimatedInventoryCost <= 0) {
@@ -688,7 +686,7 @@ export function makeInventoryDecision(
 
   if (rejectScore > 0) {
     recommendation = 'REJECT';
-    reasoning = `Purchasing new inventory now would be too risky for your business. Key reasons: ${reasons.join(' ')}.`;
+    reasoning = reasons; // Return array of reasons
     actionable_steps = [
       'Prioritize paying down outstanding supplier debts.',
       'Focus on increasing revenue and reducing expenses to achieve positive net income.',
@@ -733,11 +731,11 @@ export function makeInventoryDecision(
 
     if (approveScore > 0 && waitScore === 0) { // If at least one approve condition met and no wait conditions
       recommendation = 'APPROVE';
-      reasoning = `Your business is in a strong position to restock. ${reasons.join(' ')}.`;
+      reasoning = `Your business is in a strong position to restock. ${reasons.join(' ')}.`; // Keep as string for APPROVE
       actionable_steps.unshift('Confirm current market demand to avoid overstocking.', 'Negotiate best possible terms with suppliers.');
     } else {
       recommendation = 'WAIT';
-      reasoning = `It's advisable to wait before restocking. Key considerations: ${reasons.join(' ')}.`;
+      reasoning = reasons; // Return array of reasons
       actionable_steps.unshift('Review your sales data to understand demand fluctuations.', 'Improve cash flow by collecting receivables faster or reducing non-essential expenses.');
     }
   }
@@ -783,9 +781,9 @@ export function makeMarketingDecision(
   const net_income = monthly_revenue - monthly_expenses;
   const profit_margin = monthly_revenue > 0 ? (net_income / monthly_revenue) : 0;
 
-  const reasons = [];
+  const reasons: string[] = []; // Changed to string array
   let recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
-  let reasoning: string;
+  let reasoning: string | string[]; // Changed to allow array of strings
   let actionable_steps: string[] = [];
 
   // --- Data Gathering Sequence for Marketing ---
@@ -906,7 +904,7 @@ export function makeMarketingDecision(
   }
 
   if (recommendation === 'REJECT') {
-    reasoning = `Investing in marketing now would be too risky. Key reasons: ${reasons.join(' ')}.`;
+    reasoning = reasons; // Return array of reasons
     actionable_steps = [
       'Prioritize reducing outstanding debts.',
       'Build your emergency savings to cover at least 2-3 months of expenses.',
@@ -966,11 +964,11 @@ export function makeMarketingDecision(
   // Determine final recommendation based on scores
   if (approveScore > 0 && waitScore === 0) {
     recommendation = 'APPROVE';
-    reasoning = `Your business is in a good position to proceed with this marketing initiative. ${reasons.join(' ')}.`;
+    reasoning = `Your business is in a good position to proceed with this marketing initiative. ${reasons.join(' ')}.`; // Keep as string for APPROVE
     actionable_steps.unshift('Define clear, measurable goals for your marketing campaign.', 'Track the return on investment (ROI) of your marketing spend.');
   } else {
     recommendation = 'WAIT';
-    reasoning = `It's advisable to wait or re-evaluate your marketing plan. Key considerations: ${reasons.join(' ')}.`;
+    reasoning = reasons; // Return array of reasons
     actionable_steps.unshift('Refine your marketing strategy to target specific customer segments.', 'Explore lower-cost marketing tactics or partnerships.', 'Re-evaluate your budget and ensure it aligns with your current financial capacity.');
   }
 
@@ -1258,16 +1256,16 @@ export function makeSavingsDecision(
   }
 
   // Construct final reasoning string
-  let finalReasoning: string;
+  let finalReasoning: string | string[]; // Changed to allow array of strings
   if (recommendation === 'APPROVE') {
     finalReasoning = 'Your business is in excellent financial health and is well-positioned to optimize its savings strategy.';
     if (reasons.length > 0) { // If there were some "positive" reasons collected
       finalReasoning += ` Key strengths: ${reasons.join(' ')}.`;
     }
   } else if (recommendation === 'WAIT') {
-    finalReasoning = `It's advisable to wait and address underlying financial issues before significantly increasing savings or using reserves. Key considerations: ${reasons.join(' ')}.`;
+    finalReasoning = reasons; // Return array of reasons
   } else { // REJECT
-    finalReasoning = `Your business is facing critical financial challenges that require immediate attention before any savings strategy can be effectively implemented. Key reasons: ${reasons.join(' ')}.`;
+    finalReasoning = reasons; // Return array of reasons
   }
 
   // Ensure actionable steps are unique
@@ -1412,7 +1410,7 @@ serve(async (req) => {
       user_id: user.id,
       question: question,
       recommendation: decision.recommendation,
-      reasoning: decision.reasoning,
+      reasoning: Array.isArray(decision.reasoning) ? JSON.stringify(decision.reasoning) : decision.reasoning, // Stringify if array
       actionable_steps: decision.actionable_steps,
       financial_snapshot: decision.financial_snapshot,
       estimated_salary: decision.estimated_salary ?? null,

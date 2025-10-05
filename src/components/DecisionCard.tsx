@@ -6,7 +6,7 @@ import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, Pigg
 interface DecisionCardProps {
   data: {
     recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
-    reasoning: string;
+    reasoning: string | string[]; // Updated to allow array of strings
     actionable_steps: string[];
     financial_snapshot: {
       monthly_revenue: number;
@@ -188,6 +188,19 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
     ? (customer_lifetime_value / customer_acquisition_cost)
     : null;
 
+  // Parse reasoning: it could be a string or a JSON stringified array
+  let parsedReasoning: string | string[];
+  try {
+    const parsed = JSON.parse(reasoning as string);
+    if (Array.isArray(parsed)) {
+      parsedReasoning = parsed;
+    } else {
+      parsedReasoning = reasoning as string;
+    }
+  } catch (e) {
+    parsedReasoning = reasoning as string;
+  }
+
   return (
     <Card className={`shadow-md mt-2 ${cardClasses}`}>
       <CardHeader className="pb-3">
@@ -199,7 +212,15 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
       <CardContent className="space-y-4">
         <div>
           <h4 className="font-semibold text-foreground mb-1">Reasoning:</h4>
-          <p className="text-sm text-foreground/90">{reasoning}</p>
+          {Array.isArray(parsedReasoning) ? (
+            <ul className="list-disc list-inside space-y-1 text-sm text-foreground/90">
+              {parsedReasoning.map((reason, index) => (
+                <li key={index}>{reason}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-foreground/90">{parsedReasoning}</p>
+          )}
         </div>
 
         {hasDecisionParameters ? (
@@ -427,24 +448,6 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
             </div>
           </div>
         ) : null}
-
-        <div>
-          <h4 className="font-semibold text-foreground mb-2">Financial Snapshot Used:</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <div className="flex items-center">
-              <TrendingUp className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
-              <span className="text-muted-foreground">Revenue: <span className="font-medium text-foreground currency">{financial_snapshot.monthly_revenue.toLocaleString()}</span></span>
-            </div>
-            <div className="flex items-center">
-              <DollarSign className="h-4 w-4 text-destructive mr-2 flex-shrink-0" />
-              <span className="text-muted-foreground">Expenses: <span className="font-medium text-foreground currency">{financial_snapshot.monthly_expenses.toLocaleString()}</span></span>
-            </div>
-            <div className="flex items-center">
-              <PiggyBank className="h-4 w-4 text-success mr-2 flex-shrink-0" />
-              <span className="text-muted-foreground">Savings: <span className="font-medium text-foreground currency">{financial_snapshot.current_savings.toLocaleString()}</span></span>
-            </div>
-          </div>
-        </div>
 
         <div>
           <h4 className="font-semibold text-foreground mb-2">Actionable Steps:</h4>
