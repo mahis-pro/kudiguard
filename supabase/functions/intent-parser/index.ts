@@ -313,6 +313,7 @@ serve(async (req) => {
       Possible intents are: 'hiring', 'inventory', 'marketing', 'savings', 'equipment', 'loan_management', 'business_expansion', or 'unknown'.
       
       Extract the following fields into a JSON object. If a field is not present or cannot be confidently extracted, omit it from the payload.
+      Numerical values should be extracted as numbers, booleans as true/false.
       
       Output format MUST be a JSON object with 'intent', 'question', and an optional 'payload' field.
       
@@ -326,6 +327,31 @@ serve(async (req) => {
       - 'business_expansion': profit_growth_consistent_6_months (boolean), market_research_validates_demand (boolean), capital_available_percentage_of_cost (number), expansion_cost (number), profit_margin_trend (string: 'consistent_growth', 'positive_fluctuating', 'declining_unstable'), revenue_growth_trend (string: 'consistent_growth', 'positive_fluctuating', 'declining_unstable')
       
       If the intent is 'unknown', the payload should be empty.
+      
+      Here are some examples:
+      User Query: "Should I hire a new staff member for ₦50,000 per month?"
+      JSON Output: {"intent": "hiring", "question": "Should I hire a new staff member?", "payload": {"estimated_salary": 50000}}
+      
+      User Query: "I want to buy new inventory for ₦200,000. My inventory turnover is 45 days."
+      JSON Output: {"intent": "inventory", "question": "Should I buy new inventory?", "payload": {"estimated_inventory_cost": 200000, "inventory_turnover_days": 45}}
+      
+      User Query: "Is it a good idea to spend ₦10,000 on a local marketing campaign? I've seen foot traffic increase from similar past events."
+      JSON Output: {"intent": "marketing", "question": "Is it a good idea to spend on a local marketing campaign?", "payload": {"proposed_marketing_budget": 10000, "is_localized_promotion": true, "historic_foot_traffic_increase_observed": true}}
+      
+      User Query: "How can I improve my savings? My industry is volatile."
+      JSON Output: {"intent": "savings", "question": "How can I improve my savings?", "payload": {"is_volatile_industry": true}}
+      
+      User Query: "Should I buy new equipment for ₦150,000? It's an essential replacement."
+      JSON Output: {"intent": "equipment", "question": "Should I buy new equipment?", "payload": {"equipment_cost": 150000, "is_essential_replacement": true}}
+      
+      User Query: "I'm considering a loan. My total liabilities are ₦500,000 and assets are ₦1,200,000. Monthly repayments are ₦50,000."
+      JSON Output: {"intent": "loan_management", "question": "Should I take a loan?", "payload": {"total_business_liabilities": 500000, "total_business_assets": 1200000, "total_monthly_debt_repayments": 50000}}
+      
+      User Query: "I want to expand my business. My profit growth has been consistent for 6 months and market research validates demand. The expansion will cost ₦1,000,000 and I have 75% of the capital."
+      JSON Output: {"intent": "business_expansion", "question": "Should I expand my business?", "payload": {"profit_growth_consistent_6_months": true, "market_research_validates_demand": true, "expansion_cost": 1000000, "capital_available_percentage_of_cost": 75}}
+
+      User Query: "What is the weather like today?"
+      JSON Output: {"intent": "unknown", "question": "What is the weather like today?", "payload": {}}
       
       User Query: "${user_query}"
       

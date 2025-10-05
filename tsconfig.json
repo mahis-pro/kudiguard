@@ -24,8 +24,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    }
-    // Removed "types": ["./src/types/supabase-edge-functions"]
+    },
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["deno"],
+    "allowArbitraryExtensions": true // Enable this for better URL import resolution
   },
   "include": ["src", "src/types/supabase-edge-functions.d.ts", "supabase/functions"],
   "references": [{ "path": "./tsconfig.node.json" }]
