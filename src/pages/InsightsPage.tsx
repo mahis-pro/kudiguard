@@ -144,7 +144,7 @@ const InsightsPage = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card className="shadow-card">
+          <Card className="shadow-card bg-gradient-subtle">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
               <div className="flex items-center">
@@ -157,7 +157,7 @@ const InsightsPage = () => {
               <p className="text-xs text-muted-foreground">Latest entry</p>
             </CardContent>
           </Card>
-          <Card className="shadow-card">
+          <Card className="shadow-card bg-gradient-subtle">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
               <div className="flex items-center">
@@ -170,7 +170,7 @@ const InsightsPage = () => {
               <p className="text-xs text-muted-foreground">Latest entry</p>
             </CardContent>
           </Card>
-          <Card className="shadow-card">
+          <Card className="shadow-card bg-gradient-subtle">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
               <div className="flex items-center">
@@ -185,7 +185,7 @@ const InsightsPage = () => {
               <p className="text-xs text-muted-foreground">Latest calculation</p>
             </CardContent>
           </Card>
-          <Card className="shadow-card">
+          <Card className="shadow-card bg-gradient-subtle">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
               <BarChart className="h-4 w-4 text-muted-foreground" />
@@ -201,7 +201,7 @@ const InsightsPage = () => {
 
         {/* Link to Analytics Page */}
         {financialEntries && financialEntries.length > 0 && (
-          <Card className="shadow-card mb-6">
+          <Card className="shadow-card mb-6 bg-gradient-subtle">
             <CardContent className="p-6 text-center">
               <LineChart className="h-10 w-10 text-primary mx-auto mb-4" />
               <h3 className="text-lg font-bold text-primary mb-2">View Detailed Financial Trends</h3>
@@ -215,7 +215,7 @@ const InsightsPage = () => {
           </Card>
         )}
 
-        <Card className="shadow-card mb-6">
+        <Card className="shadow-card mb-6 bg-gradient-subtle">
           <CardHeader>
             <CardTitle className="text-xl">KudiGuard Recommendations</CardTitle>
           </CardHeader>
@@ -263,7 +263,7 @@ const InsightsPage = () => {
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
+        <Card className="shadow-card bg-gradient-subtle">
           <CardHeader>
             <CardTitle className="text-xl">Upcoming Financial Events</CardTitle>
           </CardHeader>
