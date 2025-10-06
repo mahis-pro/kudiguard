@@ -59,19 +59,16 @@ const ChatPage = () => {
   const { toast } = useToast();
   const [messageInput, setMessageInput] = useState('');
   const [isAiTyping, setIsAiTyping] = useState(false);
-  const [isAddDataModalOpen, setIsAddDataModal] = useState(false);
+  const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const { chatId } = useParams<{ chatId: string }>();
   const queryClient = useQueryClient();
 
-  // Removed initialGreeting as a standalone function, it will be part of new chat creation.
-
-  const { data: chatData, isLoading: chatLoading, error: chatError } = useQuery<ChatState>({ // Removed | null as ChatRedirector ensures existence
+  const { data: chatData, isLoading: chatLoading, error: chatError } = useQuery<ChatState>({
     queryKey: ['chatState', session?.user?.id, chatId],
     queryFn: async () => {
       if (!session?.user?.id || !chatId) {
-        // This case should ideally be prevented by ChatRedirector, but as a safeguard
         throw new Error("User not authenticated or chat ID missing.");
       }
 
@@ -83,8 +80,6 @@ const ChatPage = () => {
         .single();
 
       if (error || !data) {
-        // ChatRedirector should have handled this, but if it somehow fails, throw.
-        // This will be caught by global React Query error handler.
         throw new Error(`Chat with ID ${chatId} not found or accessible.`);
       }
 
@@ -98,7 +93,7 @@ const ChatPage = () => {
         title: data.title || null,
       };
     },
-    enabled: !!session?.user?.id && !!chatId, // userDisplayName is not strictly needed for fetching chat data
+    enabled: !!session?.user?.id && !!chatId,
     refetchOnWindowFocus: false,
   });
 
@@ -123,20 +118,17 @@ const ChatPage = () => {
     onMutate: async (newChatState: Partial<ChatState>) => {
       if (!chatId) return;
 
-      // Cancel any outgoing refetches for this chat to prevent overwriting
       await queryClient.cancelQueries({ queryKey: ['chatState', session?.user?.id, chatId] });
 
-      // Snapshot the previous value
       const previousChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
 
-      // Optimistically update to the new value
       queryClient.setQueryData<ChatState>(['chatState', session?.user?.id, chatId], (old) => {
-        if (!old) return previousChatState; // Fallback if old is undefined
+        if (!old) return previousChatState;
 
         return {
           ...old,
           ...newChatState,
-          messages: newChatState.messages || old.messages, // Ensure messages are merged
+          messages: newChatState.messages || old.messages,
           current_payload: newChatState.current_payload || old.current_payload,
           pending_data_request: newChatState.pending_data_request !== undefined ? newChatState.pending_data_request : old.pending_data_request,
           current_intent: newChatState.current_intent !== undefined ? newChatState.current_intent : old.current_intent,
@@ -151,7 +143,6 @@ const ChatPage = () => {
       return { previousChatState };
     },
     onError: (err, _newChatState, context) => {
-      // If the mutation fails, use the context to roll back
       queryClient.setQueryData(['chatState', session?.user?.id, chatId], context?.previousChatState);
       console.error("Failed to save chat state:", err);
       toast({
@@ -161,13 +152,11 @@ const ChatPage = () => {
       });
     },
     onSettled: () => {
-      // Always refetch after error or success to ensure server state is reflected
       queryClient.invalidateQueries({ queryKey: ['chatState', session?.user?.id, chatId] });
       queryClient.invalidateQueries({ queryKey: ['chatHistory', session?.user?.id] });
     },
   });
 
-  // Destructure chatData directly, as it's guaranteed to exist by ChatRedirector and queryFn
   const {
     messages,
     pending_data_request: pendingDataRequest,
@@ -178,7 +167,7 @@ const ChatPage = () => {
     last_user_query_intent: lastUserQueryIntent,
     last_user_query_payload: lastUserQueryPayload,
     title: chatTitle,
-  } = chatData!; // Assert non-null because of the logic above
+  } = chatData || {};
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -186,7 +175,6 @@ const ChatPage = () => {
 
   const sendToDecisionEngine = async (intent: string, question: string, payload?: Record<string, any>) => {
     setIsAiTyping(true);
-    // Get the latest chat state from the cache before proceeding
     const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
     const currentMessages = latestChatState?.messages || [];
 
@@ -301,7 +289,6 @@ const ChatPage = () => {
 
     const lowerCaseInput = finalMessageInput.toLowerCase();
 
-    // Always get the latest chat state from the cache at the start of the function
     const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
     const currentMessages = latestChatState?.messages || [];
 
@@ -312,7 +299,6 @@ const ChatPage = () => {
         timestamp: new Date().toISOString(),
     };
 
-    // Handle "thank you" replies
     if (['thank you', 'thanks', 'thank you!', 'thanks!'].includes(lowerCaseInput)) {
         const aiReply: ChatMessage = {
             id: String(Date.now() + 1),
@@ -325,7 +311,6 @@ const ChatPage = () => {
         return;
     }
 
-    // Handle replies to pending data requests
     if (pendingDataRequest && currentIntent && currentQuestion) {
       let parsedValue: number | boolean | string | undefined;
       
@@ -352,7 +337,7 @@ const ChatPage = () => {
             text: `I couldn't understand your choice. Please select one of the following options: ${pendingDataRequest.options?.join(', ')}.`,
             timestamp: new Date().toISOString(),
           };
-          updateChatMutation.mutate({ messages: [...currentMessages, userMessage, retryMessage] }); // Add user message here too
+          updateChatMutation.mutate({ messages: [...currentMessages, userMessage, retryMessage] });
           setIsAiTyping(false);
           return;
         }
@@ -365,30 +350,27 @@ const ChatPage = () => {
           text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000', 'Yes/No', or select from options).`,
           timestamp: new Date().toISOString(),
         };
-        updateChatMutation.mutate({ messages: [...currentMessages, userMessage, retryMessage] }); // Add user message here too
+        updateChatMutation.mutate({ messages: [...currentMessages, userMessage, retryMessage] });
         setIsAiTyping(false);
         return;
       }
 
       const updatedPayload = { ...currentPayload, [pendingDataRequest.field]: parsedValue };
       
-      // Crucial change: Add userMessage to messages array here and clear pending request
       updateChatMutation.mutate({
-          messages: [...currentMessages, userMessage], // Add user's response to chat history
+          messages: [...currentMessages, userMessage],
           current_payload: updatedPayload,
-          pending_data_request: null, // Clear pending request after successful input
-          current_intent: currentIntent, // Keep intent for decision engine call
-          current_question: currentQuestion, // Keep question for decision engine call
+          pending_data_request: null,
+          current_intent: currentIntent,
+          current_question: currentQuestion,
       });
-      setMessageInput(''); // Clear input after sending
+      setMessageInput('');
       sendToDecisionEngine(currentIntent, currentQuestion, updatedPayload);
       return;
     }
 
-    // Handle initial user queries (if not a pending data request)
-    // This block should now only be for initial queries, as pendingDataRequest is handled above.
-    updateChatMutation.mutate({ messages: [...currentMessages, userMessage] }); // This is already there for initial queries
-    setMessageInput(''); // Clear input after sending
+    updateChatMutation.mutate({ messages: [...currentMessages, userMessage] });
+    setMessageInput('');
 
     setIsAiTyping(true);
     try {
@@ -428,7 +410,6 @@ const ChatPage = () => {
         return;
       }
 
-      // If chatTitle is null, set it based on the first meaningful question
       const newChatTitle = chatTitle === null && parsedIntent.question ? parsedIntent.question : chatTitle;
 
       updateChatMutation.mutate({
@@ -468,14 +449,12 @@ const ChatPage = () => {
     const lowerCaseReply = reply.toLowerCase();
 
     if (lowerCaseReply === 'add new data') {
-      // Get the latest chat state from the cache before proceeding
       const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
       const currentMessages = latestChatState?.messages || [];
 
       updateChatMutation.mutate({ messages: [...currentMessages, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
-      setIsAddDataModal(true);
+      setIsAddDataModalOpen(true);
     } else if (lowerCaseReply === 'cancel' && pendingDataRequest) {
-      // Get the latest chat state from the cache before proceeding
       const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
       const currentMessages = latestChatState?.messages || [];
 
@@ -494,7 +473,6 @@ const ChatPage = () => {
       };
       updateChatMutation.mutate({ messages: [...currentMessages, cancelMessage] });
     } else if (lowerCaseReply === 'try again') {
-        // Get the latest chat state from the cache before proceeding
         const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
         const currentMessages = latestChatState?.messages || [];
 
@@ -538,6 +516,14 @@ const ChatPage = () => {
     );
   }
 
+  if (!chatData) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-4">
+        <p className="text-muted-foreground">No chat data available. This should not happen.</p>
+      </div>
+    );
+  }
+
   const getPlaceholderText = () => {
     if (pendingDataRequest) {
       let placeholder = pendingDataRequest.prompt;
@@ -555,7 +541,7 @@ const ChatPage = () => {
     <>
       <div className="flex flex-col flex-1">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((msg: ChatMessage) => (
+          {messages?.map((msg: ChatMessage) => (
             <div
               key={msg.id}
               className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -666,7 +652,7 @@ const ChatPage = () => {
           )}
         </div>
       </div >
-      <AddDataModal isOpen={isAddDataModalOpen} onClose={() => setIsAddDataModal(false)} />
+      <AddDataModal isOpen={isAddDataModalOpen} onClose={() => setIsAddDataModalOpen(false)} />
     </>
   );
 };
