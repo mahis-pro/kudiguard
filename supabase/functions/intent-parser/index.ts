@@ -66,8 +66,10 @@ export function getSupabaseClient(authHeader: string, serviceRole = false): Supa
     : Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
   if (!supabaseUrl || !supabaseKey) {
+    console.error(`CRITICAL: Supabase URL or Key is missing. URL: ${supabaseUrl ? 'present' : 'missing'}, Key: ${supabaseKey ? 'present' : 'missing'}`);
     throw new Error('Supabase URL and Key must be provided as environment variables.');
   }
+  console.log(`Supabase client initialized. URL: ${supabaseUrl.substring(0, 10)}..., Key: ${supabaseKey.substring(0, 10)}...`); // Log redacted info
 
   return createClient(
     supabaseUrl,
@@ -274,7 +276,7 @@ if (!GEMINI_API_KEY) {
   );
 }
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" }); // Changed model to gemini-1.0-pro
+const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Reverted model to gemini-pro
 
 // Main Edge Function Logic
 serve(async (req: Request) => {
