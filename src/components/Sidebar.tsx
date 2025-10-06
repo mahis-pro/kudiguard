@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart, MessageSquarePlus, MessageSquareText, DollarSign } from 'lucide-react'; // Added DollarSign icon
+import { LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart, MessageSquarePlus, MessageSquareText, DollarSign } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
     { path: '/insights', icon: LayoutDashboard, label: 'Insights' },
     { path: '/analytics', icon: LineChart, label: 'Analytics' },
     { path: '/history', icon: History, label: 'Decision History' },
-    { path: '/financial-data', icon: DollarSign, label: 'Financial Data' }, // New nav item
+    { path: '/financial-data', icon: DollarSign, label: 'Financial Data' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -35,9 +35,9 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
       if (!session?.user?.id) return [];
       const { data, error } = await supabase
         .from('chats')
-        .select('id, current_question, created_at')
+        .select('id, title, current_question, created_at') // Fetch the new 'title' column
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false }); // Order by updated_at for latest activity
       if (error) throw error;
       return data;
     },
@@ -111,7 +111,8 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
             <div className="space-y-1">
               {chatHistory.map((chat) => {
                 const isActive = location.pathname === `/chat/${chat.id}`;
-                const chatTitle = chat.current_question || `Chat on ${new Date(chat.created_at).toLocaleDateString()}`;
+                // Use the new 'title' column, fallback to current_question, then a generic date
+                const chatTitle = chat.title || chat.current_question || `Chat on ${new Date(chat.created_at).toLocaleDateString()}`;
                 return (
                   <Link 
                     key={chat.id} 

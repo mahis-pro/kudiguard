@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useParams } from 'react-router-dom'; // Import useNavigate and useParams
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
 import AddDataModal from '@/components/AddDataModal';
@@ -13,13 +13,60 @@ const AuthenticatedLayout = () => {
   const { session, supabase, isLoading: sessionLoading } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const navigate = useNavigate(); // Initialize useNavigate
-  const { chatId: urlChatId } = useParams<{ chatId: string }>(); // Get chatId from URL
+  const navigate = useNavigate();
+  const { chatId: urlChatId } = useParams<{ chatId: string }>();
+
+  // Function to handle starting a new chat
+  const handleStartNewChat = async () => {
+    if (!session?.user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to start a new chat.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('chats')
+        .insert({
+          user_id: session.user.id,
+          messages: [],
+          current_payload: {},
+          title: 'New Chat', // Default title for a new chat
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['chatState', session.user.id] });
+      queryClient.invalidateQueries({ queryKey: ['chatHistory', session.user.id] });
+      navigate(`/chat/${data.id}`);
+      toast({
+        title: "New Chat Started",
+        description: "Your conversation history has been cleared and a new chat begun.",
+        variant: "default",
+      });
+      return data.id; // Return the new chat ID
+    } catch (error: any) {
+      console.error('Error starting new chat:', error.message);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start a new chat.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
 
   // Effect to set an initial active chat or load the latest one
   useEffect(() => {
     if (!sessionLoading && session?.user) {
-      const fetchOrCreateChat = async () => {
+      const fetchOrRedirectChat = async () => {
         if (urlChatId) {
           // If a chatId is in the URL, ensure it's a valid chat for the user
           const { data, error } = await supabase
@@ -45,7 +92,7 @@ const AuthenticatedLayout = () => {
             .from('chats')
             .select('id')
             .eq('user_id', session.user.id)
-            .order('created_at', { ascending: false })
+            .order('updated_at', { ascending: false }) // Order by updated_at for latest activity
             .limit(1)
             .single();
 
@@ -64,51 +111,9 @@ const AuthenticatedLayout = () => {
           }
         }
       };
-      fetchOrCreateChat();
+      fetchOrRedirectChat();
     }
-  }, [sessionLoading, session, supabase, toast, navigate, urlChatId]); // Added urlChatId to dependencies
-
-  const handleStartNewChat = async () => {
-    if (!session?.user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to start a new chat.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('chats')
-        .insert({
-          user_id: session.user.id,
-          messages: [],
-          current_payload: {},
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      queryClient.invalidateQueries({ queryKey: ['chatState', session.user.id] }); // Invalidate all chat states for this user
-      navigate(`/chat/${data.id}`); // Navigate to the newly created chat
-      toast({
-        title: "New Chat Started",
-        description: "Your conversation history has been cleared and a new chat begun.",
-        variant: "default",
-      });
-    } catch (error: any) {
-      console.error('Error starting new chat:', error.message);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to start a new chat.",
-        variant: "destructive",
-      });
-    }
-  };
+  }, [sessionLoading, session, supabase, toast, navigate, urlChatId]);
 
   return (
     <div className="min-h-screen flex bg-gradient-subtle">
@@ -121,7 +126,7 @@ const AuthenticatedLayout = () => {
       />
       
       <main className="flex flex-col flex-1 md:ml-64 pt-16 md:pt-0">
-        <Outlet /> {/* No longer passing activeChatId via context */}
+        <Outlet />
       </main>
 
       <AddDataModal 

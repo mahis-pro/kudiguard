@@ -19,8 +19,7 @@ interface ChatMessage {
   sender: 'user' | 'ai';
   text: string;
   timestamp: string;
-  // Removed cards: React.ReactNode[]
-  decisionData?: DecisionCardProps['data']; // Store raw decision data
+  decisionData?: DecisionCardProps['data'];
   dataNeeded?: {
     field: string;
     prompt: string;
@@ -89,6 +88,9 @@ const ChatPage = () => {
       }
       
       if (!data) {
+        // This case should ideally be handled by AuthenticatedLayout redirecting to a valid chat.
+        // However, as a fallback, if somehow we land here without a valid chat,
+        // we return a default structure.
         return {
           messages: [initialGreeting(userDisplayName || 'there')],
           pending_data_request: null,
@@ -98,7 +100,7 @@ const ChatPage = () => {
           last_user_query_text: null,
           last_user_query_intent: null,
           last_user_query_payload: null,
-          title: null, // Initialize title
+          title: null,
         };
       }
 
@@ -108,7 +110,7 @@ const ChatPage = () => {
         pending_data_request: data.pending_data_request || null,
         current_payload: data.current_payload || {},
         last_user_query_payload: data.last_user_query_payload || null,
-        title: data.title || null, // Read title from DB
+        title: data.title || null,
       };
     },
     enabled: !!session?.user?.id && !!chatId && !!userDisplayName,
@@ -121,7 +123,7 @@ const ChatPage = () => {
       last_user_query_text: null,
       last_user_query_intent: null,
       last_user_query_payload: null,
-      title: null, // Initialize title in initialData
+      title: null,
     },
     refetchOnWindowFocus: false,
   });
@@ -146,7 +148,7 @@ const ChatPage = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatState', session?.user?.id, chatId] });
-      queryClient.invalidateQueries({ queryKey: ['chatHistory', session?.user?.id] }); // Invalidate chat history to update sidebar
+      queryClient.invalidateQueries({ queryKey: ['chatHistory', session?.user?.id] });
     },
     onError: (error: any) => {
       console.error("Failed to save chat state:", error.message);
@@ -167,7 +169,7 @@ const ChatPage = () => {
     last_user_query_text: lastUserQueryText,
     last_user_query_intent: lastUserQueryIntent,
     last_user_query_payload: lastUserQueryPayload,
-    title: chatTitle, // Destructure chatTitle
+    title: chatTitle,
   } = chatData || {};
 
   const updateChatState = (updates: Partial<ChatState>) => {
@@ -179,7 +181,7 @@ const ChatPage = () => {
     const newLastUserQueryText = updates.last_user_query_text !== undefined ? updates.last_user_query_text : lastUserQueryText;
     const newLastUserQueryIntent = updates.last_user_query_intent !== undefined ? updates.last_user_query_intent : lastUserQueryIntent;
     const newLastUserQueryPayload = updates.last_user_query_payload !== undefined ? updates.last_user_query_payload : lastUserQueryPayload;
-    const newChatTitle = updates.title !== undefined ? updates.title : chatTitle; // Handle title update
+    const newChatTitle = updates.title !== undefined ? updates.title : chatTitle;
 
     updateChatMutation.mutate({
       messages: newMessages,
@@ -190,7 +192,7 @@ const ChatPage = () => {
       last_user_query_text: newLastUserQueryText,
       last_user_query_intent: newLastUserQueryIntent,
       last_user_query_payload: newLastUserQueryPayload,
-      title: newChatTitle, // Include title in mutation
+      title: newChatTitle,
     });
   };
 
@@ -267,7 +269,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: "I've analyzed your financial data. Here is my recommendation:",
         timestamp: new Date().toISOString(),
-        decisionData: edgeFunctionResult.data, // Store raw data here
+        decisionData: edgeFunctionResult.data,
       };
       updateChatState({
         messages: [...(messages || []), aiResponse],
@@ -336,9 +338,6 @@ const ChatPage = () => {
       timestamp: new Date().toISOString(),
     };
     
-    // Log the messages array BEFORE updating
-    console.log("Messages BEFORE user message update:", messages);
-
     updateChatState({ messages: [...(messages || []), userMessage] });
     setMessageInput('');
 
@@ -442,27 +441,18 @@ const ChatPage = () => {
         return;
       }
 
-      // If current_question is new and chatTitle is null, set chatTitle
-      if (parsedIntent.question && !chatTitle) {
-        updateChatState({
-          current_intent: parsedIntent.intent,
-          current_question: parsedIntent.question,
-          current_payload: parsedIntent.payload || {},
-          last_user_query_text: parsedIntent.question,
-          last_user_query_intent: parsedIntent.intent,
-          last_user_query_payload: parsedIntent.payload || {},
-          title: parsedIntent.question, // Set title here
-        });
-      } else {
-        updateChatState({
-          current_intent: parsedIntent.intent,
-          current_question: parsedIntent.question,
-          current_payload: parsedIntent.payload || {},
-          last_user_query_text: parsedIntent.question,
-          last_user_query_intent: parsedIntent.intent,
-          last_user_query_payload: parsedIntent.payload || {},
-        });
-      }
+      // If chatTitle is null, set it based on the first meaningful question
+      const newChatTitle = chatTitle === null && parsedIntent.question ? parsedIntent.question : chatTitle;
+
+      updateChatState({
+        current_intent: parsedIntent.intent,
+        current_question: parsedIntent.question,
+        current_payload: parsedIntent.payload || {},
+        last_user_query_text: parsedIntent.question,
+        last_user_query_intent: parsedIntent.intent,
+        last_user_query_payload: parsedIntent.payload || {},
+        title: newChatTitle, // Update title here
+      });
 
       sendToDecisionEngine(parsedIntent.intent, parsedIntent.question, parsedIntent.payload);
 
@@ -549,9 +539,6 @@ const ChatPage = () => {
     );
   }
 
-  // Log the messages array right before rendering
-  console.log("Messages array for rendering:", messages);
-
   const getPlaceholderText = () => {
     if (pendingDataRequest) {
       let placeholder = pendingDataRequest.prompt;
@@ -587,7 +574,7 @@ const ChatPage = () => {
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                {msg.decisionData && <div className="mt-2"><DecisionCard data={msg.decisionData} /></div>} {/* Render DecisionCard from decisionData */}
+                {msg.decisionData && <div className="mt-2"><DecisionCard data={msg.decisionData} /></div>}
                 {msg.quickReplies && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {msg.quickReplies.map((reply: string, index: number) => (
