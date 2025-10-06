@@ -50,7 +50,7 @@ const App = () => {
 
               {/* Authenticated Routes */}
               <Route element={<AuthenticatedLayout />}>
-                <Route path="/chat" element={<ChatPage />} />
+                <Route path="/chat/:chatId?" element={<ChatPage />} /> {/* Updated route */}
                 <Route path="/insights" element={<InsightsPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/history" element={<DecisionHistoryPage />} />

@@ -1,30 +1,47 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart, MessageSquarePlus } from 'lucide-react';
+import { LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart, MessageSquarePlus, MessageSquareText } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SidebarProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (isOpen: boolean) => void;
   onAddDataClick: () => void;
-  onStartNewChatClick: () => void; // This prop is now used
+  onStartNewChatClick: () => void;
 }
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewChatClick }: SidebarProps) => {
   const location = useLocation();
-  const { supabase } = useSession();
+  const { supabase, session, isLoading: sessionLoading } = useSession();
   const { toast } = useToast();
 
   const navItems = [
-    { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/insights', icon: LayoutDashboard, label: 'Insights' },
     { path: '/analytics', icon: LineChart, label: 'Analytics' },
-    { path: '/history', icon: History, label: 'History' },
+    { path: '/history', icon: History, label: 'Decision History' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
+
+  // Fetch user's chat history
+  const { data: chatHistory, isLoading: chatHistoryLoading } = useQuery({
+    queryKey: ['chatHistory', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+      const { data, error } = await supabase
+        .from('chats')
+        .select('id, current_question, created_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user?.id && !sessionLoading,
+  });
 
   const handleLogout = async () => {
     try {
@@ -54,7 +71,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
   };
 
   const handleNewChat = () => {
-    onStartNewChatClick(); // Call the prop function
+    onStartNewChatClick();
     setIsSidebarOpen(false);
   };
 
@@ -71,7 +88,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
         </Link>
       </div>
 
-      {/* Start New Chat Button - Now positioned here */}
+      {/* Start New Chat Button */}
       <div className="p-4 text-center border-b border-sidebar-border">
         <Button 
           variant="outline" 
@@ -83,8 +100,44 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
         </Button>
       </div>
 
+      {/* Chat History */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <h3 className="text-sm font-semibold text-muted-foreground px-4 pt-4 pb-2">Recent Chats</h3>
+        <ScrollArea className="flex-1 px-2">
+          {chatHistoryLoading ? (
+            <div className="p-2 text-sm text-muted-foreground">Loading chats...</div>
+          ) : chatHistory && chatHistory.length > 0 ? (
+            <div className="space-y-1">
+              {chatHistory.map((chat) => {
+                const isActive = location.pathname === `/chat/${chat.id}`;
+                const chatTitle = chat.current_question || `Chat on ${new Date(chat.created_at).toLocaleDateString()}`;
+                return (
+                  <Link 
+                    key={chat.id} 
+                    to={`/chat/${chat.id}`} 
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    <Button
+                      variant="ghost"
+                      className={`w-full justify-start text-sm h-10 truncate ${
+                        isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/90' : 'hover:bg-sidebar-accent/50'
+                      }`}
+                    >
+                      <MessageSquareText className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <span className="truncate">{chatTitle}</span>
+                    </Button>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-2 text-sm text-muted-foreground">No recent chats.</div>
+          )}
+        </ScrollArea>
+      </div>
+
       {/* Navigation Links */}
-      <nav className="flex-1 p-2 space-y-1">
+      <nav className="p-2 space-y-1 border-t border-sidebar-border">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (

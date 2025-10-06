@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ParsedIntent } from '@/types/supabase-edge-functions';
-import { useOutletContext } from 'react-router-dom';
+import { useParams } from 'react-router-dom'; // Import useParams
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface ChatMessage {
@@ -60,7 +60,7 @@ const ChatPage = () => {
   const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const { activeChatId } = useOutletContext<{ activeChatId: string | null }>();
+  const { chatId } = useParams<{ chatId: string }>(); // Get chatId from URL parameters
   const queryClient = useQueryClient();
 
   const initialGreeting = (name: string): ChatMessage => ({
@@ -71,14 +71,14 @@ const ChatPage = () => {
   });
 
   const { data: chatData, isLoading: chatLoading, error: chatError } = useQuery({
-    queryKey: ['chatState', session?.user?.id, activeChatId],
+    queryKey: ['chatState', session?.user?.id, chatId], // Use chatId from useParams
     queryFn: async () => {
-      if (!session?.user?.id || !activeChatId) return null;
+      if (!session?.user?.id || !chatId) return null; // Ensure chatId is present
 
       const { data, error } = await supabase
         .from('chats')
         .select('*')
-        .eq('id', activeChatId)
+        .eq('id', chatId)
         .eq('user_id', session.user.id)
         .single();
 
@@ -87,6 +87,9 @@ const ChatPage = () => {
       }
       
       if (!data) {
+        // If chat ID is in URL but no data, it means an invalid chat ID or new chat not yet initialized
+        // This case should ideally be handled by AuthenticatedLayout redirecting to a valid chat.
+        // For robustness, we return a default state.
         return {
           messages: [initialGreeting(userDisplayName || 'there')],
           pending_data_request: null,
@@ -107,7 +110,7 @@ const ChatPage = () => {
         last_user_query_payload: data.last_user_query_payload || null,
       };
     },
-    enabled: !!session?.user?.id && !!activeChatId && !!userDisplayName,
+    enabled: !!session?.user?.id && !!chatId && !!userDisplayName, // Enable query only if chatId is present
     initialData: {
       messages: [initialGreeting(userDisplayName || 'there')],
       pending_data_request: null,
@@ -123,8 +126,8 @@ const ChatPage = () => {
 
   const updateChatMutation = useMutation({
     mutationFn: async (newChatState: Partial<ChatState>) => {
-      if (!session?.user?.id || !activeChatId) {
-        throw new Error("User not authenticated or no active chat.");
+      if (!session?.user?.id || !chatId) { // Use chatId from useParams
+        throw new Error("User not authenticated or no active chat ID.");
       }
       const { error } = await supabase
         .from('chats')
@@ -132,7 +135,7 @@ const ChatPage = () => {
           ...newChatState,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', activeChatId)
+        .eq('id', chatId) // Use chatId from useParams
         .eq('user_id', session.user.id);
 
       if (error) {
@@ -140,7 +143,8 @@ const ChatPage = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chatState', session?.user?.id, activeChatId] });
+      queryClient.invalidateQueries({ queryKey: ['chatState', session?.user?.id, chatId] }); // Invalidate with chatId
+      queryClient.invalidateQueries({ queryKey: ['chatHistory', session?.user?.id] }); // Invalidate chat history to update sidebar
     },
     onError: (error: any) => {
       console.error("Failed to save chat state:", error.message);
