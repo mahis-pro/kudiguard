@@ -184,7 +184,7 @@ const ChatPage = () => {
 
       return { previousChatState };
     },
-    onError: (err, _newChatState, context) => { // Fixed: Renamed newChatState to _newChatState
+    onError: (err, _newChatState, context) => {
       // If the mutation fails, use the context to roll back
       queryClient.setQueryData(['chatState', session?.user?.id, chatId], context?.previousChatState);
       console.error("Failed to save chat state:", err);
@@ -335,42 +335,31 @@ const ChatPage = () => {
 
     const lowerCaseInput = finalMessageInput.toLowerCase();
 
-    if (['thank you', 'thanks', 'thank you!', 'thanks!'].includes(lowerCaseInput)) {
-        // Get the latest chat state from the cache before proceeding
-        const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
-        const currentMessages = latestChatState?.messages || [];
+    // Always get the latest chat state from the cache at the start of the function
+    const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
+    const currentMessages = latestChatState?.messages || [];
 
-        const userThankYou: ChatMessage = {
-            id: String(Date.now()),
-            sender: 'user',
-            text: finalMessageInput,
-            timestamp: new Date().toISOString(),
-        };
+    const userMessage: ChatMessage = {
+        id: String(Date.now()),
+        sender: 'user',
+        text: finalMessageInput,
+        timestamp: new Date().toISOString(),
+    };
+
+    // Handle "thank you" replies
+    if (['thank you', 'thanks', 'thank you!', 'thanks!'].includes(lowerCaseInput)) {
         const aiReply: ChatMessage = {
             id: String(Date.now() + 1),
             sender: 'ai',
             text: "You're most welcome! I'm here to help your business thrive. Is there anything else I can assist you with?",
             timestamp: new Date().toISOString(),
         };
-        updateChatMutation.mutate({ messages: [...currentMessages, userThankYou, aiReply] });
+        updateChatMutation.mutate({ messages: [...currentMessages, userMessage, aiReply] });
         setMessageInput('');
         return;
     }
 
-    // Get the latest chat state from the cache before proceeding
-    const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
-    const currentMessages = latestChatState?.messages || [];
-
-    const userMessage: ChatMessage = {
-      id: String(Date.now()),
-      sender: 'user',
-      text: finalMessageInput,
-      timestamp: new Date().toISOString(),
-    };
-    
-    updateChatMutation.mutate({ messages: [...currentMessages, userMessage] });
-    setMessageInput('');
-
+    // Handle replies to pending data requests
     if (pendingDataRequest && currentIntent && currentQuestion) {
       let parsedValue: number | boolean | string | undefined;
       
@@ -397,7 +386,7 @@ const ChatPage = () => {
             text: `I couldn't understand your choice. Please select one of the following options: ${pendingDataRequest.options?.join(', ')}.`,
             timestamp: new Date().toISOString(),
           };
-          updateChatMutation.mutate({ messages: [...currentMessages, retryMessage] });
+          updateChatMutation.mutate({ messages: [...currentMessages, userMessage, retryMessage] }); // Add user message here too
           setIsAiTyping(false);
           return;
         }
@@ -410,16 +399,30 @@ const ChatPage = () => {
           text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000', 'Yes/No', or select from options).`,
           timestamp: new Date().toISOString(),
         };
-        updateChatMutation.mutate({ messages: [...currentMessages, retryMessage] });
+        updateChatMutation.mutate({ messages: [...currentMessages, userMessage, retryMessage] }); // Add user message here too
         setIsAiTyping(false);
         return;
       }
 
       const updatedPayload = { ...currentPayload, [pendingDataRequest.field]: parsedValue };
-      updateChatMutation.mutate({ current_payload: updatedPayload }); // Optimistically update payload
+      
+      // Crucial change: Add userMessage to messages array here and clear pending request
+      updateChatMutation.mutate({
+          messages: [...currentMessages, userMessage], // Add user's response to chat history
+          current_payload: updatedPayload,
+          pending_data_request: null, // Clear pending request after successful input
+          current_intent: currentIntent, // Keep intent for decision engine call
+          current_question: currentQuestion, // Keep question for decision engine call
+      });
+      setMessageInput(''); // Clear input after sending
       sendToDecisionEngine(currentIntent, currentQuestion, updatedPayload);
       return;
     }
+
+    // Handle initial user queries (if not a pending data request)
+    // This block should now only be for initial queries, as pendingDataRequest is handled above.
+    updateChatMutation.mutate({ messages: [...currentMessages, userMessage] }); // This is already there for initial queries
+    setMessageInput(''); // Clear input after sending
 
     setIsAiTyping(true);
     try {
