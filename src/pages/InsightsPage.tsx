@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, CalendarDays, MessageCircle, Eye, LineChart } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, CalendarDays, MessageCircle, Eye } from 'lucide-react'; // Removed LineChart
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
@@ -199,8 +199,8 @@ const InsightsPage = () => {
           </Card>
         </div>
 
-        {/* Link to Analytics Page */}
-        {financialEntries && financialEntries.length > 0 && (
+        {/* Removed Link to Analytics Page */}
+        {/* {financialEntries && financialEntries.length > 0 && (
           <Card className="shadow-card mb-6 bg-gradient-subtle">
             <CardContent className="p-6 text-center">
               <LineChart className="h-10 w-10 text-primary mx-auto mb-4" />
@@ -213,7 +213,7 @@ const InsightsPage = () => {
               </Link>
             </CardContent>
           </Card>
-        )}
+        )} */}
 
         <Card className="shadow-card mb-6 bg-gradient-subtle">
           <CardHeader>

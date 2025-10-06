@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart, MessageSquarePlus, MessageSquareText, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Settings, PlusCircle, LogOut, History, MessageSquarePlus, MessageSquareText, DollarSign } from 'lucide-react'; // Removed LineChart
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +22,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
 
   const navItems = [
     { path: '/insights', icon: LayoutDashboard, label: 'Insights' },
-    { path: '/analytics', icon: LineChart, label: 'Analytics' },
+    // Removed Analytics link: { path: '/analytics', icon: LineChart, label: 'Analytics' },
     { path: '/history', icon: History, label: 'Decision History' },
     { path: '/financial-data', icon: DollarSign, label: 'Financial Data' },
     { path: '/settings', icon: Settings, label: 'Settings' },
