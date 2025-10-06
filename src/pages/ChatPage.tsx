@@ -81,7 +81,6 @@ const ChatPage = () => {
     sender: 'ai',
     text: `Hello ${name}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
     timestamp: new Date().toISOString(),
-    // Removed quickReplies
   });
 
   // Effect to load chat state from localStorage on mount or when chatKey changes
@@ -174,7 +173,6 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
-          // Removed quickReplies
         };
         setMessages((prev) => [...prev, errorResponse]);
         toast({
