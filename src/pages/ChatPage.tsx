@@ -295,13 +295,7 @@ const ChatPage = () => {
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
       };
-      updateChatState({
-        messages: [...(messages || []), errorResponse],
-        pending_data_request: null,
-        current_intent: null,
-        current_question: null,
-        current_payload: {},
-      });
+      updateChatState({ messages: [...(messages || []), errorResponse] });
     } finally {
       setIsAiTyping(false);
     }
@@ -341,6 +335,10 @@ const ChatPage = () => {
       text: finalMessageInput,
       timestamp: new Date().toISOString(),
     };
+    
+    // Log the messages array BEFORE updating
+    console.log("Messages BEFORE user message update:", messages);
+
     updateChatState({ messages: [...(messages || []), userMessage] });
     setMessageInput('');
 
@@ -436,7 +434,7 @@ const ChatPage = () => {
         const noIntentResponse: ChatMessage = {
           id: String(Date.now()),
           sender: 'ai',
-          text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loan, and business expansion decisions. Please ask me a question related to these topics.",
+          text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loans, or business expansion decisions. Please ask me a question related to these topics.",
           timestamp: new Date().toISOString(),
         };
         updateChatState({ messages: [...(messages || []), noIntentResponse] });
@@ -484,6 +482,7 @@ const ChatPage = () => {
         timestamp: new Date().toISOString(),
       };
       updateChatState({ messages: [...(messages || []), errorResponse] });
+    } finally {
       setIsAiTyping(false);
     }
   };
@@ -549,6 +548,9 @@ const ChatPage = () => {
       </div>
     );
   }
+
+  // Log the messages array right before rendering
+  console.log("Messages array for rendering:", messages);
 
   const getPlaceholderText = () => {
     if (pendingDataRequest) {
@@ -677,7 +679,7 @@ const ChatPage = () => {
             </Button>
           )}
         </div>
-      </div>
+      </div >
       <AddDataModal isOpen={isAddDataModalOpen} onClose={() => setIsAddDataModalOpen(false)} />
     </>
   );
