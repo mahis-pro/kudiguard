@@ -276,7 +276,7 @@ if (!GEMINI_API_KEY) {
   );
 }
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Reverted model to gemini-pro
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Changed model to gemini-2.5-flash
 
 // Main Edge Function Logic
 serve(async (req: Request) => {
