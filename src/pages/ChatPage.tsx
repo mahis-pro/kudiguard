@@ -202,6 +202,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
+          quickReplies: ['Try again', 'Add New Data'], // Added quick replies
         };
         updateChatMutation.mutate({
           messages: [...currentMessages, errorResponse],
@@ -228,6 +229,7 @@ const ChatPage = () => {
           dataNeeded: dataNeeded,
           originalQuestion: question,
           collectedPayload: dataNeeded.intent_context.current_payload || {}, 
+          quickReplies: ['Cancel', 'Add New Data'], // Added quick replies for data needed
         };
         updateChatMutation.mutate({
           messages: [...currentMessages, dataNeededMessage],
@@ -246,6 +248,7 @@ const ChatPage = () => {
         text: "I've analyzed your financial data. Here is my recommendation:",
         timestamp: new Date().toISOString(),
         decisionData: edgeFunctionResult.data,
+        quickReplies: ['Start New Chat', 'Add New Data'], // Added quick replies after decision
       };
       updateChatMutation.mutate({
         messages: [...currentMessages, aiResponse],
@@ -272,6 +275,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
+        quickReplies: ['Try again', 'Add New Data'], // Added quick replies
       };
       updateChatMutation.mutate({ messages: [...currentMessages, errorResponse] });
     } finally {
@@ -305,6 +309,7 @@ const ChatPage = () => {
             sender: 'ai',
             text: "You're most welcome! I'm here to help your business thrive. Is there anything else I can assist you with?",
             timestamp: new Date().toISOString(),
+            quickReplies: ['Start New Chat', 'Add New Data'], // Added quick replies
         };
         updateChatMutation.mutate({ messages: [...currentMessages, userMessage, aiReply] });
         setMessageInput('');
@@ -336,6 +341,7 @@ const ChatPage = () => {
             sender: 'ai',
             text: `I couldn't understand your choice. Please select one of the following options: ${pendingDataRequest.options?.join(', ')}.`,
             timestamp: new Date().toISOString(),
+            quickReplies: ['Cancel', 'Try again'], // Added quick replies
           };
           updateChatMutation.mutate({ messages: [...currentMessages, userMessage, retryMessage] });
           setIsAiTyping(false);
@@ -349,6 +355,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000', 'Yes/No', or select from options).`,
           timestamp: new Date().toISOString(),
+          quickReplies: ['Cancel', 'Try again'], // Added quick replies
         };
         updateChatMutation.mutate({ messages: [...currentMessages, userMessage, retryMessage] });
         setIsAiTyping(false);
@@ -389,6 +396,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
+          quickReplies: ['Try again', 'Add New Data'], // Added quick replies
         };
         updateChatMutation.mutate({ messages: [...currentMessages, errorResponse] });
         setIsAiTyping(false);
@@ -404,6 +412,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loans, or business expansion decisions. Please ask me a question related to these topics.",
           timestamp: new Date().toISOString(),
+          quickReplies: ['Try again', 'Add New Data'], // Added quick replies
         };
         updateChatMutation.mutate({ messages: [...currentMessages, noIntentResponse] });
         setIsAiTyping(false);
@@ -438,6 +447,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
+        quickReplies: ['Try again', 'Add New Data'], // Added quick replies
       };
       updateChatMutation.mutate({ messages: [...currentMessages, errorResponse] });
     } finally {
@@ -470,6 +480,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
+        quickReplies: ['Start New Chat', 'Add New Data'], // Added quick replies
       };
       updateChatMutation.mutate({ messages: [...currentMessages, cancelMessage] });
     } else if (lowerCaseReply === 'try again') {
@@ -491,9 +502,18 @@ const ChatPage = () => {
                 sender: 'ai',
                 text: "I don't have a previous query to retry. Please ask me a new question.",
                 timestamp: new Date().toISOString(),
+                quickReplies: ['Start New Chat', 'Add New Data'], // Added quick replies
             };
             updateChatMutation.mutate({ messages: [...currentMessages, noRetryMessage] });
         }
+    } else if (lowerCaseReply === 'start new chat') { // Handle 'Start New Chat' quick reply
+      const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
+      const currentMessages = latestChatState?.messages || [];
+
+      updateChatMutation.mutate({ messages: [...currentMessages, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
+      // The ChatRedirector component already handles creating a new chat if no chatId is present.
+      // We can simply navigate to /chat, and it will handle the rest.
+      window.location.href = '/chat'; // Force a full reload to trigger ChatRedirector
     } else {
         setMessageInput(reply); 
         setTimeout(() => handleSendMessage(reply), 0); 
