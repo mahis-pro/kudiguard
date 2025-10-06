@@ -156,7 +156,7 @@ const About = () => {
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center md:text-left">
               {/* Column 1: Logo and Tagline */}
-              <div className="space-y-4">
+              <div className="space-y-4 pb-8 mb-8 border-b border-border md:pb-0 md:mb-0 md:border-b-0">
                 <Link to="/" className="flex items-center justify-center md:justify-start">
                   <img src={kudiGuardLogo} alt="KudiGuard" className="h-10 w-auto" />
                 </Link>
@@ -166,7 +166,7 @@ const About = () => {
               </div>
 
               {/* Column 2: Company Links */}
-              <div>
+              <div className="space-y-4 pb-8 mb-8 border-b border-border md:pb-0 md:mb-0 md:border-b-0">
                 <h3 className="text-lg font-semibold text-primary mb-4">Company</h3>
                 <ul className="space-y-2 text-muted-foreground">
                   <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
@@ -175,7 +175,7 @@ const About = () => {
               </div>
 
               {/* Column 3: Resources */}
-              <div>
+              <div className="space-y-4 pb-8 mb-8 border-b border-border md:pb-0 md:mb-0 md:border-b-0">
                 <h3 className="text-lg font-semibold text-primary mb-4">Resources</h3>
                 <ul className="space-y-2 text-muted-foreground">
                   <li><Link to="/tips" className="hover:text-primary transition-colors">Financial Tips</Link></li>
@@ -184,7 +184,7 @@ const About = () => {
               </div>
 
               {/* Column 4: Social Media */}
-              <div>
+              <div className="space-y-4"> {/* No bottom border for the last item */}
                 <h3 className="text-lg font-semibold text-primary mb-4">Connect</h3>
                 <div className="flex justify-center md:justify-start space-x-4">
                   <a href="https://facebook.com/kudiguard" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
