@@ -1,12 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat, Banknote, Landmark, Store, Search, TrendingDown, ThumbsUp, ThumbsDown } from 'lucide-react'; // Added Store, Search, TrendingDown, ThumbsUp, ThumbsDown
-import { Button } from '@/components/ui/button'; // Import Button
-import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
-import { useToast } from '@/hooks/use-toast'; // Import useToast
-import { useState } from 'react'; // Import useState
-import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat, Banknote, Landmark, Store, Search, TrendingDown, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useSession } from '@/components/auth/SessionContextProvider';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
-interface DecisionCardProps {
+// Define DecisionCardProps interface here so it can be imported
+export interface DecisionCardProps {
   data: {
     id: string; // Added id for feedback
     recommendation: 'APPROVE' | 'WAIT' | 'REJECT';

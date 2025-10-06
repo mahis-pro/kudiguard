@@ -4,14 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import AddDataModal from '@/components/AddDataModal';
-import DecisionCard from '@/components/DecisionCard';
+import DecisionCard, { DecisionCardProps } from '@/components/DecisionCard'; // Import DecisionCardProps
 import { useToast } from '@/hooks/use-toast';
 import kudiGuardIcon from '/kudiguard-icon.jpg';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ParsedIntent } from '@/types/supabase-edge-functions';
-import { useParams } from 'react-router-dom'; // Import useParams
+import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface ChatMessage {
@@ -19,7 +19,8 @@ interface ChatMessage {
   sender: 'user' | 'ai';
   text: string;
   timestamp: string;
-  cards?: React.ReactNode[];
+  // Removed cards: React.ReactNode[]
+  decisionData?: DecisionCardProps['data']; // Store raw decision data
   dataNeeded?: {
     field: string;
     prompt: string;
@@ -42,6 +43,7 @@ interface ChatState {
   last_user_query_text: string | null;
   last_user_query_intent: string | null;
   last_user_query_payload: Record<string, any> | null;
+  title: string | null; // Add title to ChatState
 }
 
 const TypingIndicator = () => (
@@ -60,7 +62,7 @@ const ChatPage = () => {
   const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const { chatId } = useParams<{ chatId: string }>(); // Get chatId from URL parameters
+  const { chatId } = useParams<{ chatId: string }>();
   const queryClient = useQueryClient();
 
   const initialGreeting = (name: string): ChatMessage => ({
@@ -71,9 +73,9 @@ const ChatPage = () => {
   });
 
   const { data: chatData, isLoading: chatLoading, error: chatError } = useQuery({
-    queryKey: ['chatState', session?.user?.id, chatId], // Use chatId from useParams
+    queryKey: ['chatState', session?.user?.id, chatId],
     queryFn: async () => {
-      if (!session?.user?.id || !chatId) return null; // Ensure chatId is present
+      if (!session?.user?.id || !chatId) return null;
 
       const { data, error } = await supabase
         .from('chats')
@@ -87,9 +89,6 @@ const ChatPage = () => {
       }
       
       if (!data) {
-        // If chat ID is in URL but no data, it means an invalid chat ID or new chat not yet initialized
-        // This case should ideally be handled by AuthenticatedLayout redirecting to a valid chat.
-        // For robustness, we return a default state.
         return {
           messages: [initialGreeting(userDisplayName || 'there')],
           pending_data_request: null,
@@ -99,6 +98,7 @@ const ChatPage = () => {
           last_user_query_text: null,
           last_user_query_intent: null,
           last_user_query_payload: null,
+          title: null, // Initialize title
         };
       }
 
@@ -108,9 +108,10 @@ const ChatPage = () => {
         pending_data_request: data.pending_data_request || null,
         current_payload: data.current_payload || {},
         last_user_query_payload: data.last_user_query_payload || null,
+        title: data.title || null, // Read title from DB
       };
     },
-    enabled: !!session?.user?.id && !!chatId && !!userDisplayName, // Enable query only if chatId is present
+    enabled: !!session?.user?.id && !!chatId && !!userDisplayName,
     initialData: {
       messages: [initialGreeting(userDisplayName || 'there')],
       pending_data_request: null,
@@ -120,13 +121,14 @@ const ChatPage = () => {
       last_user_query_text: null,
       last_user_query_intent: null,
       last_user_query_payload: null,
+      title: null, // Initialize title in initialData
     },
     refetchOnWindowFocus: false,
   });
 
   const updateChatMutation = useMutation({
     mutationFn: async (newChatState: Partial<ChatState>) => {
-      if (!session?.user?.id || !chatId) { // Use chatId from useParams
+      if (!session?.user?.id || !chatId) {
         throw new Error("User not authenticated or no active chat ID.");
       }
       const { error } = await supabase
@@ -135,7 +137,7 @@ const ChatPage = () => {
           ...newChatState,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', chatId) // Use chatId from useParams
+        .eq('id', chatId)
         .eq('user_id', session.user.id);
 
       if (error) {
@@ -143,7 +145,7 @@ const ChatPage = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chatState', session?.user?.id, chatId] }); // Invalidate with chatId
+      queryClient.invalidateQueries({ queryKey: ['chatState', session?.user?.id, chatId] });
       queryClient.invalidateQueries({ queryKey: ['chatHistory', session?.user?.id] }); // Invalidate chat history to update sidebar
     },
     onError: (error: any) => {
@@ -165,6 +167,7 @@ const ChatPage = () => {
     last_user_query_text: lastUserQueryText,
     last_user_query_intent: lastUserQueryIntent,
     last_user_query_payload: lastUserQueryPayload,
+    title: chatTitle, // Destructure chatTitle
   } = chatData || {};
 
   const updateChatState = (updates: Partial<ChatState>) => {
@@ -176,6 +179,7 @@ const ChatPage = () => {
     const newLastUserQueryText = updates.last_user_query_text !== undefined ? updates.last_user_query_text : lastUserQueryText;
     const newLastUserQueryIntent = updates.last_user_query_intent !== undefined ? updates.last_user_query_intent : lastUserQueryIntent;
     const newLastUserQueryPayload = updates.last_user_query_payload !== undefined ? updates.last_user_query_payload : lastUserQueryPayload;
+    const newChatTitle = updates.title !== undefined ? updates.title : chatTitle; // Handle title update
 
     updateChatMutation.mutate({
       messages: newMessages,
@@ -186,6 +190,7 @@ const ChatPage = () => {
       last_user_query_text: newLastUserQueryText,
       last_user_query_intent: newLastUserQueryIntent,
       last_user_query_payload: newLastUserQueryPayload,
+      title: newChatTitle, // Include title in mutation
     });
   };
 
@@ -262,7 +267,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: "I've analyzed your financial data. Here is my recommendation:",
         timestamp: new Date().toISOString(),
-        cards: [<DecisionCard key="decision-card" data={edgeFunctionResult.data} />],
+        decisionData: edgeFunctionResult.data, // Store raw data here
       };
       updateChatState({
         messages: [...(messages || []), aiResponse],
@@ -439,14 +444,27 @@ const ChatPage = () => {
         return;
       }
 
-      updateChatState({
-        current_intent: parsedIntent.intent,
-        current_question: parsedIntent.question,
-        current_payload: parsedIntent.payload || {},
-        last_user_query_text: parsedIntent.question,
-        last_user_query_intent: parsedIntent.intent,
-        last_user_query_payload: parsedIntent.payload || {},
-      });
+      // If current_question is new and chatTitle is null, set chatTitle
+      if (parsedIntent.question && !chatTitle) {
+        updateChatState({
+          current_intent: parsedIntent.intent,
+          current_question: parsedIntent.question,
+          current_payload: parsedIntent.payload || {},
+          last_user_query_text: parsedIntent.question,
+          last_user_query_intent: parsedIntent.intent,
+          last_user_query_payload: parsedIntent.payload || {},
+          title: parsedIntent.question, // Set title here
+        });
+      } else {
+        updateChatState({
+          current_intent: parsedIntent.intent,
+          current_question: parsedIntent.question,
+          current_payload: parsedIntent.payload || {},
+          last_user_query_text: parsedIntent.question,
+          last_user_query_intent: parsedIntent.intent,
+          last_user_query_payload: parsedIntent.payload || {},
+        });
+      }
 
       sendToDecisionEngine(parsedIntent.intent, parsedIntent.question, parsedIntent.payload);
 
@@ -535,10 +553,8 @@ const ChatPage = () => {
   const getPlaceholderText = () => {
     if (pendingDataRequest) {
       let placeholder = pendingDataRequest.prompt;
-      if (pendingDataRequest.type === 'number') {
-        if (!placeholder.includes('(₦)')) {
-          placeholder += ' (in ₦)';
-        }
+      if (!placeholder.includes('(₦)') && pendingDataRequest.type === 'number') {
+        placeholder += ' (in ₦)';
       } else if (pendingDataRequest.type === 'boolean') {
         placeholder += ' (Yes/No)';
       }
@@ -569,7 +585,7 @@ const ChatPage = () => {
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                {msg.cards && <div className="mt-2">{msg.cards}</div>}
+                {msg.decisionData && <div className="mt-2"><DecisionCard data={msg.decisionData} /></div>} {/* Render DecisionCard from decisionData */}
                 {msg.quickReplies && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {msg.quickReplies.map((reply: string, index: number) => (
