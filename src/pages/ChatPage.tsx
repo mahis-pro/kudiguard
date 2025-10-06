@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ParsedIntent } from '@/types/supabase-edge-functions';
 import { useOutletContext } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface ChatMessage {
   id: string;
@@ -19,7 +20,6 @@ interface ChatMessage {
   text: string;
   timestamp: string;
   cards?: React.ReactNode[];
-  quickReplies?: string[];
   dataNeeded?: {
     field: string;
     prompt: string;
@@ -30,18 +30,18 @@ interface ChatMessage {
   };
   originalQuestion?: string; 
   collectedPayload?: Record<string, any>;
+  quickReplies?: string[];
 }
 
-// Define the structure of the chat state to be saved
-interface PersistedChatState {
+interface ChatState {
   messages: ChatMessage[];
-  pendingDataRequest: ChatMessage['dataNeeded'] | null;
-  currentIntent: string | null;
-  currentQuestion: string | null;
-  currentPayload: Record<string, any>;
-  lastUserQueryText: string | null;
-  lastUserQueryIntent: string | null;
-  lastUserQueryPayload: Record<string, any> | null;
+  pending_data_request: ChatMessage['dataNeeded'] | null;
+  current_intent: string | null;
+  current_question: string | null;
+  current_payload: Record<string, any>;
+  last_user_query_text: string | null;
+  last_user_query_intent: string | null;
+  last_user_query_payload: Record<string, any> | null;
 }
 
 const TypingIndicator = () => (
@@ -56,91 +56,134 @@ const ChatPage = () => {
   const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
   const { toast } = useToast();
   const [messageInput, setMessageInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
-  const [pendingDataRequest, setPendingDataRequest] = useState<ChatMessage['dataNeeded'] | null>(null);
-  const [currentIntent, setCurrentIntent] = useState<string | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState<string | null>(null);
-  const [currentPayload, setCurrentPayload] = useState<Record<string, any>>({});
-
-  const [lastUserQueryText, setLastUserQueryText] = useState<string | null>(null);
-  const [lastUserQueryIntent, setLastUserQueryIntent] = useState<string | null>(null);
-  const [lastUserQueryPayload, setLastUserQueryPayload] = useState<Record<string, any> | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const { chatKey } = useOutletContext<{ chatKey: number }>();
+  const { activeChatId } = useOutletContext<{ activeChatId: string | null }>();
+  const queryClient = useQueryClient();
 
-  // Helper to get the localStorage key based on user ID
-  const getLocalStorageKey = (userId: string | undefined) => 
-    userId ? `kudiguard_chat_state_${userId}` : 'kudiguard_chat_state_anonymous';
-
-  // Initial greeting message
   const initialGreeting = (name: string): ChatMessage => ({
-    id: '1',
+    id: String(Date.now()),
     sender: 'ai',
     text: `Hello ${name}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
     timestamp: new Date().toISOString(),
   });
 
-  // Effect to load chat state from localStorage on mount or when chatKey changes
-  useEffect(() => {
-    if (!sessionLoading && userDisplayName) {
-      const userId = session?.user?.id;
-      const key = getLocalStorageKey(userId);
-      const savedState = localStorage.getItem(key);
+  const { data: chatData, isLoading: chatLoading, error: chatError } = useQuery({
+    queryKey: ['chatState', session?.user?.id, activeChatId],
+    queryFn: async () => {
+      if (!session?.user?.id || !activeChatId) return null;
 
-      if (savedState) {
-        try {
-          const parsedState: PersistedChatState = JSON.parse(savedState);
-          setMessages(parsedState.messages);
-          setPendingDataRequest(parsedState.pendingDataRequest);
-          setCurrentIntent(parsedState.currentIntent);
-          setCurrentQuestion(parsedState.currentQuestion);
-          setCurrentPayload(parsedState.currentPayload);
-          setLastUserQueryText(parsedState.lastUserQueryText);
-          setLastUserQueryIntent(parsedState.lastUserQueryIntent);
-          setLastUserQueryPayload(parsedState.lastUserQueryPayload);
-        } catch (e) {
-          console.error("Failed to parse saved chat state from localStorage:", e);
-          setMessages([initialGreeting(userDisplayName)]);
-        }
-      } else {
-        setMessages([initialGreeting(userDisplayName)]);
+      const { data, error } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('id', activeChatId)
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
       }
-    }
-  }, [sessionLoading, userDisplayName, session?.user?.id, chatKey]);
+      
+      if (!data) {
+        return {
+          messages: [initialGreeting(userDisplayName || 'there')],
+          pending_data_request: null,
+          current_intent: null,
+          current_question: null,
+          current_payload: {},
+          last_user_query_text: null,
+          last_user_query_intent: null,
+          last_user_query_payload: null,
+        };
+      }
 
-  // Effect to save chat state to localStorage whenever relevant state changes
-  useEffect(() => {
-    if (!sessionLoading && userDisplayName) {
-      const userId = session?.user?.id;
-      const key = getLocalStorageKey(userId);
-      const stateToSave: PersistedChatState = {
-        messages,
-        pendingDataRequest,
-        currentIntent,
-        currentQuestion,
-        currentPayload,
-        lastUserQueryText,
-        lastUserQueryIntent,
-        lastUserQueryPayload,
+      return {
+        ...data,
+        messages: data.messages || [],
+        pending_data_request: data.pending_data_request || null,
+        current_payload: data.current_payload || {},
+        last_user_query_payload: data.last_user_query_payload || null,
       };
-      localStorage.setItem(key, JSON.stringify(stateToSave));
-    }
-  }, [
+    },
+    enabled: !!session?.user?.id && !!activeChatId && !!userDisplayName,
+    initialData: {
+      messages: [initialGreeting(userDisplayName || 'there')],
+      pending_data_request: null,
+      current_intent: null,
+      current_question: null,
+      current_payload: {},
+      last_user_query_text: null,
+      last_user_query_intent: null,
+      last_user_query_payload: null,
+    },
+    refetchOnWindowFocus: false,
+  });
+
+  const updateChatMutation = useMutation({
+    mutationFn: async (newChatState: Partial<ChatState>) => {
+      if (!session?.user?.id || !activeChatId) {
+        throw new Error("User not authenticated or no active chat.");
+      }
+      const { error } = await supabase
+        .from('chats')
+        .update({
+          ...newChatState,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', activeChatId)
+        .eq('user_id', session.user.id);
+
+      if (error) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chatState', session?.user?.id, activeChatId] });
+    },
+    onError: (error: any) => {
+      console.error("Failed to save chat state:", error.message);
+      toast({
+        title: "Chat Save Error",
+        description: "Could not save chat progress. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const {
     messages,
-    pendingDataRequest,
-    currentIntent,
-    currentQuestion,
-    currentPayload,
-    lastUserQueryText,
-    lastUserQueryIntent,
-    lastUserQueryPayload,
-    sessionLoading,
-    userDisplayName,
-    session?.user?.id,
-  ]);
+    pending_data_request: pendingDataRequest,
+    current_intent: currentIntent,
+    current_question: currentQuestion,
+    current_payload: currentPayload,
+    last_user_query_text: lastUserQueryText,
+    last_user_query_intent: lastUserQueryIntent,
+    last_user_query_payload: lastUserQueryPayload,
+  } = chatData || {};
+
+  const updateChatState = (updates: Partial<ChatState>) => {
+    const newMessages = updates.messages || messages;
+    const newPendingDataRequest = updates.pending_data_request !== undefined ? updates.pending_data_request : pendingDataRequest;
+    const newCurrentIntent = updates.current_intent !== undefined ? updates.current_intent : currentIntent;
+    const newCurrentQuestion = updates.current_question !== undefined ? updates.current_question : currentQuestion;
+    const newCurrentPayload = updates.current_payload !== undefined ? updates.current_payload : currentPayload;
+    const newLastUserQueryText = updates.last_user_query_text !== undefined ? updates.last_user_query_text : lastUserQueryText;
+    const newLastUserQueryIntent = updates.last_user_query_intent !== undefined ? updates.last_user_query_intent : lastUserQueryIntent;
+    const newLastUserQueryPayload = updates.last_user_query_payload !== undefined ? updates.last_user_query_payload : lastUserQueryPayload;
+
+    updateChatMutation.mutate({
+      messages: newMessages,
+      pending_data_request: newPendingDataRequest,
+      current_intent: newCurrentIntent,
+      current_question: newCurrentQuestion,
+      current_payload: newCurrentPayload,
+      last_user_query_text: newLastUserQueryText,
+      last_user_query_intent: newLastUserQueryIntent,
+      last_user_query_payload: newLastUserQueryPayload,
+    });
+  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -159,7 +202,6 @@ const ChatPage = () => {
 
       if (!edgeFunctionResult || !edgeFunctionResult.success) {
         let errorMessage = "An unknown error occurred from the AI.";
-        // Removed quickReplies
         if (edgeFunctionResult?.error?.code === 'DECISION_NOT_FOUND') {
           errorMessage = "I can't provide a recommendation without your financial data. Please add your monthly revenue, expenses, and savings first.";
         } else if (edgeFunctionResult?.error?.details) {
@@ -174,38 +216,40 @@ const ChatPage = () => {
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
         };
-        setMessages((prev) => [...prev, errorResponse]);
+        updateChatState({
+          messages: [...(messages || []), errorResponse],
+          pending_data_request: null,
+          current_intent: null,
+          current_question: null,
+          current_payload: {},
+        });
         toast({
           title: "Analysis Failed",
           description: errorMessage,
           variant: "destructive",
         });
-        setPendingDataRequest(null);
-        setCurrentIntent(null);
-        setCurrentQuestion(null);
-        setCurrentPayload({});
         return;
       }
 
       if (edgeFunctionResult.data?.data_needed) {
-        setPendingDataRequest(edgeFunctionResult.data.data_needed);
-        setCurrentIntent(intent);
-        setCurrentQuestion(question);
-        setCurrentPayload(edgeFunctionResult.data.data_needed.intent_context.current_payload || {});
-        
-        setLastUserQueryPayload(edgeFunctionResult.data.data_needed.intent_context.current_payload || {});
-
+        const dataNeeded = edgeFunctionResult.data.data_needed;
         const dataNeededMessage: ChatMessage = {
           id: String(Date.now()),
           sender: 'ai',
-          text: edgeFunctionResult.data.data_needed.prompt,
+          text: dataNeeded.prompt,
           timestamp: new Date().toISOString(),
-          dataNeeded: edgeFunctionResult.data.data_needed,
-          // Removed quickReplies
+          dataNeeded: dataNeeded,
           originalQuestion: question,
-          collectedPayload: edgeFunctionResult.data.data_needed.intent_context.current_payload || {}, 
+          collectedPayload: dataNeeded.intent_context.current_payload || {}, 
         };
-        setMessages((prev) => [...prev, dataNeededMessage]);
+        updateChatState({
+          messages: [...(messages || []), dataNeededMessage],
+          pending_data_request: dataNeeded,
+          current_intent: intent,
+          current_question: question,
+          current_payload: dataNeeded.intent_context.current_payload || {},
+          last_user_query_payload: dataNeeded.intent_context.current_payload || {},
+        });
         return;
       }
 
@@ -215,16 +259,17 @@ const ChatPage = () => {
         text: "I've analyzed your financial data. Here is my recommendation:",
         timestamp: new Date().toISOString(),
         cards: [<DecisionCard key="decision-card" data={edgeFunctionResult.data} />],
-        // Removed quickReplies
       };
-      setMessages((prev) => [...prev, aiResponse]);
-      setPendingDataRequest(null);
-      setCurrentIntent(null);
-      setCurrentQuestion(null);
-      setCurrentPayload({});
-      setLastUserQueryText(null);
-      setLastUserQueryIntent(null);
-      setLastUserQueryPayload(null);
+      updateChatState({
+        messages: [...(messages || []), aiResponse],
+        pending_data_request: null,
+        current_intent: null,
+        current_question: null,
+        current_payload: {},
+        last_user_query_text: null,
+        last_user_query_intent: null,
+        last_user_query_payload: null,
+      });
 
     } catch (error: any) {
       console.error("Error invoking decision-engine edge function:", error);
@@ -240,13 +285,14 @@ const ChatPage = () => {
         sender: 'ai',
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
-        // Removed quickReplies
       };
-      setMessages((prev) => [...prev, errorResponse]);
-      setPendingDataRequest(null);
-      setCurrentIntent(null);
-      setCurrentQuestion(null);
-      setCurrentPayload({});
+      updateChatState({
+        messages: [...(messages || []), errorResponse],
+        pending_data_request: null,
+        current_intent: null,
+        current_question: null,
+        current_payload: {},
+      });
     } finally {
       setIsAiTyping(false);
     }
@@ -274,9 +320,8 @@ const ChatPage = () => {
             sender: 'ai',
             text: "You're most welcome! I'm here to help your business thrive. Is there anything else I can assist you with?",
             timestamp: new Date().toISOString(),
-            // Removed quickReplies
         };
-        setMessages((prev) => [...prev, userThankYou, aiReply]);
+        updateChatState({ messages: [...(messages || []), userThankYou, aiReply] });
         setMessageInput('');
         return;
     }
@@ -287,8 +332,8 @@ const ChatPage = () => {
       text: finalMessageInput,
       timestamp: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, userMessage]);
-    setMessageInput(''); // Clear input immediately after sending
+    updateChatState({ messages: [...(messages || []), userMessage] });
+    setMessageInput('');
 
     if (pendingDataRequest && currentIntent && currentQuestion) {
       let parsedValue: number | boolean | string | undefined;
@@ -304,7 +349,7 @@ const ChatPage = () => {
           }
         }
       } else if (pendingDataRequest.type === 'text_enum') {
-        const selectedOption = pendingDataRequest.options?.find(option => 
+        const selectedOption = pendingDataRequest.options?.find((option: string) =>
           option.toLowerCase().includes(lowerCaseInput)
         );
         if (selectedOption) {
@@ -315,9 +360,8 @@ const ChatPage = () => {
             sender: 'ai',
             text: `I couldn't understand your choice. Please select one of the following options: ${pendingDataRequest.options?.join(', ')}.`,
             timestamp: new Date().toISOString(),
-            // Removed quickReplies
           };
-          setMessages((prev) => [...prev, retryMessage]);
+          updateChatState({ messages: [...(messages || []), retryMessage] });
           setIsAiTyping(false);
           return;
         }
@@ -329,9 +373,8 @@ const ChatPage = () => {
           sender: 'ai',
           text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000', 'Yes/No', or select from options).`,
           timestamp: new Date().toISOString(),
-          // Removed quickReplies
         };
-        setMessages((prev) => [...prev, retryMessage]);
+        updateChatState({ messages: [...(messages || []), retryMessage] });
         setIsAiTyping(false);
         return;
       }
@@ -342,20 +385,18 @@ const ChatPage = () => {
           sender: 'ai',
           text: `The value for ${pendingDataRequest.field.replace(/_/g, ' ')} must be greater than 0. Please provide a valid input.`,
           timestamp: new Date().toISOString(),
-          // Removed quickReplies
         };
-        setMessages((prev) => [...prev, retryMessage]);
+        updateChatState({ messages: [...(messages || []), retryMessage] });
         setIsAiTyping(false);
         return;
       }
 
       const updatedPayload = { ...currentPayload, [pendingDataRequest.field]: parsedValue };
-      setCurrentPayload(updatedPayload);
+      updateChatState({ current_payload: updatedPayload });
       sendToDecisionEngine(currentIntent, currentQuestion, updatedPayload);
       return;
     }
 
-    // --- New Intent Parsing Logic ---
     setIsAiTyping(true);
     try {
       const { data: intentParserResult, error: invokeError } = await supabase.functions.invoke('intent-parser', {
@@ -373,9 +414,8 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
-          // Removed quickReplies
         };
-        setMessages((prev) => [...prev, errorResponse]);
+        updateChatState({ messages: [...(messages || []), errorResponse] });
         setIsAiTyping(false);
         return;
       }
@@ -389,21 +429,20 @@ const ChatPage = () => {
           sender: 'ai',
           text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loan, and business expansion decisions. Please ask me a question related to these topics.",
           timestamp: new Date().toISOString(),
-          // Removed quickReplies
         };
-        setMessages((prev) => [...prev, noIntentResponse]);
+        updateChatState({ messages: [...(messages || []), noIntentResponse] });
         setIsAiTyping(false);
         return;
       }
 
-      // If intent is detected, proceed to decision engine
-      setCurrentIntent(parsedIntent.intent);
-      setCurrentQuestion(parsedIntent.question);
-      setCurrentPayload(parsedIntent.payload || {});
-
-      setLastUserQueryText(parsedIntent.question);
-      setLastUserQueryIntent(parsedIntent.intent);
-      setLastUserQueryPayload(parsedIntent.payload || {});
+      updateChatState({
+        current_intent: parsedIntent.intent,
+        current_question: parsedIntent.question,
+        current_payload: parsedIntent.payload || {},
+        last_user_query_text: parsedIntent.question,
+        last_user_query_intent: parsedIntent.intent,
+        last_user_query_payload: parsedIntent.payload || {},
+      });
 
       sendToDecisionEngine(parsedIntent.intent, parsedIntent.question, parsedIntent.payload);
 
@@ -421,9 +460,8 @@ const ChatPage = () => {
         sender: 'ai',
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
-        // Removed quickReplies
       };
-      setMessages((prev) => [...prev, errorResponse]);
+      updateChatState({ messages: [...(messages || []), errorResponse] });
       setIsAiTyping(false);
     }
   };
@@ -432,29 +470,32 @@ const ChatPage = () => {
     const lowerCaseReply = reply.toLowerCase();
 
     if (lowerCaseReply === 'add new data') {
-      setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
+      updateChatState({ messages: [...(messages || []), { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
       setIsAddDataModalOpen(true);
     } else if (lowerCaseReply === 'cancel' && pendingDataRequest) {
-      setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
-      setPendingDataRequest(null);
-      setCurrentIntent(null);
-      setCurrentQuestion(null);
-      setCurrentPayload({});
+      updateChatState({
+        messages: [...(messages || []), { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }],
+        pending_data_request: null,
+        current_intent: null,
+        current_question: null,
+        current_payload: {},
+      });
       const cancelMessage: ChatMessage = {
         id: String(Date.now()),
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
-        // Removed quickReplies
       };
-      setMessages((prev) => [...prev, cancelMessage]);
+      updateChatState({ messages: [...(messages || []), cancelMessage] });
     } else if (lowerCaseReply === 'try again') {
-        setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
+        updateChatState({ messages: [...(messages || []), { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
         if (lastUserQueryIntent && lastUserQueryText) {
-            setPendingDataRequest(null);
-            setCurrentIntent(lastUserQueryIntent);
-            setCurrentQuestion(lastUserQueryText);
-            setCurrentPayload(lastUserQueryPayload || {});
+            updateChatState({
+                pending_data_request: null,
+                current_intent: lastUserQueryIntent,
+                current_question: lastUserQueryText,
+                current_payload: lastUserQueryPayload || {},
+            });
             sendToDecisionEngine(lastUserQueryIntent, lastUserQueryText, lastUserQueryPayload || {});
         } else {
             const noRetryMessage: ChatMessage = {
@@ -462,9 +503,8 @@ const ChatPage = () => {
                 sender: 'ai',
                 text: "I don't have a previous query to retry. Please ask me a new question.",
                 timestamp: new Date().toISOString(),
-                // Removed quickReplies
             };
-            setMessages((prev) => [...prev, noRetryMessage]);
+            updateChatState({ messages: [...(messages || []), noRetryMessage] });
         }
     } else {
         setMessageInput(reply); 
@@ -472,10 +512,18 @@ const ChatPage = () => {
     }
   };
 
-  if (sessionLoading) {
+  if (sessionLoading || chatLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-4">
         <p className="text-muted-foreground">Loading chat...</p>
+      </div>
+    );
+  }
+
+  if (chatError) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-4 text-destructive">
+        <p>Error loading chat: {chatError.message}</p>
       </div>
     );
   }
@@ -499,7 +547,7 @@ const ChatPage = () => {
     <>
       <div className="flex flex-col flex-1">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((msg) => (
+          {(messages || []).map((msg: ChatMessage) => (
             <div
               key={msg.id}
               className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -520,7 +568,7 @@ const ChatPage = () => {
                 {msg.cards && <div className="mt-2">{msg.cards}</div>}
                 {msg.quickReplies && (
                   <div className="flex flex-wrap gap-2 mt-3">
-                    {msg.quickReplies.map((reply, index) => (
+                    {msg.quickReplies.map((reply: string, index: number) => (
                       <Badge
                         key={index}
                         variant="secondary"
@@ -579,7 +627,7 @@ const ChatPage = () => {
                   <SelectValue placeholder={getPlaceholderText()} />
                 </SelectTrigger>
                 <SelectContent>
-                  {pendingDataRequest.options.map(option => (
+                  {pendingDataRequest.options.map((option: string) => (
                     <SelectItem key={option} value={option}>{option}</SelectItem>
                   ))}
                 </SelectContent>
