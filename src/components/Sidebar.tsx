@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart } from 'lucide-react';
+import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart, MessageSquarePlus } from 'lucide-react'; // Added MessageSquarePlus
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -9,10 +9,11 @@ import { useToast } from '@/hooks/use-toast';
 interface SidebarProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (isOpen: boolean) => void;
-  onAddDataClick: () => void; // New prop to handle click
+  onAddDataClick: () => void;
+  onStartNewChatClick: () => void; // New prop for starting a new chat
 }
 
-const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick }: SidebarProps) => {
+const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewChatClick }: SidebarProps) => {
   const location = useLocation();
   const { supabase, userDisplayName } = useSession();
   const { toast } = useToast();
@@ -20,7 +21,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick }: SidebarPro
   const navItems = [
     { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/insights', icon: LayoutDashboard, label: 'Insights' },
-    { path: '/analytics', icon: LineChart, label: 'Analytics' }, // New Analytics link
+    { path: '/analytics', icon: LineChart, label: 'Analytics' },
     { path: '/history', icon: History, label: 'History' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
@@ -48,20 +49,35 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick }: SidebarPro
   };
 
   const handleAddData = () => {
-    onAddDataClick(); // Use the passed handler
-    setIsSidebarOpen(false); // Close sheet after action
+    onAddDataClick();
+    setIsSidebarOpen(false);
+  };
+
+  const handleNewChat = () => {
+    onStartNewChatClick(); // Call the passed handler
+    setIsSidebarOpen(false); // Close sidebar after action
   };
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-gradient-subtle text-sidebar-foreground border-r border-sidebar-border shadow-lg">
       {/* Logo and App Name */}
-      <div className="p-4 border-b border-sidebar-border flex items-center justify-center">
-        <img 
-          src={kudiGuardLogo} 
-          alt="KudiGuard" 
-          className="h-9 w-auto mr-2"
-        />
-        {/* Removed the KudiGuard text */}
+      <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
+        <Link to="/chat" className="flex items-center" onClick={() => setIsSidebarOpen(false)}>
+          <img 
+            src={kudiGuardLogo} 
+            alt="KudiGuard" 
+            className="h-9 w-auto mr-2"
+          />
+        </Link>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleNewChat}
+          className="h-10 w-10 text-primary hover:bg-primary/10"
+        >
+          <MessageSquarePlus className="h-6 w-6" />
+          <span className="sr-only">Start New Chat</span>
+        </Button>
       </div>
 
       {/* User Info */}

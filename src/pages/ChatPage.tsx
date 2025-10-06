@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquarePlus } from 'lucide-react'; // Added MessageSquarePlus import
+import { Send } from 'lucide-react'; // Removed MessageSquarePlus import as it's now in Sidebar
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ParsedIntent } from '@/types/supabase-edge-functions'; // Import new types
+import { useOutletContext } from 'react-router-dom'; // Import useOutletContext
 
 interface ChatMessage {
   id: string;
@@ -68,6 +69,7 @@ const ChatPage = () => {
   const [lastUserQueryPayload, setLastUserQueryPayload] = useState<Record<string, any> | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const { chatKey } = useOutletContext<{ chatKey: number }>(); // Get chatKey from context
 
   // Helper to get the localStorage key based on user ID
   const getLocalStorageKey = (userId: string | undefined) => 
@@ -82,28 +84,7 @@ const ChatPage = () => {
     quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
   });
 
-  // Function to start a new chat
-  const handleStartNewChat = () => {
-    const userId = session?.user?.id;
-    const key = getLocalStorageKey(userId);
-    localStorage.removeItem(key); // Clear from local storage
-
-    setMessages([initialGreeting(userDisplayName || 'User')]);
-    setPendingDataRequest(null);
-    setCurrentIntent(null);
-    setCurrentQuestion(null);
-    setCurrentPayload({});
-    setLastUserQueryText(null);
-    setLastUserQueryIntent(null);
-    setLastUserQueryPayload(null);
-    toast({
-      title: "New Chat Started",
-      description: "Your conversation history has been cleared.",
-      variant: "default",
-    });
-  };
-
-  // Effect to load chat state from localStorage on mount
+  // Effect to load chat state from localStorage on mount or when chatKey changes
   useEffect(() => {
     if (!sessionLoading && userDisplayName) {
       const userId = session?.user?.id;
@@ -129,7 +110,7 @@ const ChatPage = () => {
         setMessages([initialGreeting(userDisplayName)]);
       }
     }
-  }, [sessionLoading, userDisplayName, session?.user?.id]); // Re-run if user changes
+  }, [sessionLoading, userDisplayName, session?.user?.id, chatKey]); // Re-run if user changes or chatKey changes
 
   // Effect to save chat state to localStorage whenever relevant state changes
   useEffect(() => {
@@ -523,14 +504,7 @@ const ChatPage = () => {
       <div className="flex flex-col flex-1">
         <div className="flex items-center justify-between p-4 border-b border-border bg-card sticky top-0 z-10">
           <h2 className="text-xl font-semibold text-primary">KudiGuard Chat</h2>
-          <Button
-            variant="outline"
-            onClick={handleStartNewChat}
-            className="flex items-center"
-          >
-            <MessageSquarePlus className="h-4 w-4 mr-2" />
-            Start New Chat
-          </Button>
+          {/* Removed the Start New Chat button from here */}
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((msg) => (
