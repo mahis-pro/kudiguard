@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import AddDataModal from '@/components/AddDataModal';
-import DecisionCard, { DecisionCardProps } from '@/components/DecisionCard'; // Import DecisionCardProps
+import DecisionCard, { DecisionCardProps } from '@/components/DecisionCard';
 import { useToast } from '@/hooks/use-toast';
 import kudiGuardIcon from '/kudiguard-icon.jpg';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,6 +34,7 @@ interface ChatMessage {
 }
 
 interface ChatState {
+  id: string; // Add id to ChatState for queryClient
   messages: ChatMessage[];
   pending_data_request: ChatMessage['dataNeeded'] | null;
   current_intent: string | null;
@@ -42,7 +43,7 @@ interface ChatState {
   last_user_query_text: string | null;
   last_user_query_intent: string | null;
   last_user_query_payload: Record<string, any> | null;
-  title: string | null; // Add title to ChatState
+  title: string | null;
 }
 
 const TypingIndicator = () => (
@@ -71,7 +72,7 @@ const ChatPage = () => {
     timestamp: new Date().toISOString(),
   });
 
-  const { data: chatData, isLoading: chatLoading, error: chatError } = useQuery({
+  const { data: chatData, isLoading: chatLoading, error: chatError } = useQuery<ChatState | null>({
     queryKey: ['chatState', session?.user?.id, chatId],
     queryFn: async () => {
       if (!session?.user?.id || !chatId) return null;
@@ -88,10 +89,10 @@ const ChatPage = () => {
       }
       
       if (!data) {
-        // This case should ideally be handled by AuthenticatedLayout redirecting to a valid chat.
-        // However, as a fallback, if somehow we land here without a valid chat,
-        // we return a default structure.
+        // If no chat found for the ID, return a default structure.
+        // The ChatRedirector should ideally prevent this, but as a fallback.
         return {
+          id: chatId, // Ensure ID is present
           messages: [initialGreeting(userDisplayName || 'there')],
           pending_data_request: null,
           current_intent: null,
@@ -106,6 +107,7 @@ const ChatPage = () => {
 
       return {
         ...data,
+        id: data.id, // Ensure ID is explicitly set
         messages: data.messages || [],
         pending_data_request: data.pending_data_request || null,
         current_payload: data.current_payload || {},
@@ -114,16 +116,22 @@ const ChatPage = () => {
       };
     },
     enabled: !!session?.user?.id && !!chatId && !!userDisplayName,
-    initialData: {
-      messages: [initialGreeting(userDisplayName || 'there')],
-      pending_data_request: null,
-      current_intent: null,
-      current_question: null,
-      current_payload: {},
-      last_user_query_text: null,
-      last_user_query_intent: null,
-      last_user_query_payload: null,
-      title: null,
+    initialData: () => {
+      // Provide initial data for the query to prevent `chatData` from being undefined
+      // before the first fetch, especially important for optimistic updates.
+      if (!chatId) return null; // Should not happen if enabled is true
+      return {
+        id: chatId,
+        messages: [initialGreeting(userDisplayName || 'there')],
+        pending_data_request: null,
+        current_intent: null,
+        current_question: null,
+        current_payload: {},
+        last_user_query_text: null,
+        last_user_query_intent: null,
+        last_user_query_payload: null,
+        title: null,
+      };
     },
     refetchOnWindowFocus: false,
   });
@@ -146,55 +154,65 @@ const ChatPage = () => {
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chatState', session?.user?.id, chatId] });
-      queryClient.invalidateQueries({ queryKey: ['chatHistory', session?.user?.id] });
+    onMutate: async (newChatState: Partial<ChatState>) => {
+      if (!chatId) return;
+
+      // Cancel any outgoing refetches for this chat to prevent overwriting
+      await queryClient.cancelQueries({ queryKey: ['chatState', session?.user?.id, chatId] });
+
+      // Snapshot the previous value
+      const previousChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<ChatState>(['chatState', session?.user?.id, chatId], (old) => {
+        if (!old) return previousChatState; // Fallback if old is undefined
+
+        return {
+          ...old,
+          ...newChatState,
+          messages: newChatState.messages || old.messages, // Ensure messages are merged
+          current_payload: newChatState.current_payload || old.current_payload,
+          pending_data_request: newChatState.pending_data_request !== undefined ? newChatState.pending_data_request : old.pending_data_request,
+          current_intent: newChatState.current_intent !== undefined ? newChatState.current_intent : old.current_intent,
+          current_question: newChatState.current_question !== undefined ? newChatState.current_question : old.current_question,
+          last_user_query_text: newChatState.last_user_query_text !== undefined ? newChatState.last_user_query_text : old.last_user_query_text,
+          last_user_query_intent: newChatState.last_user_query_intent !== undefined ? newChatState.last_user_query_intent : old.last_user_query_intent,
+          last_user_query_payload: newChatState.last_user_query_payload !== undefined ? newChatState.last_user_query_payload : old.last_user_query_payload,
+          title: newChatState.title !== undefined ? newChatState.title : old.title,
+        };
+      });
+
+      return { previousChatState };
     },
-    onError: (error: any) => {
-      console.error("Failed to save chat state:", error.message);
+    onError: (err, _newChatState, context) => { // Fixed: Renamed newChatState to _newChatState
+      // If the mutation fails, use the context to roll back
+      queryClient.setQueryData(['chatState', session?.user?.id, chatId], context?.previousChatState);
+      console.error("Failed to save chat state:", err);
       toast({
         title: "Chat Save Error",
         description: "Could not save chat progress. Please try again.",
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      // Always refetch after error or success to ensure server state is reflected
+      queryClient.invalidateQueries({ queryKey: ['chatState', session?.user?.id, chatId] });
+      queryClient.invalidateQueries({ queryKey: ['chatHistory', session?.user?.id] });
+    },
   });
 
+  // Destructure chatData safely, providing fallbacks for initial render
   const {
-    messages,
-    pending_data_request: pendingDataRequest,
-    current_intent: currentIntent,
-    current_question: currentQuestion,
-    current_payload: currentPayload,
-    last_user_query_text: lastUserQueryText,
-    last_user_query_intent: lastUserQueryIntent,
-    last_user_query_payload: lastUserQueryPayload,
-    title: chatTitle,
+    messages = [],
+    pending_data_request: pendingDataRequest = null,
+    current_intent: currentIntent = null,
+    current_question: currentQuestion = null,
+    current_payload: currentPayload = {},
+    last_user_query_text: lastUserQueryText = null,
+    last_user_query_intent: lastUserQueryIntent = null,
+    last_user_query_payload: lastUserQueryPayload = null,
+    title: chatTitle = null,
   } = chatData || {};
-
-  const updateChatState = (updates: Partial<ChatState>) => {
-    const newMessages = updates.messages || messages;
-    const newPendingDataRequest = updates.pending_data_request !== undefined ? updates.pending_data_request : pendingDataRequest;
-    const newCurrentIntent = updates.current_intent !== undefined ? updates.current_intent : currentIntent;
-    const newCurrentQuestion = updates.current_question !== undefined ? updates.current_question : currentQuestion;
-    const newCurrentPayload = updates.current_payload !== undefined ? updates.current_payload : currentPayload;
-    const newLastUserQueryText = updates.last_user_query_text !== undefined ? updates.last_user_query_text : lastUserQueryText;
-    const newLastUserQueryIntent = updates.last_user_query_intent !== undefined ? updates.last_user_query_intent : lastUserQueryIntent;
-    const newLastUserQueryPayload = updates.last_user_query_payload !== undefined ? updates.last_user_query_payload : lastUserQueryPayload;
-    const newChatTitle = updates.title !== undefined ? updates.title : chatTitle;
-
-    updateChatMutation.mutate({
-      messages: newMessages,
-      pending_data_request: newPendingDataRequest,
-      current_intent: newCurrentIntent,
-      current_question: newCurrentQuestion,
-      current_payload: newCurrentPayload,
-      last_user_query_text: newLastUserQueryText,
-      last_user_query_intent: newLastUserQueryIntent,
-      last_user_query_payload: newLastUserQueryPayload,
-      title: newChatTitle,
-    });
-  };
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -202,6 +220,10 @@ const ChatPage = () => {
 
   const sendToDecisionEngine = async (intent: string, question: string, payload?: Record<string, any>) => {
     setIsAiTyping(true);
+    // Get the latest chat state from the cache before proceeding
+    const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
+    const currentMessages = latestChatState?.messages || [];
+
     try {
       const { data: edgeFunctionResult, error: invokeError } = await supabase.functions.invoke('decision-engine', {
         body: { intent, question, payload },
@@ -227,8 +249,8 @@ const ChatPage = () => {
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
         };
-        updateChatState({
-          messages: [...(messages || []), errorResponse],
+        updateChatMutation.mutate({
+          messages: [...currentMessages, errorResponse],
           pending_data_request: null,
           current_intent: null,
           current_question: null,
@@ -253,8 +275,8 @@ const ChatPage = () => {
           originalQuestion: question,
           collectedPayload: dataNeeded.intent_context.current_payload || {}, 
         };
-        updateChatState({
-          messages: [...(messages || []), dataNeededMessage],
+        updateChatMutation.mutate({
+          messages: [...currentMessages, dataNeededMessage],
           pending_data_request: dataNeeded,
           current_intent: intent,
           current_question: question,
@@ -271,8 +293,8 @@ const ChatPage = () => {
         timestamp: new Date().toISOString(),
         decisionData: edgeFunctionResult.data,
       };
-      updateChatState({
-        messages: [...(messages || []), aiResponse],
+      updateChatMutation.mutate({
+        messages: [...currentMessages, aiResponse],
         pending_data_request: null,
         current_intent: null,
         current_question: null,
@@ -297,7 +319,7 @@ const ChatPage = () => {
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
       };
-      updateChatState({ messages: [...(messages || []), errorResponse] });
+      updateChatMutation.mutate({ messages: [...currentMessages, errorResponse] });
     } finally {
       setIsAiTyping(false);
     }
@@ -314,6 +336,10 @@ const ChatPage = () => {
     const lowerCaseInput = finalMessageInput.toLowerCase();
 
     if (['thank you', 'thanks', 'thank you!', 'thanks!'].includes(lowerCaseInput)) {
+        // Get the latest chat state from the cache before proceeding
+        const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
+        const currentMessages = latestChatState?.messages || [];
+
         const userThankYou: ChatMessage = {
             id: String(Date.now()),
             sender: 'user',
@@ -326,10 +352,14 @@ const ChatPage = () => {
             text: "You're most welcome! I'm here to help your business thrive. Is there anything else I can assist you with?",
             timestamp: new Date().toISOString(),
         };
-        updateChatState({ messages: [...(messages || []), userThankYou, aiReply] });
+        updateChatMutation.mutate({ messages: [...currentMessages, userThankYou, aiReply] });
         setMessageInput('');
         return;
     }
+
+    // Get the latest chat state from the cache before proceeding
+    const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
+    const currentMessages = latestChatState?.messages || [];
 
     const userMessage: ChatMessage = {
       id: String(Date.now()),
@@ -338,7 +368,7 @@ const ChatPage = () => {
       timestamp: new Date().toISOString(),
     };
     
-    updateChatState({ messages: [...(messages || []), userMessage] });
+    updateChatMutation.mutate({ messages: [...currentMessages, userMessage] });
     setMessageInput('');
 
     if (pendingDataRequest && currentIntent && currentQuestion) {
@@ -367,7 +397,7 @@ const ChatPage = () => {
             text: `I couldn't understand your choice. Please select one of the following options: ${pendingDataRequest.options?.join(', ')}.`,
             timestamp: new Date().toISOString(),
           };
-          updateChatState({ messages: [...(messages || []), retryMessage] });
+          updateChatMutation.mutate({ messages: [...currentMessages, retryMessage] });
           setIsAiTyping(false);
           return;
         }
@@ -380,25 +410,13 @@ const ChatPage = () => {
           text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000', 'Yes/No', or select from options).`,
           timestamp: new Date().toISOString(),
         };
-        updateChatState({ messages: [...(messages || []), retryMessage] });
-        setIsAiTyping(false);
-        return;
-      }
-
-      if (pendingDataRequest.type === 'number' && pendingDataRequest.canBeZeroOrNone === false && parsedValue === 0) {
-        const retryMessage: ChatMessage = {
-          id: String(Date.now()),
-          sender: 'ai',
-          text: `The value for ${pendingDataRequest.field.replace(/_/g, ' ')} must be greater than 0. Please provide a valid input.`,
-          timestamp: new Date().toISOString(),
-        };
-        updateChatState({ messages: [...(messages || []), retryMessage] });
+        updateChatMutation.mutate({ messages: [...currentMessages, retryMessage] });
         setIsAiTyping(false);
         return;
       }
 
       const updatedPayload = { ...currentPayload, [pendingDataRequest.field]: parsedValue };
-      updateChatState({ current_payload: updatedPayload });
+      updateChatMutation.mutate({ current_payload: updatedPayload }); // Optimistically update payload
       sendToDecisionEngine(currentIntent, currentQuestion, updatedPayload);
       return;
     }
@@ -421,7 +439,7 @@ const ChatPage = () => {
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
         };
-        updateChatState({ messages: [...(messages || []), errorResponse] });
+        updateChatMutation.mutate({ messages: [...currentMessages, errorResponse] });
         setIsAiTyping(false);
         return;
       }
@@ -436,7 +454,7 @@ const ChatPage = () => {
           text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loans, or business expansion decisions. Please ask me a question related to these topics.",
           timestamp: new Date().toISOString(),
         };
-        updateChatState({ messages: [...(messages || []), noIntentResponse] });
+        updateChatMutation.mutate({ messages: [...currentMessages, noIntentResponse] });
         setIsAiTyping(false);
         return;
       }
@@ -444,14 +462,14 @@ const ChatPage = () => {
       // If chatTitle is null, set it based on the first meaningful question
       const newChatTitle = chatTitle === null && parsedIntent.question ? parsedIntent.question : chatTitle;
 
-      updateChatState({
+      updateChatMutation.mutate({
         current_intent: parsedIntent.intent,
         current_question: parsedIntent.question,
         current_payload: parsedIntent.payload || {},
         last_user_query_text: parsedIntent.question,
         last_user_query_intent: parsedIntent.intent,
         last_user_query_payload: parsedIntent.payload || {},
-        title: newChatTitle, // Update title here
+        title: newChatTitle,
       });
 
       sendToDecisionEngine(parsedIntent.intent, parsedIntent.question, parsedIntent.payload);
@@ -471,7 +489,7 @@ const ChatPage = () => {
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
       };
-      updateChatState({ messages: [...(messages || []), errorResponse] });
+      updateChatMutation.mutate({ messages: [...currentMessages, errorResponse] });
     } finally {
       setIsAiTyping(false);
     }
@@ -481,11 +499,19 @@ const ChatPage = () => {
     const lowerCaseReply = reply.toLowerCase();
 
     if (lowerCaseReply === 'add new data') {
-      updateChatState({ messages: [...(messages || []), { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
+      // Get the latest chat state from the cache before proceeding
+      const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
+      const currentMessages = latestChatState?.messages || [];
+
+      updateChatMutation.mutate({ messages: [...currentMessages, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
       setIsAddDataModalOpen(true);
     } else if (lowerCaseReply === 'cancel' && pendingDataRequest) {
-      updateChatState({
-        messages: [...(messages || []), { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }],
+      // Get the latest chat state from the cache before proceeding
+      const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
+      const currentMessages = latestChatState?.messages || [];
+
+      updateChatMutation.mutate({
+        messages: [...currentMessages, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }],
         pending_data_request: null,
         current_intent: null,
         current_question: null,
@@ -497,11 +523,15 @@ const ChatPage = () => {
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
       };
-      updateChatState({ messages: [...(messages || []), cancelMessage] });
+      updateChatMutation.mutate({ messages: [...currentMessages, cancelMessage] });
     } else if (lowerCaseReply === 'try again') {
-        updateChatState({ messages: [...(messages || []), { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
+        // Get the latest chat state from the cache before proceeding
+        const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
+        const currentMessages = latestChatState?.messages || [];
+
+        updateChatMutation.mutate({ messages: [...currentMessages, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
         if (lastUserQueryIntent && lastUserQueryText) {
-            updateChatState({
+            updateChatMutation.mutate({
                 pending_data_request: null,
                 current_intent: lastUserQueryIntent,
                 current_question: lastUserQueryText,
@@ -515,7 +545,7 @@ const ChatPage = () => {
                 text: "I don't have a previous query to retry. Please ask me a new question.",
                 timestamp: new Date().toISOString(),
             };
-            updateChatState({ messages: [...(messages || []), noRetryMessage] });
+            updateChatMutation.mutate({ messages: [...currentMessages, noRetryMessage] });
         }
     } else {
         setMessageInput(reply); 
@@ -556,7 +586,7 @@ const ChatPage = () => {
     <>
       <div className="flex flex-col flex-1">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {(messages || []).map((msg: ChatMessage) => (
+          {messages.map((msg: ChatMessage) => (
             <div
               key={msg.id}
               className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
