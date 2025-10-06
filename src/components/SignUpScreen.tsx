@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { AuthApiError } from '@supabase/supabase-js';
 
 const SignUpScreen = () => {
   const { supabase } = useSession();
@@ -18,8 +19,7 @@ const SignUpScreen = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [formMessage, setFormMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
-  const { toast } = useToast(); // This toast is actually used for the success message, so it should remain.
+  const { toast } = useToast();
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,7 +31,6 @@ const SignUpScreen = () => {
     setEmailError('');
     setPasswordError('');
     setConfirmPasswordError('');
-    setFormMessage(null);
 
     if (!email) {
       setEmailError('Email address is required');
@@ -58,6 +57,11 @@ const SignUpScreen = () => {
     }
 
     if (!isValid) {
+      toast({
+        title: "Validation Error",
+        description: "Please correct the highlighted fields.",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -76,7 +80,6 @@ const SignUpScreen = () => {
         throw error;
       }
 
-      setFormMessage({ type: 'success', text: 'Sign Up Successful! Please check your email to verify your account. You can then log in.' });
       toast({
         title: "Sign Up Successful",
         description: "Please check your email to verify your account. You can then log in.",
@@ -84,12 +87,15 @@ const SignUpScreen = () => {
       });
     } catch (error: any) {
       console.error('Error signing up:', error.message);
-      setFormMessage({ type: 'error', text: error.message || 'Failed to sign up. Please try again.' });
-      toast({
-        title: "Sign Up Failed",
-        description: error.message || "An error occurred during sign up.",
-        variant: "destructive",
-      });
+      let errorMessage = 'Failed to sign up. Please try again.';
+      if (error instanceof AuthApiError) {
+        if (error.message.includes('User already registered')) {
+          errorMessage = 'An account with this email already exists. Please log in.';
+        } else if (error.message.includes('Password should be at least 6 characters')) {
+          errorMessage = 'Password must be at least 6 characters long.';
+        }
+      }
+      toast({ variant: 'destructive', title: 'Sign Up Failed', description: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -113,19 +119,6 @@ const SignUpScreen = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
-          {formMessage && (
-            <div className={`flex items-center p-3 rounded-md ${
-              formMessage.type === 'error' ? 'bg-destructive/10 text-destructive border border-destructive/20' : 'bg-success-light text-success border border-success/20'
-            }`}>
-              {formMessage.type === 'error' ? (
-                <AlertCircle className="h-4 w-4 mr-2" />
-              ) : (
-                <CheckCircle className="h-4 w-4 mr-2" />
-              )}
-              <p className="text-sm">{formMessage.text}</p>
-            </div>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="email" className="text-foreground font-medium">
               Email Address
@@ -140,7 +133,6 @@ const SignUpScreen = () => {
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (emailError) setEmailError('');
-                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${emailError ? 'border-destructive' : ''}`}
               />
@@ -164,7 +156,6 @@ const SignUpScreen = () => {
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (passwordError) setPasswordError('');
-                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${passwordError ? 'border-destructive' : ''}`}
               />
@@ -188,7 +179,6 @@ const SignUpScreen = () => {
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
                   if (confirmPasswordError) setConfirmPasswordError('');
-                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${confirmPasswordError ? 'border-destructive' : ''}`}
               />

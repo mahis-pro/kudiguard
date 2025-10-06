@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { PostgrestError } from '@supabase/supabase-js'; // Import PostgrestError
+import { PostgrestError } from '@supabase/supabase-js';
 
 // Define a simple UserRole for KudiGuard
 type UserRole = "vendor" | "admin" | "analyst";
@@ -14,7 +14,7 @@ interface SessionContextType {
   supabase: typeof supabase;
   userRole: UserRole | null;
   userDisplayName: string | null;
-  isFmcgVendor: boolean | null; // New field
+  isFmcgVendor: boolean | null;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -24,7 +24,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
-  const [isFmcgVendor, setIsFmcgVendor] = useState<boolean | null>(null); // New state
+  const [isFmcgVendor, setIsFmcgVendor] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -35,7 +35,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('role, full_name, business_name, business_type, monthly_sales_range, top_expense_categories, is_fmcg_vendor') // Include new field
+        .select('role, full_name, business_name, business_type, monthly_sales_range, top_expense_categories, is_fmcg_vendor')
         .eq('id', currentSession.user.id)
         .single();
 
@@ -55,11 +55,14 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
             });
           }
         } else {
+          // Other database errors
           toast({
             title: "Profile Error",
-            description: `Could not load user profile: ${(error as PostgrestError).message}`, // Safely access message
+            description: `Could not load user profile: ${(error as PostgrestError).message}`,
             variant: "destructive",
           });
+          // Consider redirecting to login or a generic error page if profile is critical and cannot be loaded
+          navigate('/login');
         }
       } else if (data) {
         const userRoleFromProfile = data.role as UserRole;
@@ -68,7 +71,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         const userBusinessType = data.business_type;
         const userMonthlySalesRange = data.monthly_sales_range;
         const userTopExpenseCategories = data.top_expense_categories;
-        const userIsFmcgVendor = data.is_fmcg_vendor; // Get new field
+        const userIsFmcgVendor = data.is_fmcg_vendor;
 
         let derivedDisplayName: string | null = null;
 
@@ -81,10 +84,10 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
 
         setUserRole(userRoleFromProfile);
         setUserDisplayName(derivedDisplayName);
-        setIsFmcgVendor(userIsFmcgVendor); // Set new state
+        setIsFmcgVendor(userIsFmcgVendor);
 
         // If any critical onboarding data is missing, redirect to onboarding
-        if (!userFullName || !userBusinessName || !userBusinessType || !userMonthlySalesRange || !userTopExpenseCategories || userIsFmcgVendor === null) { // Check new field
+        if (!userFullName || !userBusinessName || !userBusinessType || !userMonthlySalesRange || !userTopExpenseCategories || userIsFmcgVendor === null) {
           if (location.pathname !== '/onboarding') {
             navigate('/onboarding');
             toast({
@@ -102,11 +105,13 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         }
       }
     } catch (err: any) {
+      console.error("Unexpected error in fetchAndSetUserProfile:", err);
       toast({
         title: "Error",
         description: `An unexpected error occurred: ${err.message}`,
         variant: "destructive",
       });
+      navigate('/login'); // Redirect to login on unexpected errors
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +119,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
 
   // Effect 1: Auth state listener and initial load
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => { // Removed unused 'event'
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       setSession(currentSession);
 
       if (currentSession) {
@@ -124,9 +129,9 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         setIsLoading(false);
         setUserRole(null);
         setUserDisplayName(null);
-        setIsFmcgVendor(null); // Clear new state
+        setIsFmcgVendor(null);
         // Redirect to login if signed out and on a protected route
-        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding', '/history'];
+        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding', '/history', '/financial-data']; // Added /financial-data
         if (protectedRoutes.includes(location.pathname)) {
           navigate('/login');
         }
@@ -139,7 +144,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
         fetchAndSetUserProfile(initialSession);
       } else {
         setIsLoading(false);
-        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding', '/history'];
+        const protectedRoutes = ['/chat', '/insights', '/settings', '/onboarding', '/history', '/financial-data']; // Added /financial-data
         if (protectedRoutes.includes(location.pathname)) {
           navigate('/login');
         }
@@ -147,22 +152,18 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     });
 
     return () => subscription.unsubscribe();
-  }, []); // Empty dependency array to run only once on mount
+  }, []);
 
   // Effect 2: Handle navigation based on session and current path (simplified)
-  // This effect is now largely handled within fetchAndSetUserProfile and the onAuthStateChange listener
-  // Keeping it minimal to avoid conflicts.
   useEffect(() => {
     if (isLoading) {
-      return; // Wait for session and profile to load
+      return;
     }
 
-    const protectedRoutes = ['/chat', '/insights', '/settings', '/history']; // Onboarding is handled separately
+    const protectedRoutes = ['/chat', '/insights', '/settings', '/history', '/financial-data']; // Added /financial-data
 
     if (session) {
       // User is authenticated
-      // Redirection from auth/public pages to /chat is handled in fetchAndSetUserProfile
-      // If user is on /onboarding and profile is complete, redirect to /chat (handled in fetchAndSetUserProfile)
     } else {
       // User is NOT authenticated
       if (protectedRoutes.includes(location.pathname) || location.pathname === '/onboarding') {

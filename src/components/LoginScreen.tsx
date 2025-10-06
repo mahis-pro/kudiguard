@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { supabase } from '@/lib/supabase';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { AuthApiError } from '@supabase/supabase-js';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -15,7 +16,6 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [formMessage, setFormMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const { toast } = useToast();
 
   const validateEmail = (email: string) => {
@@ -27,7 +27,6 @@ const LoginScreen = () => {
     let isValid = true;
     setEmailError('');
     setPasswordError('');
-    setFormMessage(null);
 
     if (!email) {
       setEmailError('Email address is required');
@@ -46,6 +45,11 @@ const LoginScreen = () => {
     }
 
     if (!isValid) {
+      toast({
+        title: "Validation Error",
+        description: "Please correct the highlighted fields.",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -61,10 +65,18 @@ const LoginScreen = () => {
         throw error;
       }
 
-      setFormMessage({ type: 'success', text: 'Login Successful! Redirecting...' }); 
+      toast({ variant: 'default', title: 'Login Successful!', description: 'Redirecting to your dashboard.' }); 
     } catch (error: any) {
       console.error('Error signing in:', error.message);
-      setFormMessage({ type: 'error', text: error.message || 'Failed to sign in. Please check your credentials.' });
+      let errorMessage = 'Failed to sign in. Please check your credentials.';
+      if (error instanceof AuthApiError) {
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please confirm your email address to log in.';
+        }
+      }
+      toast({ variant: 'destructive', title: 'Login Failed', description: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -73,12 +85,15 @@ const LoginScreen = () => {
   const handleForgotPassword = async () => {
     if (!email || !validateEmail(email)) {
       setEmailError('Please enter a valid email to reset password');
-      setFormMessage(null);
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address to reset your password.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsLoading(true);
-    setFormMessage(null);
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -89,7 +104,6 @@ const LoginScreen = () => {
         throw error;
       }
 
-      setFormMessage({ type: 'success', text: 'Password reset email sent. Check your inbox.' });
       toast({
         title: "Password Reset Email Sent",
         description: "Please check your inbox for instructions to reset your password.",
@@ -97,7 +111,13 @@ const LoginScreen = () => {
       });
     } catch (error: any) {
       console.error('Error sending password reset:', error.message);
-      setFormMessage({ type: 'error', text: error.message || 'Failed to send password reset email. Please try again.' });
+      let errorMessage = 'Failed to send password reset email. Please try again.';
+      if (error instanceof AuthApiError) {
+        if (error.message.includes('User not found')) {
+          errorMessage = 'No user found with that email address.';
+        }
+      }
+      toast({ variant: 'destructive', title: 'Password Reset Failed', description: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -121,19 +141,6 @@ const LoginScreen = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
-          {formMessage && (
-            <div className={`flex items-center p-3 rounded-md ${
-              formMessage.type === 'error' ? 'bg-destructive/10 text-destructive border border-destructive/20' : 'bg-success-light text-success border border-success/20'
-            }`}>
-              {formMessage.type === 'error' ? (
-                <AlertCircle className="h-4 w-4 mr-2" />
-              ) : (
-                <CheckCircle className="h-4 w-4 mr-2" />
-              )}
-              <p className="text-sm">{formMessage.text}</p>
-            </div>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="email" className="text-foreground font-medium">
               Email Address
@@ -148,7 +155,6 @@ const LoginScreen = () => {
                 onChange={(e) => {
                   setEmail(e.target.value);
                   if (emailError) setEmailError('');
-                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${emailError ? 'border-destructive' : ''}`}
               />
@@ -172,7 +178,6 @@ const LoginScreen = () => {
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (passwordError) setPasswordError('');
-                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${passwordError ? 'border-destructive' : ''}`}
               />

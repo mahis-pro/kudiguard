@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { AuthApiError } from '@supabase/supabase-js';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -17,13 +18,11 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [formMessage, setFormMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   const handleResetPassword = async () => {
     let isValid = true;
     setPasswordError('');
     setConfirmPasswordError('');
-    setFormMessage(null);
 
     if (!newPassword) {
       setPasswordError('New password is required');
@@ -42,6 +41,11 @@ const ResetPassword = () => {
     }
 
     if (!isValid) {
+      toast({
+        title: "Validation Error",
+        description: "Please correct the highlighted fields.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -56,7 +60,6 @@ const ResetPassword = () => {
         throw error;
       }
 
-      setFormMessage({ type: 'success', text: 'Password updated successfully! Redirecting to login...' });
       toast({
         title: "Password Reset Successful",
         description: "Your password has been updated. Please log in with your new password.",
@@ -67,10 +70,17 @@ const ResetPassword = () => {
       }, 2000); // Redirect after 2 seconds
     } catch (error: any) {
       console.error('Error resetting password:', error.message);
-      setFormMessage({ type: 'error', text: error.message || 'Failed to reset password. Please try again.' });
+      let errorMessage = 'Failed to reset password. Please try again.';
+      if (error instanceof AuthApiError) {
+        if (error.message.includes('Auth session missing')) {
+          errorMessage = 'Your session has expired. Please request a new password reset link.';
+        } else if (error.message.includes('Password should be at least 6 characters')) {
+          errorMessage = 'New password must be at least 6 characters long.';
+        }
+      }
       toast({
         title: "Password Reset Failed",
-        description: error.message || "An error occurred while resetting your password.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -96,19 +106,6 @@ const ResetPassword = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
-          {formMessage && (
-            <div className={`flex items-center p-3 rounded-md ${
-              formMessage.type === 'error' ? 'bg-destructive/10 text-destructive border border-destructive/20' : 'bg-success-light text-success border border-success/20'
-            }`}>
-              {formMessage.type === 'error' ? (
-                <AlertCircle className="h-4 w-4 mr-2" />
-              ) : (
-                <CheckCircle className="h-4 w-4 mr-2" />
-              )}
-              <p className="text-sm">{formMessage.text}</p>
-            </div>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="newPassword" className="text-foreground font-medium">
               New Password
@@ -123,7 +120,6 @@ const ResetPassword = () => {
                 onChange={(e) => {
                   setNewPassword(e.target.value);
                   if (passwordError) setPasswordError('');
-                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${passwordError ? 'border-destructive' : ''}`}
               />
@@ -147,7 +143,6 @@ const ResetPassword = () => {
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
                   if (confirmPasswordError) setConfirmPasswordError('');
-                  setFormMessage(null);
                 }}
                 className={`pl-10 h-12 ${confirmPasswordError ? 'border-destructive' : ''}`}
               />
