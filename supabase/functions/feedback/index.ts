@@ -15,6 +15,7 @@ export const ERROR_CODES = {
   SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
   FEEDBACK_UPSERT_FAILED: "FEEDBACK_UPSERT_FAILED",
   FORBIDDEN_ACCESS: "FORBIDDEN_ACCESS",
+  GEMINI_API_ERROR: "GEMINI_API_ERROR",
 } as const;
 
 export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
@@ -161,6 +162,7 @@ interface LogEntry {
 }
 
 async function logError(
+  supabaseClient: SupabaseClient,
   logEntry: LogEntry
 ) {
   const { requestId, vendorId, errorCode, severity, errorSummary, timestamp, stack, payload, originalError } = logEntry;
@@ -177,12 +179,32 @@ async function logError(
     payload: redactSensitiveData(payload),
     originalError: originalError ? String(originalError) : undefined,
   }));
+
+  try {
+    const { error: dbError } = await supabaseClient
+      .from('decision_audit')
+      .insert({
+        request_id: requestId,
+        vendor_id: vendorId,
+        error_code: errorCode,
+        severity: severity,
+        error_summary: errorSummary,
+        timestamp: timestamp,
+      });
+
+    if (dbError) {
+      console.error(`Failed to insert audit log for request ${requestId}:`, dbError.message);
+    }
+  } catch (e) {
+    console.error(`Exception while inserting audit log for request ${requestId}:`, e);
+  }
 }
 
 export async function handleError(
   error: any,
   requestId: string,
   vendorId: string | null,
+  supabaseClient: SupabaseClient,
   requestPayload: any = {},
 ): Promise<Response> {
   let customError: CustomError;
@@ -211,7 +233,7 @@ export async function handleError(
     statusCode = 500;
   }
 
-  await logError({
+  await logError(supabaseClient, {
     requestId,
     vendorId,
     errorCode: customError.code,
@@ -251,7 +273,7 @@ export const FeedbackInputSchema = z.object({
 });
 
 // Main Edge Function Logic
-serve(async (req: Request) => {
+serve(async (req: Request) => { // Explicitly type req
   const requestId = generateRequestId();
   let user: any = null;
   
@@ -327,6 +349,6 @@ serve(async (req: Request) => {
 
   } catch (error) {
     console.error(`[${requestId}] RAW ERROR CAUGHT IN MAIN HANDLER:`, error);
-    return handleError(error, requestId, user ? user.id : null, req.body);
+    return handleError(error, requestId, user ? user.id : null, supabase, req.body);
   }
   });

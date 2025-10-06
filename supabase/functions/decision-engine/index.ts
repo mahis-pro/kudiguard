@@ -1,3 +1,4 @@
+/// <reference path="../../../src/types/supabase-edge-functions.d.ts" />
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { v4 as uuidv4 } from "https://esm.sh/uuid@9.0.1";
@@ -27,6 +28,7 @@ export const ERROR_CODES = {
   WEBHOOK_RECOMMENDATION_INSERT_FAILED: "WEBHOOK_RECOMMENDATION_INSERT_FAILED",
   WEBHOOK_DECISION_UPDATE_FAILED: "WEBHOOK_DECISION_UPDATE_FAILED",
   FORBIDDEN_ACCESS: "FORBIDDEN_ACCESS",
+  GEMINI_API_ERROR: "GEMINI_API_ERROR",
 } as const;
 
 export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
@@ -310,7 +312,7 @@ export const DecisionEngineInputSchema = z.object({
     'savings', 
     'equipment',
     'loan_management',
-    'business_expansion', // Added new intent: business_expansion
+    'business_expansion',
   ]),
   question: z.string(),
   payload: z.object({
@@ -437,14 +439,13 @@ export type DecisionFunctionReturn = {
 // Helper to safely get a number, treating null/undefined as 0
 const getNumberOrDefault = (value: number | null | undefined): number => value ?? 0;
 const getBooleanOrDefault = (value: boolean | null | undefined): boolean => value ?? false;
-const getStringOrDefault = (value: string | null | undefined): string => value ?? '';
-
+// Removed getStringOrDefault as it was unused
 
 // --- decisions/hiring.ts content ---
 export function makeHiringDecision(
   financialData: FinancialData,
   currentPayload: Record<string, any>,
-  question: string,
+  _question: string, // Marked as unused
   requestId: string,
 ): DecisionFunctionReturn {
   let estimatedSalary = getNumberOrDefault(currentPayload?.estimated_salary);
@@ -540,19 +541,19 @@ export function makeHiringDecision(
 export function makeInventoryDecision(
   financialData: FinancialData,
   profileData: ProfileData,
-  currentPayload: Record<string, any>,
-  question: string,
+  _currentPayload: Record<string, any>, // Marked as unused
+  _question: string, // Marked as unused
   requestId: string,
 ): DecisionFunctionReturn {
-  console.log(`[${requestId}] makeInventoryDecision: Start. currentPayload:`, currentPayload);
+  console.log(`[${requestId}] makeInventoryDecision: Start. currentPayload:`, _currentPayload);
 
-  let estimatedInventoryCost: number | null = currentPayload.hasOwnProperty('estimated_inventory_cost') ? currentPayload.estimated_inventory_cost : null;
-  let inventoryTurnoverDays: number | null = currentPayload.hasOwnProperty('inventory_turnover_days') ? currentPayload.inventory_turnover_days : null;
-  let outstandingSupplierDebts: number | null = currentPayload.hasOwnProperty('outstanding_supplier_debts') ? currentPayload.outstanding_supplier_debts : null;
-  let supplierCreditTermsDays: number | null = currentPayload.hasOwnProperty('supplier_credit_terms_days') ? currentPayload.supplier_credit_terms_days : null;
-  let averageReceivablesTurnoverDays: number | null = currentPayload.hasOwnProperty('average_receivables_turnover_days') ? currentPayload.average_receivables_turnover_days : null;
-  let supplierDiscountPercentage: number | null = currentPayload.hasOwnProperty('supplier_discount_percentage') ? currentPayload.supplier_discount_percentage : null;
-  let storageCostPercentageOfOrder: number | null = currentPayload.hasOwnProperty('storage_cost_percentage_of_order') ? currentPayload.storage_cost_percentage_of_order : null;
+  let estimatedInventoryCost: number | null = _currentPayload.hasOwnProperty('estimated_inventory_cost') ? _currentPayload.estimated_inventory_cost : null;
+  let inventoryTurnoverDays: number | null = _currentPayload.hasOwnProperty('inventory_turnover_days') ? _currentPayload.inventory_turnover_days : null;
+  let outstandingSupplierDebts: number | null = _currentPayload.hasOwnProperty('outstanding_supplier_debts') ? _currentPayload.outstanding_supplier_debts : null;
+  let supplierCreditTermsDays: number | null = _currentPayload.hasOwnProperty('supplier_credit_terms_days') ? _currentPayload.supplier_credit_terms_days : null;
+  let averageReceivablesTurnoverDays: number | null = _currentPayload.hasOwnProperty('average_receivables_turnover_days') ? _currentPayload.average_receivables_turnover_days : null;
+  let supplierDiscountPercentage: number | null = _currentPayload.hasOwnProperty('supplier_discount_percentage') ? _currentPayload.supplier_discount_percentage : null;
+  let storageCostPercentageOfOrder: number | null = _currentPayload.hasOwnProperty('storage_cost_percentage_of_order') ? _currentPayload.storage_cost_percentage_of_order : null;
 
   const { monthly_revenue, monthly_expenses, current_savings } = financialData;
   const net_income = monthly_revenue - monthly_expenses;
@@ -577,7 +578,7 @@ export function makeInventoryDecision(
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
-          current_payload: currentPayload 
+          current_payload: _currentPayload 
         },
         canBeZeroOrNone: false,
       }
@@ -593,7 +594,7 @@ export function makeInventoryDecision(
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
-          current_payload: currentPayload 
+          current_payload: _currentPayload 
         },
         canBeZeroOrNone: false,
       }
@@ -609,7 +610,7 @@ export function makeInventoryDecision(
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
-          current_payload: currentPayload 
+          current_payload: _currentPayload 
         },
         canBeZeroOrNone: true, // Outstanding debts can be 0
       }
@@ -628,7 +629,7 @@ export function makeInventoryDecision(
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
-          current_payload: currentPayload 
+          current_payload: _currentPayload 
         },
         canBeZeroOrNone: false,
       }
@@ -644,7 +645,7 @@ export function makeInventoryDecision(
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
-          current_payload: currentPayload 
+          current_payload: _currentPayload 
         },
         canBeZeroOrNone: false,
       }
@@ -664,14 +665,14 @@ export function makeInventoryDecision(
         intent_context: { 
           intent: "inventory", 
           decision_type: "inventory_purchase",
-          current_payload: currentPayload 
+          current_payload: _currentPayload 
         },
         canBeZeroOrNone: true,
       }
     };
     }
   }
-  console.log(`[${requestId}] makeInventoryDecision: After Data Gathering. currentPayload:`, currentPayload);
+  console.log(`[${requestId}] makeInventoryDecision: After Data Gathering. currentPayload:`, _currentPayload);
 
   // --- Final Validation before Rule Evaluation ---
   // After all data collection, ensure critical fields are valid numbers (not 0 if they shouldn't be)
@@ -820,9 +821,9 @@ export function makeMarketingDecision(
   const net_income = monthly_revenue - monthly_expenses;
   const profit_margin = monthly_revenue > 0 ? (net_income / monthly_revenue) : 0;
 
-  const reasons: string[] = []; // Changed to string array
-  let recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
-  let reasoning: string | string[]; // Changed to allow array of strings
+  const reasons: string[] = [];
+  let recommendation: 'APPROVE' | 'WAIT' | 'REJECT' = 'WAIT'; // Initialized to 'WAIT'
+  let reasoning: string | string[];
   let actionable_steps: string[] = [];
 
   // --- Data Gathering Sequence for Marketing ---
@@ -1036,7 +1037,7 @@ export function makeSavingsDecision(
   financialData: FinancialData,
   profileData: ProfileData,
   currentPayload: Record<string, any>,
-  question: string,
+  _question: string, // Marked as unused
   requestId: string,
 ): DecisionFunctionReturn {
   console.log(`[${requestId}] makeSavingsDecision: Start. currentPayload:`, currentPayload);
@@ -1304,7 +1305,7 @@ export function makeSavingsDecision(
   }
 
   // Construct final reasoning string
-  let finalReasoning: string | string[]; // Changed to allow array of strings
+  let finalReasoning: string | string[];
   if (recommendation === 'APPROVE') {
     finalReasoning = 'Your business is in excellent financial health and is well-positioned to optimize its savings strategy.';
     if (reasons.length > 0) { // If there were some "positive" reasons collected
@@ -1325,7 +1326,7 @@ export function makeSavingsDecision(
   return {
     decision: {
       recommendation,
-      reasoning: finalReasoning, // Use the constructed finalReasoning
+      reasoning: finalReasoning,
       actionable_steps,
       financial_snapshot: financialData,
       is_volatile_industry: finalIsVolatileIndustry,
@@ -1343,9 +1344,9 @@ export function makeSavingsDecision(
 // --- decisions/equipment.ts content ---
 export function makeEquipmentDecision(
   financialData: FinancialData,
-  profileData: ProfileData, // Added profileData for consistency, though not strictly used in current rules
+  _profileData: ProfileData, // Marked as unused
   currentPayload: Record<string, any>,
-  question: string,
+  _question: string, // Marked as unused
   requestId: string,
 ): DecisionFunctionReturn {
   console.log(`[${requestId}] makeEquipmentDecision: Start. currentPayload:`, currentPayload);
@@ -1549,9 +1550,9 @@ export function makeEquipmentDecision(
 // --- decisions/debt_loan.ts content ---
 export function makeDebtLoanDecision(
   financialData: FinancialData,
-  profileData: ProfileData,
+  _profileData: ProfileData, // Marked as unused
   currentPayload: Record<string, any>,
-  question: string,
+  _question: string, // Marked as unused
   requestId: string,
 ): DecisionFunctionReturn {
   console.log(`[${requestId}] makeDebtLoanDecision: Start. currentPayload:`, currentPayload);
@@ -1563,7 +1564,7 @@ export function makeDebtLoanDecision(
   let loanPurposeIsRevenueGenerating: boolean | null = currentPayload.hasOwnProperty('loan_purpose_is_revenue_generating') ? currentPayload.loan_purpose_is_revenue_generating : null;
   let consecutiveNegativeCashFlowMonths: number | null = currentPayload.hasOwnProperty('consecutive_negative_cash_flow_months') ? currentPayload.consecutive_negative_cash_flow_months : null; // Re-using existing
 
-  const { monthly_revenue, monthly_expenses, current_savings } = financialData;
+  const { monthly_revenue, monthly_expenses } = financialData; // Removed current_savings as it was unused
   const net_profit = monthly_revenue - monthly_expenses;
 
   const reasons: string[] = [];
@@ -1800,9 +1801,9 @@ export function makeDebtLoanDecision(
 // --- decisions/business_expansion.ts content ---
 export function makeBusinessExpansionDecision(
   financialData: FinancialData,
-  profileData: ProfileData,
+  _profileData: ProfileData, // Marked as unused
   currentPayload: Record<string, any>,
-  question: string,
+  _question: string, // Marked as unused
   requestId: string,
 ): DecisionFunctionReturn {
   console.log(`[${requestId}] makeBusinessExpansionDecision: Start. currentPayload:`, currentPayload);
@@ -1814,7 +1815,7 @@ export function makeBusinessExpansionDecision(
   let profitMarginTrend: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null = currentPayload.hasOwnProperty('profit_margin_trend') ? currentPayload.profit_margin_trend : null;
   let revenueGrowthTrend: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null = currentPayload.hasOwnProperty('revenue_growth_trend') ? currentPayload.revenue_growth_trend : null;
 
-  const { monthly_revenue, monthly_expenses, current_savings } = financialData;
+  const { monthly_revenue, monthly_expenses } = financialData; // Removed current_savings as it was unused
   const net_profit = monthly_revenue - monthly_expenses;
 
   const reasons: string[] = [];
@@ -2049,7 +2050,7 @@ export function makeBusinessExpansionDecision(
 
 // --- Main decision-engine logic ---
 
-serve(async (req) => {
+serve(async (req: Request) => { // Explicitly type req
   const requestId = generateRequestId();
   let user: any = null;
   
