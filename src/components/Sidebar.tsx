@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart, MessageSquarePlus } from 'lucide-react'; // Added MessageSquarePlus
+import { MessageCircle, LayoutDashboard, Settings, PlusCircle, LogOut, History, LineChart, MessageSquarePlus } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -10,12 +10,12 @@ interface SidebarProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (isOpen: boolean) => void;
   onAddDataClick: () => void;
-  onStartNewChatClick: () => void; // New prop for starting a new chat
+  onStartNewChatClick: () => void;
 }
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewChatClick }: SidebarProps) => {
   const location = useLocation();
-  const { supabase, userDisplayName } = useSession();
+  const { supabase } = useSession(); // Removed userDisplayName
   const { toast } = useToast();
 
   const navItems = [
@@ -54,38 +54,34 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
   };
 
   const handleNewChat = () => {
-    onStartNewChatClick(); // Call the passed handler
-    setIsSidebarOpen(false); // Close sidebar after action
+    onStartNewChatClick();
+    setIsSidebarOpen(false);
   };
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-gradient-subtle text-sidebar-foreground border-r border-sidebar-border shadow-lg">
       {/* Logo and App Name */}
-      <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
+      <div className="p-4 border-b border-sidebar-border flex items-center justify-center">
         <Link to="/chat" className="flex items-center" onClick={() => setIsSidebarOpen(false)}>
           <img 
             src={kudiGuardLogo} 
             alt="KudiGuard" 
-            className="h-9 w-auto mr-2"
+            className="h-9 w-auto"
           />
         </Link>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={handleNewChat}
-          className="h-10 w-10 text-primary hover:bg-primary/10"
-        >
-          <MessageSquarePlus className="h-6 w-6" />
-          <span className="sr-only">Start New Chat</span>
-        </Button>
       </div>
 
-      {/* User Info */}
-      {userDisplayName && (
-        <div className="p-4 text-center border-b border-sidebar-border">
-          <p className="font-semibold text-sidebar-foreground">Hello, {userDisplayName.split(' ')[0]}!</p>
-        </div>
-      )}
+      {/* Start New Chat Button - Now positioned here */}
+      <div className="p-4 text-center border-b border-sidebar-border">
+        <Button 
+          variant="outline" 
+          onClick={handleNewChat}
+          className="w-full justify-center text-primary hover:bg-primary/10 h-12"
+        >
+          <MessageSquarePlus className="h-5 w-5 mr-2" />
+          Start New Chat
+        </Button>
+      </div>
 
       {/* Navigation Links */}
       <nav className="flex-1 p-2 space-y-1">
