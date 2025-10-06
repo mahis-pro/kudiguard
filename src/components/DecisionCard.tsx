@@ -1,10 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat, Banknote, Landmark, Store, Search, TrendingDown, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, TrendingDown, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat, Banknote, Landmark, Store, Search, Star, CalendarDays, Clock, Percent, PiggyBank } from 'lucide-react';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { cn } from '@/lib/utils'; // Import cn utility
 
 // Define DecisionCardProps interface here so it can be imported
 export interface DecisionCardProps {
@@ -75,6 +75,35 @@ export interface DecisionCardProps {
     feedback?: number | null; // Added feedback field
   };
 }
+
+// StarRating Component
+interface StarRatingProps {
+  rating: number | null;
+  onRatingChange: (newRating: number) => void;
+  disabled?: boolean;
+}
+
+const StarRating = ({ rating, onRatingChange, disabled = false }: StarRatingProps) => {
+  const [hoverRating, setHoverRating] = useState<number>(0);
+
+  return (
+    <div className="flex space-x-1">
+      {[1, 2, 3, 4, 5].map((starValue) => (
+        <Star
+          key={starValue}
+          className={cn(
+            "h-5 w-5 cursor-pointer transition-colors",
+            (starValue <= (hoverRating || rating || 0)) ? "fill-yellow-400 text-yellow-400" : "fill-muted text-muted-foreground",
+            disabled && "cursor-not-allowed opacity-70"
+          )}
+          onClick={() => !disabled && onRatingChange(starValue)}
+          onMouseEnter={() => !disabled && setHoverRating(starValue)}
+          onMouseLeave={() => !disabled && setHoverRating(0)}
+        />
+      ))}
+    </div>
+  );
+};
 
 const DecisionCard = ({ data }: DecisionCardProps) => {
   const { supabase, session } = useSession();
@@ -291,7 +320,7 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
       setFeedbackStatus(value);
       toast({
         title: "Feedback Submitted",
-        description: value === 1 ? "Thank you for your positive feedback!" : "Thank you for your feedback. We'll use it to improve.",
+        description: `Thank you for your ${value}-star feedback! We'll use it to improve.`,
         variant: "default",
       });
       // Invalidate relevant queries to refetch data and update UI
@@ -656,27 +685,12 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
 
         {/* Feedback Section */}
         <div className="pt-4 border-t border-border mt-4 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">Was this recommendation helpful?</p>
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => handleFeedback(1)}
-              className={feedbackStatus === 1 ? "bg-success-light text-success border-success" : ""}
-            >
-              <ThumbsUp className={`h-4 w-4 mr-2 ${feedbackStatus === 1 ? 'text-success' : 'text-muted-foreground'}`} />
-              Yes
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => handleFeedback(-1)}
-              className={feedbackStatus === -1 ? "bg-destructive/10 text-destructive border-destructive" : ""}
-            >
-              <ThumbsDown className={`h-4 w-4 mr-2 ${feedbackStatus === -1 ? 'text-destructive' : 'text-muted-foreground'}`} />
-              No
-            </Button>
-          </div>
+          <p className="text-sm text-muted-foreground">How helpful was this recommendation?</p>
+          <StarRating 
+            rating={feedbackStatus} 
+            onRatingChange={handleFeedback} 
+            disabled={feedbackStatus !== null} // Disable after first feedback
+          />
         </div>
       </CardContent>
     </Card>

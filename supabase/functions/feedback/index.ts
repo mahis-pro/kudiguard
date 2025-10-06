@@ -269,11 +269,11 @@ export async function handleError(
 // --- schemas.ts content for feedback function ---
 export const FeedbackInputSchema = z.object({
   decisionId: z.string().uuid("Invalid decision ID format."),
-  feedbackValue: z.number().int().min(-1).max(1, "Feedback value must be -1, 0, or 1."), // -1 for not helpful, 0 for neutral/reset, 1 for helpful
+  feedbackValue: z.number().int().min(1).max(5, "Feedback value must be between 1 and 5."), // Changed to 1-5 for star rating
 });
 
 // Main Edge Function Logic
-serve(async (req: Request) => { // Explicitly type req
+serve(async (req: Request) => {
   const requestId = generateRequestId();
   let user: any = null;
   

@@ -12,30 +12,51 @@ declare module "https://deno.land/std@0.190.0/http/server.ts" {
   export function serve(handler: (req: Request) => Promise<Response> | Response): Promise<void>;
 }
 
-// Simplified declaration for supabase-js to help local TS compiler
-// The actual Edge Function will still use the URL import.
-declare module "@supabase/supabase-js" {
-  import { SupabaseClient } from '@supabase/supabase-js'; // This refers to the npm package types
-  export { SupabaseClient };
-  export function createClient(supabaseUrl: string, supabaseKey: string, options?: any): SupabaseClient;
-}
-
+// Self-contained declaration for Supabase client from esm.sh
 declare module "https://esm.sh/@supabase/supabase-js@2.45.0" {
-  import { SupabaseClient } from '@supabase/supabase-js';
-  export { SupabaseClient };
+  // Define a minimal SupabaseClient interface directly for the Edge Function context
+  interface SupabaseClient {
+    auth: {
+      getUser(): Promise<{ data: { user: any | null }; error: any | null }>;
+      signOut(): Promise<{ error: any | null }>;
+      onAuthStateChange(callback: (event: string, session: any | null) => void): { data: { subscription: any } };
+      getSession(): Promise<{ data: { session: any | null }; error: any | null }>;
+      signInWithPassword(credentials: any): Promise<{ data: any; error: any }>;
+      resetPasswordForEmail(email: string, options: any): Promise<{ data: any; error: any }>;
+      updateUser(updates: any): Promise<{ data: any; error: any }>;
+      signUp(credentials: any): Promise<{ data: any; error: any }>;
+    };
+    from(tableName: string): any; // Simplified for common usage
+    functions: {
+      invoke(functionName: string, options: { body: any }): Promise<{ data: any; error: any }>;
+    };
+  }
   export function createClient(supabaseUrl: string, supabaseKey: string, options?: any): SupabaseClient;
+  export type { SupabaseClient };
 }
 
+// Self-contained declaration for uuid from esm.sh
 declare module "https://esm.sh/uuid@9.0.1" {
-  export { v4 } from 'uuid';
+  export function v4(): string;
 }
 
+// Self-contained declaration for zod from deno.land/x
 declare module "https://deno.land/x/zod@v3.23.0/mod.ts" {
+  // Re-exporting from 'zod' npm package, assuming it's installed locally
+  // If 'zod' npm package is NOT installed, these types would need to be defined manually.
+  // Given the project's package.json, 'zod' is installed, so this should work.
   export * from 'zod';
 }
 
+// Self-contained declaration for GoogleGenerativeAI from esm.sh
 declare module "https://esm.sh/@google/generative-ai@0.15.0" {
-  export { GoogleGenerativeAI } from '@google/generative-ai';
+  // Define a minimal interface for GoogleGenerativeAI
+  export class GoogleGenerativeAI {
+    constructor(apiKey: string);
+    getGenerativeModel(options: { model: string }): {
+      generateContent(prompt: string): Promise<{ response: { text(): string } }>;
+    };
+  }
 }
 
 // Type definitions for KudiGuard decision engine
@@ -91,6 +112,7 @@ export type DecisionResult = {
   expansion_cost?: number | null;
   profit_margin_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
   revenue_growth_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
+  feedback?: number | null; // Updated to number | null for star rating
 };
 
 export type DataNeededResponse = {
