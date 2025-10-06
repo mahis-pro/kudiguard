@@ -1,8 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat, Banknote, Landmark, Store, Search, TrendingDown } from 'lucide-react'; // Added Store, Search, TrendingDown
+import { CheckCircle, XCircle, AlertTriangle, Info, DollarSign, TrendingUp, PiggyBank, CalendarDays, Percent, Clock, BarChart, Target, Users, LineChart, HandCoins, Scale, Wallet, HardHat, Banknote, Landmark, Store, Search, TrendingDown, ThumbsUp, ThumbsDown } from 'lucide-react'; // Added Store, Search, TrendingDown, ThumbsUp, ThumbsDown
+import { Button } from '@/components/ui/button'; // Import Button
+import { useSession } from '@/components/auth/SessionContextProvider'; // Import useSession
+import { useToast } from '@/hooks/use-toast'; // Import useToast
+import { useState } from 'react'; // Import useState
+import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
 
 interface DecisionCardProps {
   data: {
+    id: string; // Added id for feedback
     recommendation: 'APPROVE' | 'WAIT' | 'REJECT';
     reasoning: string | string[]; // Updated to allow array of strings
     actionable_steps: string[];
@@ -65,11 +71,18 @@ interface DecisionCardProps {
     expansion_cost?: number | null;
     profit_margin_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
     revenue_growth_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
+    feedback?: number | null; // Added feedback field
   };
 }
 
 const DecisionCard = ({ data }: DecisionCardProps) => {
+  const { supabase, session } = useSession();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [feedbackStatus, setFeedbackStatus] = useState<number | null>(data.feedback ?? null); // Local state for feedback
+
   const { 
+    id, // Destructure id
     recommendation, 
     reasoning, 
     actionable_steps, 
@@ -254,6 +267,44 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
   } catch (e) {
     parsedReasoning = reasoning as string;
   }
+
+  const handleFeedback = async (value: number) => {
+    if (!session?.user?.id) {
+      toast({ title: "Authentication Required", description: "Please log in to provide feedback.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const { data: edgeFunctionResult, error: invokeError } = await supabase.functions.invoke('feedback', {
+        body: { decisionId: id, feedbackValue: value },
+      });
+
+      if (invokeError) {
+        throw invokeError;
+      }
+
+      if (!edgeFunctionResult || !edgeFunctionResult.success) {
+        throw new Error(edgeFunctionResult?.error?.details || "Failed to submit feedback.");
+      }
+
+      setFeedbackStatus(value);
+      toast({
+        title: "Feedback Submitted",
+        description: value === 1 ? "Thank you for your positive feedback!" : "Thank you for your feedback. We'll use it to improve.",
+        variant: "default",
+      });
+      // Invalidate relevant queries to refetch data and update UI
+      queryClient.invalidateQueries({ queryKey: ['recentDecisions', session.user.id] });
+      queryClient.invalidateQueries({ queryKey: ['decisionHistory', session.user.id] });
+    } catch (error: any) {
+      console.error("Error submitting feedback:", error);
+      toast({
+        title: "Feedback Submission Failed",
+        description: error.message || "An error occurred while submitting your feedback.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Card className={`shadow-md mt-2 ${cardClasses} ${shadowClass}`}>
@@ -600,6 +651,31 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
               </li>
             ))}
           </ul>
+        </div>
+
+        {/* Feedback Section */}
+        <div className="pt-4 border-t border-border mt-4 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">Was this recommendation helpful?</p>
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleFeedback(1)}
+              className={feedbackStatus === 1 ? "bg-success-light text-success border-success" : ""}
+            >
+              <ThumbsUp className={`h-4 w-4 mr-2 ${feedbackStatus === 1 ? 'text-success' : 'text-muted-foreground'}`} />
+              Yes
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleFeedback(-1)}
+              className={feedbackStatus === -1 ? "bg-destructive/10 text-destructive border-destructive" : ""}
+            >
+              <ThumbsDown className={`h-4 w-4 mr-2 ${feedbackStatus === -1 ? 'text-destructive' : 'text-muted-foreground'}`} />
+              No
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

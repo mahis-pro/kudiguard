@@ -75,6 +75,7 @@ interface DecisionDetailsDialogProps {
     profit_margin_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
     revenue_growth_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
     created_at: string;
+    feedback?: number | null; // Added feedback field
   } | null;
 }
 
