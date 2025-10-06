@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send } from 'lucide-react'; // Removed MessageSquarePlus import as it's now in Sidebar
+import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
@@ -10,8 +10,8 @@ import kudiGuardIcon from '/kudiguard-icon.jpg';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ParsedIntent } from '@/types/supabase-edge-functions'; // Import new types
-import { useOutletContext } from 'react-router-dom'; // Import useOutletContext
+import { ParsedIntent } from '@/types/supabase-edge-functions';
+import { useOutletContext } from 'react-router-dom';
 
 interface ChatMessage {
   id: string;
@@ -69,7 +69,7 @@ const ChatPage = () => {
   const [lastUserQueryPayload, setLastUserQueryPayload] = useState<Record<string, any> | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const { chatKey } = useOutletContext<{ chatKey: number }>(); // Get chatKey from context
+  const { chatKey } = useOutletContext<{ chatKey: number }>();
 
   // Helper to get the localStorage key based on user ID
   const getLocalStorageKey = (userId: string | undefined) => 
@@ -81,7 +81,7 @@ const ChatPage = () => {
     sender: 'ai',
     text: `Hello ${name}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
     timestamp: new Date().toISOString(),
-    quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
+    // Removed quickReplies
   });
 
   // Effect to load chat state from localStorage on mount or when chatKey changes
@@ -110,7 +110,7 @@ const ChatPage = () => {
         setMessages([initialGreeting(userDisplayName)]);
       }
     }
-  }, [sessionLoading, userDisplayName, session?.user?.id, chatKey]); // Re-run if user changes or chatKey changes
+  }, [sessionLoading, userDisplayName, session?.user?.id, chatKey]);
 
   // Effect to save chat state to localStorage whenever relevant state changes
   useEffect(() => {
@@ -160,11 +160,9 @@ const ChatPage = () => {
 
       if (!edgeFunctionResult || !edgeFunctionResult.success) {
         let errorMessage = "An unknown error occurred from the AI.";
-        let quickReplies: string[] = ['Add new data', 'Try again'];
-
+        // Removed quickReplies
         if (edgeFunctionResult?.error?.code === 'DECISION_NOT_FOUND') {
           errorMessage = "I can't provide a recommendation without your financial data. Please add your monthly revenue, expenses, and savings first.";
-          quickReplies = ['Add new data'];
         } else if (edgeFunctionResult?.error?.details) {
           errorMessage = edgeFunctionResult.error.details;
         } else if (edgeFunctionResult?.error?.message) {
@@ -176,7 +174,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
-          quickReplies: quickReplies,
+          // Removed quickReplies
         };
         setMessages((prev) => [...prev, errorResponse]);
         toast({
@@ -205,7 +203,7 @@ const ChatPage = () => {
           text: edgeFunctionResult.data.data_needed.prompt,
           timestamp: new Date().toISOString(),
           dataNeeded: edgeFunctionResult.data.data_needed,
-          quickReplies: ['Cancel'],
+          // Removed quickReplies
           originalQuestion: question,
           collectedPayload: edgeFunctionResult.data.data_needed.intent_context.current_payload || {}, 
         };
@@ -219,7 +217,7 @@ const ChatPage = () => {
         text: "I've analyzed your financial data. Here is my recommendation:",
         timestamp: new Date().toISOString(),
         cards: [<DecisionCard key="decision-card" data={edgeFunctionResult.data} />],
-        quickReplies: ['Thanks!'],
+        // Removed quickReplies
       };
       setMessages((prev) => [...prev, aiResponse]);
       setPendingDataRequest(null);
@@ -244,7 +242,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
-        quickReplies: ['Add new data', 'Try again'],
+        // Removed quickReplies
       };
       setMessages((prev) => [...prev, errorResponse]);
       setPendingDataRequest(null);
@@ -256,7 +254,7 @@ const ChatPage = () => {
     }
   };
 
-  const handleSendMessage = async (valueToSend?: string | boolean) => { // Made async
+  const handleSendMessage = async (valueToSend?: string | boolean) => {
     let finalMessageInput = messageInput;
     if (valueToSend !== undefined) {
       finalMessageInput = String(valueToSend);
@@ -278,7 +276,7 @@ const ChatPage = () => {
             sender: 'ai',
             text: "You're most welcome! I'm here to help your business thrive. Is there anything else I can assist you with?",
             timestamp: new Date().toISOString(),
-            quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
+            // Removed quickReplies
         };
         setMessages((prev) => [...prev, userThankYou, aiReply]);
         setMessageInput('');
@@ -319,7 +317,7 @@ const ChatPage = () => {
             sender: 'ai',
             text: `I couldn't understand your choice. Please select one of the following options: ${pendingDataRequest.options?.join(', ')}.`,
             timestamp: new Date().toISOString(),
-            quickReplies: ['Cancel'],
+            // Removed quickReplies
           };
           setMessages((prev) => [...prev, retryMessage]);
           setIsAiTyping(false);
@@ -333,7 +331,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000', 'Yes/No', or select from options).`,
           timestamp: new Date().toISOString(),
-          quickReplies: ['Cancel'],
+          // Removed quickReplies
         };
         setMessages((prev) => [...prev, retryMessage]);
         setIsAiTyping(false);
@@ -346,7 +344,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `The value for ${pendingDataRequest.field.replace(/_/g, ' ')} must be greater than 0. Please provide a valid input.`,
           timestamp: new Date().toISOString(),
-          quickReplies: ['Cancel'],
+          // Removed quickReplies
         };
         setMessages((prev) => [...prev, retryMessage]);
         setIsAiTyping(false);
@@ -377,7 +375,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
-          quickReplies: [], // No quick replies for unknown intent
+          // Removed quickReplies
         };
         setMessages((prev) => [...prev, errorResponse]);
         setIsAiTyping(false);
@@ -393,7 +391,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loan, and business expansion decisions. Please ask me a question related to these topics.",
           timestamp: new Date().toISOString(),
-          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
+          // Removed quickReplies
         };
         setMessages((prev) => [...prev, noIntentResponse]);
         setIsAiTyping(false);
@@ -425,7 +423,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
-        quickReplies: [], // No quick replies for unknown intent
+        // Removed quickReplies
       };
       setMessages((prev) => [...prev, errorResponse]);
       setIsAiTyping(false);
@@ -449,7 +447,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
-        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
+        // Removed quickReplies
       };
       setMessages((prev) => [...prev, cancelMessage]);
     } else if (lowerCaseReply === 'try again') {
@@ -466,7 +464,7 @@ const ChatPage = () => {
                 sender: 'ai',
                 text: "I don't have a previous query to retry. Please ask me a new question.",
                 timestamp: new Date().toISOString(),
-                quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
+                // Removed quickReplies
             };
             setMessages((prev) => [...prev, noRetryMessage]);
         }
@@ -502,7 +500,6 @@ const ChatPage = () => {
   return (
     <>
       <div className="flex flex-col flex-1">
-        {/* Removed the KudiGuard Chat header */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((msg) => (
             <div
