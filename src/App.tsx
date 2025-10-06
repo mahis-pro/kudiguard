@@ -19,7 +19,8 @@ import AuthenticatedLayout from "@/layouts/AuthenticatedLayout";
 import InsightsPage from "./pages/InsightsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import DecisionHistoryPage from "./pages/DecisionHistoryPage";
-import FinancialDataPage from "./pages/FinancialDataPage"; // Import the new page
+import FinancialDataPage from "./pages/FinancialDataPage";
+import ChatRedirector from "./components/ChatRedirector"; // Import the new component
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,11 +52,14 @@ const App = () => {
 
               {/* Authenticated Routes */}
               <Route element={<AuthenticatedLayout />}>
-                <Route path="/chat/:chatId?" element={<ChatPage />} />
+                {/* Use ChatRedirector for /chat to handle initial chat loading/creation */}
+                <Route path="/chat" element={<ChatRedirector />} />
+                {/* ChatPage will render when a chatId is present in the URL */}
+                <Route path="/chat/:chatId" element={<ChatPage />} />
                 <Route path="/insights" element={<InsightsPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/history" element={<DecisionHistoryPage />} />
-                <Route path="/financial-data" element={<FinancialDataPage />} /> {/* New route */}
+                <Route path="/financial-data" element={<FinancialDataPage />} />
                 <Route path="/settings" element={<Profile />} />
                 {/* Add other authenticated routes here, e.g., /learning-hub */}
               </Route>
