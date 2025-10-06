@@ -55,27 +55,25 @@ const TypingIndicator = () => (
 );
 
 const ChatPage = () => {
-  const { userDisplayName, isLoading: sessionLoading, supabase, session } = useSession();
+  const { isLoading: sessionLoading, supabase, session } = useSession();
   const { toast } = useToast();
   const [messageInput, setMessageInput] = useState('');
   const [isAiTyping, setIsAiTyping] = useState(false);
-  const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
+  const [isAddDataModalOpen, setIsAddDataModal] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const { chatId } = useParams<{ chatId: string }>();
   const queryClient = useQueryClient();
 
-  const initialGreeting = (name: string): ChatMessage => ({
-    id: String(Date.now()),
-    sender: 'ai',
-    text: `Hello ${name}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
-    timestamp: new Date().toISOString(),
-  });
+  // Removed initialGreeting as a standalone function, it will be part of new chat creation.
 
-  const { data: chatData, isLoading: chatLoading, error: chatError } = useQuery<ChatState | null>({
+  const { data: chatData, isLoading: chatLoading, error: chatError } = useQuery<ChatState>({ // Removed | null as ChatRedirector ensures existence
     queryKey: ['chatState', session?.user?.id, chatId],
     queryFn: async () => {
-      if (!session?.user?.id || !chatId) return null;
+      if (!session?.user?.id || !chatId) {
+        // This case should ideally be prevented by ChatRedirector, but as a safeguard
+        throw new Error("User not authenticated or chat ID missing.");
+      }
 
       const { data, error } = await supabase
         .from('chats')
@@ -84,30 +82,15 @@ const ChatPage = () => {
         .eq('user_id', session.user.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-      
-      if (!data) {
-        // If no chat found for the ID, return a default structure.
-        // The ChatRedirector should ideally prevent this, but as a fallback.
-        return {
-          id: chatId, // Ensure ID is present
-          messages: [initialGreeting(userDisplayName || 'there')],
-          pending_data_request: null,
-          current_intent: null,
-          current_question: null,
-          current_payload: {},
-          last_user_query_text: null,
-          last_user_query_intent: null,
-          last_user_query_payload: null,
-          title: null,
-        };
+      if (error || !data) {
+        // ChatRedirector should have handled this, but if it somehow fails, throw.
+        // This will be caught by global React Query error handler.
+        throw new Error(`Chat with ID ${chatId} not found or accessible.`);
       }
 
       return {
         ...data,
-        id: data.id, // Ensure ID is explicitly set
+        id: data.id,
         messages: data.messages || [],
         pending_data_request: data.pending_data_request || null,
         current_payload: data.current_payload || {},
@@ -115,24 +98,7 @@ const ChatPage = () => {
         title: data.title || null,
       };
     },
-    enabled: !!session?.user?.id && !!chatId && !!userDisplayName,
-    initialData: () => {
-      // Provide initial data for the query to prevent `chatData` from being undefined
-      // before the first fetch, especially important for optimistic updates.
-      if (!chatId) return null; // Should not happen if enabled is true
-      return {
-        id: chatId,
-        messages: [initialGreeting(userDisplayName || 'there')],
-        pending_data_request: null,
-        current_intent: null,
-        current_question: null,
-        current_payload: {},
-        last_user_query_text: null,
-        last_user_query_intent: null,
-        last_user_query_payload: null,
-        title: null,
-      };
-    },
+    enabled: !!session?.user?.id && !!chatId, // userDisplayName is not strictly needed for fetching chat data
     refetchOnWindowFocus: false,
   });
 
@@ -201,18 +167,18 @@ const ChatPage = () => {
     },
   });
 
-  // Destructure chatData safely, providing fallbacks for initial render
+  // Destructure chatData directly, as it's guaranteed to exist by ChatRedirector and queryFn
   const {
-    messages = [],
-    pending_data_request: pendingDataRequest = null,
-    current_intent: currentIntent = null,
-    current_question: currentQuestion = null,
-    current_payload: currentPayload = {},
-    last_user_query_text: lastUserQueryText = null,
-    last_user_query_intent: lastUserQueryIntent = null,
-    last_user_query_payload: lastUserQueryPayload = null,
-    title: chatTitle = null,
-  } = chatData || {};
+    messages,
+    pending_data_request: pendingDataRequest,
+    current_intent: currentIntent,
+    current_question: currentQuestion,
+    current_payload: currentPayload,
+    last_user_query_text: lastUserQueryText,
+    last_user_query_intent: lastUserQueryIntent,
+    last_user_query_payload: lastUserQueryPayload,
+    title: chatTitle,
+  } = chatData!; // Assert non-null because of the logic above
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -507,7 +473,7 @@ const ChatPage = () => {
       const currentMessages = latestChatState?.messages || [];
 
       updateChatMutation.mutate({ messages: [...currentMessages, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
-      setIsAddDataModalOpen(true);
+      setIsAddDataModal(true);
     } else if (lowerCaseReply === 'cancel' && pendingDataRequest) {
       // Get the latest chat state from the cache before proceeding
       const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
@@ -700,7 +666,7 @@ const ChatPage = () => {
           )}
         </div>
       </div >
-      <AddDataModal isOpen={isAddDataModalOpen} onClose={() => setIsAddDataModalOpen(false)} />
+      <AddDataModal isOpen={isAddDataModalOpen} onClose={() => setIsAddDataModal(false)} />
     </>
   );
 };

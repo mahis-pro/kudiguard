@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 const AuthenticatedLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
-  const { session, supabase } = useSession();
+  const { session, supabase, userDisplayName } = useSession(); // Destructure userDisplayName
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -26,11 +26,18 @@ const AuthenticatedLayout = () => {
     }
 
     try {
+      const initialGreetingMessage = {
+        id: String(Date.now()),
+        sender: 'ai',
+        text: `Hello ${userDisplayName || 'there'}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
+        timestamp: new Date().toISOString(),
+      };
+
       const { data, error } = await supabase
         .from('chats')
         .insert({
           user_id: session.user.id,
-          messages: [],
+          messages: [initialGreetingMessage], // Add initial greeting here
           current_payload: {},
           title: 'New Chat', // Default title for a new chat
         })
