@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send } from 'lucide-react';
+import { Send, MessageSquarePlus } from 'lucide-react'; // Added MessageSquarePlus import
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/auth/SessionContextProvider';
@@ -73,6 +73,36 @@ const ChatPage = () => {
   const getLocalStorageKey = (userId: string | undefined) => 
     userId ? `kudiguard_chat_state_${userId}` : 'kudiguard_chat_state_anonymous';
 
+  // Initial greeting message
+  const initialGreeting = (name: string): ChatMessage => ({
+    id: '1',
+    sender: 'ai',
+    text: `Hello ${name}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
+    timestamp: new Date().toISOString(),
+    quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
+  });
+
+  // Function to start a new chat
+  const handleStartNewChat = () => {
+    const userId = session?.user?.id;
+    const key = getLocalStorageKey(userId);
+    localStorage.removeItem(key); // Clear from local storage
+
+    setMessages([initialGreeting(userDisplayName || 'User')]);
+    setPendingDataRequest(null);
+    setCurrentIntent(null);
+    setCurrentQuestion(null);
+    setCurrentPayload({});
+    setLastUserQueryText(null);
+    setLastUserQueryIntent(null);
+    setLastUserQueryPayload(null);
+    toast({
+      title: "New Chat Started",
+      description: "Your conversation history has been cleared.",
+      variant: "default",
+    });
+  };
+
   // Effect to load chat state from localStorage on mount
   useEffect(() => {
     if (!sessionLoading && userDisplayName) {
@@ -135,14 +165,6 @@ const ChatPage = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isAiTyping]);
-
-  const initialGreeting = (name: string): ChatMessage => ({
-    id: '1',
-    sender: 'ai',
-    text: `Hello ${name}! I'm KudiGuard, your AI financial analyst. How can I help your business today?`,
-    timestamp: new Date().toISOString(),
-    quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
-  });
 
   const sendToDecisionEngine = async (intent: string, question: string, payload?: Record<string, any>) => {
     setIsAiTyping(true);
@@ -216,7 +238,7 @@ const ChatPage = () => {
         text: "I've analyzed your financial data. Here is my recommendation:",
         timestamp: new Date().toISOString(),
         cards: [<DecisionCard key="decision-card" data={edgeFunctionResult.data} />],
-        quickReplies: ['Thanks!', 'What else can you do?'],
+        quickReplies: ['Thanks!'],
       };
       setMessages((prev) => [...prev, aiResponse]);
       setPendingDataRequest(null);
@@ -275,7 +297,7 @@ const ChatPage = () => {
             sender: 'ai',
             text: "You're most welcome! I'm here to help your business thrive. Is there anything else I can assist you with?",
             timestamp: new Date().toISOString(),
-            quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
+            quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
         };
         setMessages((prev) => [...prev, userThankYou, aiReply]);
         setMessageInput('');
@@ -374,7 +396,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
-          quickReplies: ['What else can you do?'],
+          quickReplies: [], // No quick replies for unknown intent
         };
         setMessages((prev) => [...prev, errorResponse]);
         setIsAiTyping(false);
@@ -390,7 +412,7 @@ const ChatPage = () => {
           sender: 'ai',
           text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loan, and business expansion decisions. Please ask me a question related to these topics.",
           timestamp: new Date().toISOString(),
-          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
+          quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
         };
         setMessages((prev) => [...prev, noIntentResponse]);
         setIsAiTyping(false);
@@ -422,7 +444,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
-        quickReplies: ['What else can you do?'],
+        quickReplies: [], // No quick replies for unknown intent
       };
       setMessages((prev) => [...prev, errorResponse]);
       setIsAiTyping(false);
@@ -446,7 +468,7 @@ const ChatPage = () => {
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
-        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
+        quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
       };
       setMessages((prev) => [...prev, cancelMessage]);
     } else if (lowerCaseReply === 'try again') {
@@ -463,20 +485,10 @@ const ChatPage = () => {
                 sender: 'ai',
                 text: "I don't have a previous query to retry. Please ask me a new question.",
                 timestamp: new Date().toISOString(),
-                quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data', 'What else can you do?'],
+                quickReplies: ['Should I hire someone?', 'Should I restock?', 'Should I invest in marketing?', 'How can I improve my savings?', 'Should I buy new equipment?', 'Should I take a loan?', 'Should I expand my business?', 'Add new data'],
             };
             setMessages((prev) => [...prev, noRetryMessage]);
         }
-    } else if (lowerCaseReply === 'what else can you do?') {
-        setMessages((prev) => [...prev, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }]);
-        setMessages([initialGreeting(userDisplayName || 'User')]);
-        setPendingDataRequest(null);
-        setCurrentIntent(null);
-        setCurrentQuestion(null);
-        setCurrentPayload({});
-        setLastUserQueryText(null);
-        setLastUserQueryIntent(null);
-        setLastUserQueryPayload(null);
     } else {
         setMessageInput(reply); 
         setTimeout(() => handleSendMessage(reply), 0); 
@@ -509,6 +521,17 @@ const ChatPage = () => {
   return (
     <>
       <div className="flex flex-col flex-1">
+        <div className="flex items-center justify-between p-4 border-b border-border bg-card sticky top-0 z-10">
+          <h2 className="text-xl font-semibold text-primary">KudiGuard Chat</h2>
+          <Button
+            variant="outline"
+            onClick={handleStartNewChat}
+            className="flex items-center"
+          >
+            <MessageSquarePlus className="h-4 w-4 mr-2" />
+            Start New Chat
+          </Button>
+        </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((msg) => (
             <div
