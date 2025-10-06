@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom"; // Removed useOutletContext
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
@@ -17,14 +17,14 @@ import ResetPassword from "./pages/ResetPassword";
 import { SessionContextProvider } from "./components/auth/SessionContextProvider";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout";
 import InsightsPage from "./pages/InsightsPage";
-import AnalyticsPage from "./pages/AnalyticsPage"; // Import the new AnalyticsPage
+import AnalyticsPage from "./pages/AnalyticsPage";
 import DecisionHistoryPage from "./pages/DecisionHistoryPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false, // Disable automatic refetching when window regains focus
-      staleTime: 1000 * 60 * 5, // Data is considered fresh for 5 minutes
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5,
     },
   },
 });
@@ -35,7 +35,7 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <SessionContextProvider>
             <Routes>
               {/* Public Routes */}
@@ -52,7 +52,7 @@ const App = () => {
               <Route element={<AuthenticatedLayout />}>
                 <Route path="/chat" element={<ChatPage />} />
                 <Route path="/insights" element={<InsightsPage />} />
-                <Route path="/analytics" element={<AnalyticsPage />} /> {/* New Analytics Route */}
+                <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/history" element={<DecisionHistoryPage />} />
                 <Route path="/settings" element={<Profile />} />
                 {/* Add other authenticated routes here, e.g., /learning-hub */}

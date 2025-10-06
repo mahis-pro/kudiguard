@@ -83,10 +83,14 @@ const DecisionDetailsDialog = ({ isOpen, onClose, decision }: DecisionDetailsDia
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+        aria-labelledby="decision-details-dialog-title"
+        aria-describedby="decision-details-dialog-description"
+      >
         <DialogHeader>
-          <DialogTitle className="text-2xl text-primary">Decision Details</DialogTitle>
-          <DialogDescription>
+          <DialogTitle id="decision-details-dialog-title" className="text-2xl text-primary">Decision Details</DialogTitle>
+          <DialogDescription id="decision-details-dialog-description">
             Review the full analysis and recommendation for your question.
           </DialogDescription>
         </DialogHeader>

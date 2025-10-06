@@ -79,10 +79,14 @@ const AddDataModal = ({ isOpen, onClose }: AddDataModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent 
+        className="sm:max-w-[425px]"
+        aria-labelledby="add-data-modal-title"
+        aria-describedby="add-data-modal-description"
+      >
         <DialogHeader>
-          <DialogTitle>Add New Financial Data</DialogTitle>
-          <DialogDescription>
+          <DialogTitle id="add-data-modal-title">Add New Financial Data</DialogTitle>
+          <DialogDescription id="add-data-modal-description">
             Provide your latest financial numbers. This data will be used to give you personalized advice.
           </DialogDescription>
         </DialogHeader>
