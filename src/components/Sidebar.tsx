@@ -10,12 +10,12 @@ interface SidebarProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (isOpen: boolean) => void;
   onAddDataClick: () => void;
-  onStartNewChatClick: () => void;
+  onStartNewChatClick: () => void; // This prop is now used
 }
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewChatClick }: SidebarProps) => {
   const location = useLocation();
-  const { supabase } = useSession(); // Removed userDisplayName
+  const { supabase } = useSession();
   const { toast } = useToast();
 
   const navItems = [
@@ -54,7 +54,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
   };
 
   const handleNewChat = () => {
-    onStartNewChatClick();
+    onStartNewChatClick(); // Call the prop function
     setIsSidebarOpen(false);
   };
 
