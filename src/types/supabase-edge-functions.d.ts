@@ -12,6 +12,14 @@ declare module "https://deno.land/std@0.190.0/http/server.ts" {
   export function serve(handler: (req: Request) => Promise<Response> | Response): Promise<void>;
 }
 
+// Simplified declaration for supabase-js to help local TS compiler
+// The actual Edge Function will still use the URL import.
+declare module "@supabase/supabase-js" {
+  import { SupabaseClient } from '@supabase/supabase-js'; // This refers to the npm package types
+  export { SupabaseClient };
+  export function createClient(supabaseUrl: string, supabaseKey: string, options?: any): SupabaseClient;
+}
+
 declare module "https://esm.sh/@supabase/supabase-js@2.45.0" {
   import { SupabaseClient } from '@supabase/supabase-js';
   export { SupabaseClient };
@@ -77,7 +85,6 @@ export type DecisionResult = {
   total_business_assets?: number | null;
   total_monthly_debt_repayments?: number | null;
   loan_purpose_is_revenue_generating?: boolean | null;
-  // New fields for business_expansion
   profit_growth_consistent_6_months?: boolean | null;
   market_research_validates_demand?: boolean | null;
   capital_available_percentage_of_cost?: number | null;
