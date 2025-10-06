@@ -1,28 +1,29 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { LayoutDashboard, Settings, PlusCircle, LogOut, History, MessageSquarePlus, MessageSquareText, DollarSign } from 'lucide-react'; // Removed LineChart
+import { LayoutDashboard, Settings, PlusCircle, LogOut, History, MessageSquarePlus, MessageSquareText, DollarSign } from 'lucide-react';
 import kudiGuardLogo from '@/assets/kudiguard-logo.png';
 import { useSession } from '@/components/auth/SessionContextProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 interface SidebarProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (isOpen: boolean) => void;
   onAddDataClick: () => void;
-  onStartNewChatClick: () => void;
+  onStartNewChatClick: () => Promise<string | null>; // Updated return type to Promise<string | null>
 }
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewChatClick }: SidebarProps) => {
   const location = useLocation();
+  const navigate = useNavigate(); // Initialize useNavigate
   const { supabase, session, isLoading: sessionLoading } = useSession();
   const { toast } = useToast();
 
   const navItems = [
     { path: '/insights', icon: LayoutDashboard, label: 'Insights' },
-    // Removed Analytics link: { path: '/analytics', icon: LineChart, label: 'Analytics' },
     { path: '/history', icon: History, label: 'Decision History' },
     { path: '/financial-data', icon: DollarSign, label: 'Financial Data' },
     { path: '/settings', icon: Settings, label: 'Settings' },
@@ -35,9 +36,9 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
       if (!session?.user?.id) return [];
       const { data, error } = await supabase
         .from('chats')
-        .select('id, title, current_question, created_at') // Fetch the new 'title' column
+        .select('id, title, current_question, created_at')
         .eq('user_id', session.user.id)
-        .order('updated_at', { ascending: false }); // Order by updated_at for latest activity
+        .order('updated_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -56,6 +57,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
         variant: "default",
       });
       setIsSidebarOpen(false);
+      navigate('/'); // Redirect to landing page after logout
     } catch (error: any) {
       console.error('Error logging out:', error.message);
       toast({
@@ -71,8 +73,11 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen, onAddDataClick, onStartNewCh
     setIsSidebarOpen(false);
   };
 
-  const handleNewChat = () => {
-    onStartNewChatClick();
+  const handleNewChat = async () => {
+    const newChatId = await onStartNewChatClick();
+    if (newChatId) {
+      navigate(`/chat/${newChatId}`); // Redirect to the new chat page
+    }
     setIsSidebarOpen(false);
   };
 

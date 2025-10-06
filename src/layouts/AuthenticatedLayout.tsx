@@ -10,7 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 const AuthenticatedLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAddDataModalOpen, setIsAddDataModalOpen] = useState(false);
-  const { session, supabase, userDisplayName } = useSession(); // Destructure userDisplayName
+  const { session, supabase, userDisplayName } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -22,7 +22,7 @@ const AuthenticatedLayout = () => {
         description: "Please log in to start a new chat.",
         variant: "destructive",
       });
-      return;
+      return null; // Return null if not authenticated
     }
 
     try {
@@ -37,9 +37,9 @@ const AuthenticatedLayout = () => {
         .from('chats')
         .insert({
           user_id: session.user.id,
-          messages: [initialGreetingMessage], // Add initial greeting here
+          messages: [initialGreetingMessage],
           current_payload: {},
-          title: 'New Chat', // Default title for a new chat
+          title: 'New Chat',
         })
         .select('id')
         .single();
@@ -50,8 +50,7 @@ const AuthenticatedLayout = () => {
 
       queryClient.invalidateQueries({ queryKey: ['chatState', session.user.id] });
       queryClient.invalidateQueries({ queryKey: ['chatHistory', session.user.id] });
-      // The navigation to the new chat ID will be handled by the component that calls this function
-      // (e.g., Sidebar, which will then trigger ChatRedirector or ChatPage)
+      
       toast({
         title: "New Chat Started",
         description: "Your conversation history has been cleared and a new chat begun.",
@@ -68,9 +67,6 @@ const AuthenticatedLayout = () => {
       return null;
     }
   };
-
-  // The useEffect for chat redirection has been moved to ChatRedirector.tsx
-  // This layout now simply renders its children (Outlet) for all authenticated routes.
 
   return (
     <div className="min-h-screen flex bg-gradient-subtle">
