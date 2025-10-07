@@ -15,7 +15,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Lexend", ...fontFamily.sans],
+        sans: ["Fira Sans", ...fontFamily.sans],
       },
       colors: {
         border: "hsl(var(--border))",
