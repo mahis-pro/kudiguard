@@ -74,6 +74,9 @@ export interface DecisionCardProps {
     revenue_growth_trend?: 'consistent_growth' | 'positive_fluctuating' | 'declining_unstable' | null;
     feedback?: number | null; // Added feedback field
   };
+  chatId?: string; // New optional prop
+  messageId?: string; // New optional prop
+  onFeedbackSuccess?: (messageId: string, newFeedbackValue: number) => void; // New optional callback
 }
 
 // StarRating Component
@@ -105,7 +108,7 @@ const StarRating = ({ rating, onRatingChange, disabled = false }: StarRatingProp
   );
 };
 
-const DecisionCard = ({ data }: DecisionCardProps) => {
+const DecisionCard = ({ data, messageId, onFeedbackSuccess }: DecisionCardProps) => {
   const { supabase, session } = useSession();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -317,7 +320,7 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
         throw new Error(edgeFunctionResult?.error?.details || "Failed to submit feedback.");
       }
 
-      setFeedbackStatus(value);
+      setFeedbackStatus(value); // Update local state immediately
       toast({
         title: "Feedback Submitted",
         description: `Thank you for your ${value}-star feedback! We'll use it to improve.`,
@@ -326,6 +329,12 @@ const DecisionCard = ({ data }: DecisionCardProps) => {
       // Invalidate relevant queries to refetch data and update UI
       queryClient.invalidateQueries({ queryKey: ['recentDecisions', session.user.id] });
       queryClient.invalidateQueries({ queryKey: ['decisionHistory', session.user.id] });
+
+      // Call the callback to update the chat message in ChatPage
+      if (messageId && onFeedbackSuccess) {
+        onFeedbackSuccess(messageId, value);
+      }
+
     } catch (error: any) {
       console.error("Error submitting feedback:", error);
       toast({

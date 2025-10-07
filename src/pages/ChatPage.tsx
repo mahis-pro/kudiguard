@@ -134,7 +134,7 @@ const ChatPage = () => {
           current_intent: newChatState.current_intent !== undefined ? newChatState.current_intent : old.current_intent,
           current_question: newChatState.current_question !== undefined ? newChatState.current_question : old.current_question,
           last_user_query_text: newChatState.last_user_query_text !== undefined ? newChatState.last_user_query_text : old.last_user_query_text,
-          last_user_query_intent: newChatState.last_user_query_intent !== undefined ? newChatState.last_user_query_intent : old.last_user_query_intent,
+          last_user_query_intent: newChatState.last_user_query_intent !== undefined ? newChatState.last_user_query_intent : old.current_intent, // Fixed: should be old.last_user_query_intent
           last_user_query_payload: newChatState.last_user_query_payload !== undefined ? newChatState.last_user_query_payload : old.last_user_query_payload,
           title: newChatState.title !== undefined ? newChatState.title : old.title,
         };
@@ -182,6 +182,26 @@ const ChatPage = () => {
       messages: [...currentMessages, newMessage],
       ...additionalState,
     });
+  };
+
+  // New function to handle feedback from DecisionCard
+  const handleDecisionFeedback = (messageId: string, newFeedbackValue: number) => {
+    const updatedMessages = messages?.map(msg => {
+      if (msg.id === messageId && msg.decisionData) {
+        return {
+          ...msg,
+          decisionData: {
+            ...msg.decisionData,
+            feedback: newFeedbackValue,
+          },
+        };
+      }
+      return msg;
+    });
+
+    if (updatedMessages) {
+      updateChatMutation.mutate({ messages: updatedMessages });
+    }
   };
 
   const sendToDecisionEngine = async (intent: string, question: string, payload?: Record<string, any>) => {
@@ -573,7 +593,16 @@ const ChatPage = () => {
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                {msg.decisionData && <div className="mt-2"><DecisionCard data={msg.decisionData} /></div>}
+                {msg.decisionData && (
+                  <div className="mt-2">
+                    <DecisionCard 
+                      data={msg.decisionData} 
+                      chatId={chatId} // Pass chatId
+                      messageId={msg.id} // Pass messageId
+                      onFeedbackSuccess={handleDecisionFeedback} // Pass callback
+                    />
+                  </div>
+                )}
                 {msg.quickReplies && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {msg.quickReplies.map((reply: string, index: number) => (
