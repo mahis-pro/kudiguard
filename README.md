@@ -1,8 +1,8 @@
-# Welcome to your Lovable project
+# Welcome to KudiGuard
 
-## Project info
+## Project Info
 
-**URL**: https://lovable.dev/projects/893b7344-b02a-4c1d-b7f3-1ffdac7a2d32
+**KudiGuard** is your dedicated AI financial advisor, built to help small business owners in Nigeria make smarter, data-driven decisions for sustainable growth.
 
 ## How can I edit this code?
 
@@ -54,11 +54,17 @@ npm run dev
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+-   **Frontend Framework**: React (with Vite for fast development)
+-   **Language**: TypeScript
+-   **Styling**: Tailwind CSS for utility-first styling
+-   **UI Components**: shadcn/ui (built on Radix UI) for accessible and customizable UI components
+-   **Routing**: React Router DOM for client-side navigation
+-   **Icons**: Lucide React for vector icons
+-   **Form Management**: React Hook Form for robust form handling
+-   **Schema Validation**: Zod for defining and validating data schemas
+-   **Data Fetching/State Management**: React Query for server state management
+-   **Toasts/Notifications**: Custom `useToast` hook (built on Radix UI Toast) and Sonner for user feedback.
+-   **Backend/Database**: Supabase for authentication, database, and edge functions.
 
 ## How can I deploy this project?
 
