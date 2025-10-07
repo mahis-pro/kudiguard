@@ -4,76 +4,107 @@
 
 **KudiGuard** is your dedicated AI financial advisor, built to help small business owners in Nigeria make smarter, data-driven decisions for sustainable growth.
 
-## How can I edit this code?
+## Getting Started
 
-There are several ways of editing your application.
+This project is a React application bootstrapped with Vite, using TypeScript and Tailwind CSS. To get a local copy up and running, follow these simple steps.
 
-**Use Lovable**
+### Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/893b7344-b02a-4c1d-b7f3-1ffdac7a2d32) and start prompting.
+Ensure you have Node.js and npm (or Yarn/Bun) installed on your machine. We recommend using `nvm` for managing Node.js versions.
 
-Changes made via Lovable will be committed automatically to this repo.
+*   **Node.js**: [Install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+*   **npm**: Usually comes with Node.js.
 
-**Use your preferred IDE**
+### Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1.  **Clone the repository:**
+    ```sh
+    git clone <YOUR_GIT_URL>
+    ```
+2.  **Navigate to the project directory:**
+    ```sh
+    cd <YOUR_PROJECT_NAME>
+    ```
+3.  **Install dependencies:**
+    ```sh
+    npm install
+    # or yarn install
+    # or bun install
+    ```
+4.  **Set up Environment Variables:**
+    Create a `.env` file in the root of the project based on `.env.example` (if provided) and fill in your Supabase credentials and any other necessary API keys.
+    ```
+    VITE_SUPABASE_URL="YOUR_SUPABASE_URL"
+    VITE_SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY"
+    VITE_GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+    ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Running the Application
 
-Follow these steps:
+To start the development server:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
+# or yarn dev
+# or bun dev
 ```
 
-**Edit a file directly in GitHub**
+This will start the application, typically accessible at `http://localhost:8080` (or another port if 8080 is in use).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Building for Production
 
-**Use GitHub Codespaces**
+To build the application for production:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```sh
+npm run build
+# or yarn build
+# or bun build
+```
+
+This will compile the project into the `dist` directory, ready for deployment.
 
 ## What technologies are used for this project?
 
-This project is built with:
+This project is built with a modern and robust tech stack:
 
--   **Frontend Framework**: React (with Vite for fast development)
--   **Language**: TypeScript
--   **Styling**: Tailwind CSS for utility-first styling
--   **UI Components**: shadcn/ui (built on Radix UI) for accessible and customizable UI components
--   **Routing**: React Router DOM for client-side navigation
--   **Icons**: Lucide React for vector icons
--   **Form Management**: React Hook Form for robust form handling
--   **Schema Validation**: Zod for defining and validating data schemas
--   **Data Fetching/State Management**: React Query for server state management
--   **Toasts/Notifications**: Custom `useToast` hook (built on Radix UI Toast) and Sonner for user feedback.
--   **Backend/Database**: Supabase for authentication, database, and edge functions.
+*   **Frontend Framework**: React (with Vite for fast development)
+*   **Language**: TypeScript
+*   **Styling**: Tailwind CSS for utility-first styling
+*   **UI Components**: shadcn/ui (built on Radix UI) for accessible and customizable UI components
+*   **Routing**: React Router DOM for client-side navigation
+*   **Icons**: Lucide React for vector icons
+*   **Form Management**: React Hook Form for robust form handling
+*   **Schema Validation**: Zod for defining and validating data schemas
+*   **Data Fetching/State Management**: React Query for server state management
+*   **Toasts/Notifications**: Custom `useToast` hook (built on Radix UI Toast) and Sonner for user feedback.
+*   **Backend/Database**: Supabase for authentication, database, and edge functions.
 
-## How can I deploy this project?
+## Project Structure
 
-Simply open [Lovable](https://lovable.dev/projects/893b7344-b02a-4c1d-b7f3-1ffdac7a2d32) and click on Share -> Publish.
+The project follows a standard React application structure:
 
-## Can I connect a custom domain to my Lovable project?
+*   `src/`: Contains all source code.
+    *   `assets/`: Static assets like images.
+    *   `components/`: Reusable UI components.
+        *   `ui/`: shadcn/ui components.
+        *   `auth/`: Authentication-related components and context.
+    *   `hooks/`: Custom React hooks.
+    *   `integrations/`: Integrations with external services (e.g., Supabase client).
+    *   `layouts/`: Layout components for different parts of the application.
+    *   `lib/`: Utility functions and configurations.
+    *   `pages/`: Top-level page components.
+    *   `types/`: TypeScript type definitions.
+*   `supabase/`: Supabase Edge Functions.
+    *   `functions/`: Individual Edge Functions.
+*   `public/`: Publicly accessible static files.
+*   `tailwind.config.ts`, `postcss.config.js`: Tailwind CSS configuration.
+*   `vite.config.ts`: Vite build tool configuration.
+*   `package.json`: Project dependencies and scripts.
 
-Yes, you can!
+## Contributing
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Feel free to fork the repository, make changes, and submit pull requests. Please ensure your code adheres to the existing style and conventions.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## License
+
+[Specify your project's license here, e.g., MIT License]
