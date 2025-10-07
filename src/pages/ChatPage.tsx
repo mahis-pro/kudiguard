@@ -173,10 +173,19 @@ const ChatPage = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isAiTyping]);
 
-  const sendToDecisionEngine = async (intent: string, question: string, payload?: Record<string, any>) => {
-    setIsAiTyping(true);
+  // Helper function to add a message to the chat and update state
+  const addMessageToChat = (newMessage: ChatMessage, additionalState: Partial<ChatState> = {}) => {
     const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
     const currentMessages = latestChatState?.messages || [];
+    
+    updateChatMutation.mutate({
+      messages: [...currentMessages, newMessage],
+      ...additionalState,
+    });
+  };
+
+  const sendToDecisionEngine = async (intent: string, question: string, payload?: Record<string, any>) => {
+    setIsAiTyping(true);
 
     try {
       const { data: edgeFunctionResult, error: invokeError } = await supabase.functions.invoke('decision-engine', {
@@ -202,10 +211,9 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
-          quickReplies: ['Try again', 'Add New Data'], // Added quick replies
+          quickReplies: ['Try again', 'Add New Data'],
         };
-        updateChatMutation.mutate({
-          messages: [...currentMessages, errorResponse],
+        addMessageToChat(errorResponse, {
           pending_data_request: null,
           current_intent: null,
           current_question: null,
@@ -229,10 +237,9 @@ const ChatPage = () => {
           dataNeeded: dataNeeded,
           originalQuestion: question,
           collectedPayload: dataNeeded.intent_context.current_payload || {}, 
-          quickReplies: ['Cancel', 'Add New Data'], // Added quick replies for data needed
+          quickReplies: ['Cancel', 'Add New Data'],
         };
-        updateChatMutation.mutate({
-          messages: [...currentMessages, dataNeededMessage],
+        addMessageToChat(dataNeededMessage, {
           pending_data_request: dataNeeded,
           current_intent: intent,
           current_question: question,
@@ -248,10 +255,9 @@ const ChatPage = () => {
         text: "I've analyzed your financial data. Here is my recommendation:",
         timestamp: new Date().toISOString(),
         decisionData: edgeFunctionResult.data,
-        quickReplies: ['Start New Chat', 'Add New Data'], // Added quick replies after decision
+        quickReplies: ['Start New Chat', 'Add New Data'],
       };
-      updateChatMutation.mutate({
-        messages: [...currentMessages, aiResponse],
+      addMessageToChat(aiResponse, {
         pending_data_request: null,
         current_intent: null,
         current_question: null,
@@ -275,9 +281,9 @@ const ChatPage = () => {
         sender: 'ai',
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
-        quickReplies: ['Try again', 'Add New Data'], // Added quick replies
+        quickReplies: ['Try again', 'Add New Data'],
       };
-      updateChatMutation.mutate({ messages: [...currentMessages, errorResponse] });
+      addMessageToChat(errorResponse);
     } finally {
       setIsAiTyping(false);
     }
@@ -293,9 +299,6 @@ const ChatPage = () => {
 
     const lowerCaseInput = finalMessageInput.toLowerCase();
 
-    const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
-    const currentMessages = latestChatState?.messages || [];
-
     const userMessage: ChatMessage = {
         id: String(Date.now()),
         sender: 'user',
@@ -303,16 +306,21 @@ const ChatPage = () => {
         timestamp: new Date().toISOString(),
     };
 
+    // Add user message optimistically first
+    addMessageToChat(userMessage);
+    setMessageInput('');
+    setIsAiTyping(true);
+
     if (['thank you', 'thanks', 'thank you!', 'thanks!'].includes(lowerCaseInput)) {
         const aiReply: ChatMessage = {
             id: String(Date.now() + 1),
             sender: 'ai',
             text: "You're most welcome! I'm here to help your business thrive. Is there anything else I can assist you with?",
             timestamp: new Date().toISOString(),
-            quickReplies: ['Start New Chat', 'Add New Data'], // Added quick replies
+            quickReplies: ['Start New Chat', 'Add New Data'],
         };
-        updateChatMutation.mutate({ messages: [...currentMessages, userMessage, aiReply] });
-        setMessageInput('');
+        addMessageToChat(aiReply);
+        setIsAiTyping(false);
         return;
     }
 
@@ -341,9 +349,9 @@ const ChatPage = () => {
             sender: 'ai',
             text: `I couldn't understand your choice. Please select one of the following options: ${pendingDataRequest.options?.join(', ')}.`,
             timestamp: new Date().toISOString(),
-            quickReplies: ['Cancel', 'Try again'], // Added quick replies
+            quickReplies: ['Cancel', 'Try again'],
           };
-          updateChatMutation.mutate({ messages: [...currentMessages, userMessage, retryMessage] });
+          addMessageToChat(retryMessage);
           setIsAiTyping(false);
           return;
         }
@@ -355,9 +363,9 @@ const ChatPage = () => {
           sender: 'ai',
           text: `I couldn't understand the value. Please provide a valid input for ${pendingDataRequest.field.replace(/_/g, ' ')} (e.g., '50000', 'Yes/No', or select from options).`,
           timestamp: new Date().toISOString(),
-          quickReplies: ['Cancel', 'Try again'], // Added quick replies
+          quickReplies: ['Cancel', 'Try again'],
         };
-        updateChatMutation.mutate({ messages: [...currentMessages, userMessage, retryMessage] });
+        addMessageToChat(retryMessage);
         setIsAiTyping(false);
         return;
       }
@@ -365,21 +373,15 @@ const ChatPage = () => {
       const updatedPayload = { ...currentPayload, [pendingDataRequest.field]: parsedValue };
       
       updateChatMutation.mutate({
-          messages: [...currentMessages, userMessage],
           current_payload: updatedPayload,
           pending_data_request: null,
           current_intent: currentIntent,
           current_question: currentQuestion,
       });
-      setMessageInput('');
       sendToDecisionEngine(currentIntent, currentQuestion, updatedPayload);
       return;
     }
 
-    updateChatMutation.mutate({ messages: [...currentMessages, userMessage] });
-    setMessageInput('');
-
-    setIsAiTyping(true);
     try {
       const { data: intentParserResult, error: invokeError } = await supabase.functions.invoke('intent-parser', {
         body: { user_query: finalMessageInput },
@@ -396,9 +398,9 @@ const ChatPage = () => {
           sender: 'ai',
           text: `Error: ${errorMessage}`,
           timestamp: new Date().toISOString(),
-          quickReplies: ['Try again', 'Add New Data'], // Added quick replies
+          quickReplies: ['Try again', 'Add New Data'],
         };
-        updateChatMutation.mutate({ messages: [...currentMessages, errorResponse] });
+        addMessageToChat(errorResponse);
         setIsAiTyping(false);
         return;
       }
@@ -412,9 +414,9 @@ const ChatPage = () => {
           sender: 'ai',
           text: "I'm currently specialized in hiring, inventory, marketing, savings, equipment, loans, or business expansion decisions. Please ask me a question related to these topics.",
           timestamp: new Date().toISOString(),
-          quickReplies: ['Try again', 'Add New Data'], // Added quick replies
+          quickReplies: ['Try again', 'Add New Data'],
         };
-        updateChatMutation.mutate({ messages: [...currentMessages, noIntentResponse] });
+        addMessageToChat(noIntentResponse);
         setIsAiTyping(false);
         return;
       }
@@ -447,9 +449,9 @@ const ChatPage = () => {
         sender: 'ai',
         text: `Error: ${errorMessage}`,
         timestamp: new Date().toISOString(),
-        quickReplies: ['Try again', 'Add New Data'], // Added quick replies
+        quickReplies: ['Try again', 'Add New Data'],
       };
-      updateChatMutation.mutate({ messages: [...currentMessages, errorResponse] });
+      addMessageToChat(errorResponse);
     } finally {
       setIsAiTyping(false);
     }
@@ -458,36 +460,33 @@ const ChatPage = () => {
   const handleQuickReply = (reply: string) => {
     const lowerCaseReply = reply.toLowerCase();
 
-    if (lowerCaseReply === 'add new data') {
-      const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
-      const currentMessages = latestChatState?.messages || [];
+    const userQuickReplyMessage: ChatMessage = {
+      id: String(Date.now()),
+      sender: 'user',
+      text: reply,
+      timestamp: new Date().toISOString(),
+    };
 
-      updateChatMutation.mutate({ messages: [...currentMessages, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
+    if (lowerCaseReply === 'add new data') {
+      addMessageToChat(userQuickReplyMessage);
       setIsAddDataModalOpen(true);
     } else if (lowerCaseReply === 'cancel' && pendingDataRequest) {
-      const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
-      const currentMessages = latestChatState?.messages || [];
-
-      updateChatMutation.mutate({
-        messages: [...currentMessages, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }],
-        pending_data_request: null,
-        current_intent: null,
-        current_question: null,
-        current_payload: {},
-      });
+      addMessageToChat(userQuickReplyMessage);
       const cancelMessage: ChatMessage = {
         id: String(Date.now()),
         sender: 'ai',
         text: "Okay, I've cancelled the current data request. How else can I help?",
         timestamp: new Date().toISOString(),
-        quickReplies: ['Start New Chat', 'Add New Data'], // Added quick replies
+        quickReplies: ['Start New Chat', 'Add New Data'],
       };
-      updateChatMutation.mutate({ messages: [...currentMessages, cancelMessage] });
+      addMessageToChat(cancelMessage, {
+        pending_data_request: null,
+        current_intent: null,
+        current_question: null,
+        current_payload: {},
+      });
     } else if (lowerCaseReply === 'try again') {
-        const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
-        const currentMessages = latestChatState?.messages || [];
-
-        updateChatMutation.mutate({ messages: [...currentMessages, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
+        addMessageToChat(userQuickReplyMessage);
         if (lastUserQueryIntent && lastUserQueryText) {
             updateChatMutation.mutate({
                 pending_data_request: null,
@@ -502,18 +501,13 @@ const ChatPage = () => {
                 sender: 'ai',
                 text: "I don't have a previous query to retry. Please ask me a new question.",
                 timestamp: new Date().toISOString(),
-                quickReplies: ['Start New Chat', 'Add New Data'], // Added quick replies
+                quickReplies: ['Start New Chat', 'Add New Data'],
             };
-            updateChatMutation.mutate({ messages: [...currentMessages, noRetryMessage] });
+            addMessageToChat(noRetryMessage);
         }
-    } else if (lowerCaseReply === 'start new chat') { // Handle 'Start New Chat' quick reply
-      const latestChatState = queryClient.getQueryData<ChatState>(['chatState', session?.user?.id, chatId]);
-      const currentMessages = latestChatState?.messages || [];
-
-      updateChatMutation.mutate({ messages: [...currentMessages, { id: String(Date.now()), sender: 'user', text: reply, timestamp: new Date().toISOString() }] });
-      // The ChatRedirector component already handles creating a new chat if no chatId is present.
-      // We can simply navigate to /chat, and it will handle the rest.
-      window.location.href = '/chat'; // Force a full reload to trigger ChatRedirector
+    } else if (lowerCaseReply === 'start new chat') {
+      addMessageToChat(userQuickReplyMessage);
+      window.location.href = '/chat';
     } else {
         setMessageInput(reply); 
         setTimeout(() => handleSendMessage(reply), 0); 
